@@ -6,6 +6,8 @@
 
 Каждый контейнер имеет тройку типов `<Name>ContainerOptions` / `<Name>ContainerConfig` / `<Name>ContainerProps` (см. [[types#Контейнеры|сводную таблицу]]). В карточках ниже указан литерал `templateName` и поля `<Name>Options` — какие опции из [[options|`ConfigOptions`]] контейнер реально читает.
 
+**Каждый контейнер обязан иметь поле `id`** — уникальное имя в keyspace `ConfigContainer.id` (типы `ContainerId` / `ChartId` / `ModalId` / `TabId`). Через него работают навигация, связи (`tabId`, `modalId`, `chartId`, `downloadById`), управление состоянием (`expandedContainers`, `selectedTabId`). Подробности и таблица slot-id для `children` — в [[concepts#ID контейнеров и элементов|разделе про id]]. В примерах ниже `id` контейнеров — иллюстративные доменные имена; в реальном конфиге они должны быть уникальны.
+
 ---
 
 ## Список контейнеров
@@ -29,6 +31,7 @@
 
 ```tsx
 {
+  id: "buildings_add",
   templateName: "AddFeature",
   children: [{
     type: "button",
@@ -67,6 +70,7 @@
 
 ```tsx
 {
+  id: "files_attachments",
   templateName: "Attachment",
   options: {
     viewMode: "grid",
@@ -96,6 +100,7 @@
 
 ```tsx
 {
+  id: "entry_camera",
   templateName: "Camera",
   options: { expandable: true, expanded: true },
   children: [
@@ -124,6 +129,7 @@
 
 ```tsx
 {
+  id: "types_chart",
   templateName: "Chart",
   options: { twoColumns: true },
   children: [
@@ -154,6 +160,7 @@
 
 ```tsx
 {
+  id: "main_group",
   templateName: "ContainersGroup",
   options: { column: false },
   children: [leftPanel, rightPanel]
@@ -183,9 +190,10 @@
 
 ```tsx
 {
+  id: "buildings_list",
   templateName: "DataSource",
   options: { relatedDataSource: "buildings_ds", shownItems: 5 },
-  children: [{ templateName: "RoundedBackground", ... }]
+  children: [{ id: "status_card", templateName: "RoundedBackground", ... }]
 }
 ```
 
@@ -221,6 +229,7 @@
 
 ```tsx
 {
+  id: "districts_progress",
   templateName: "DataSourceProgress",
   options: { relatedDataSource: "districts_ds", showTotal: true, shownItems: 5 }
 }
@@ -247,7 +256,7 @@
 | `bgColor` | `string` | Цвет разделителя (CSS-значение, например `"#e0e0e0"`) |
 
 ```tsx
-{ templateName: "Divider", options: { bgColor: "#e0e0e0" } }
+{ id: "section_divider", templateName: "Divider", options: { bgColor: "#e0e0e0" } }
 ```
 
 ---
@@ -295,6 +304,7 @@
 
 ```tsx
 {
+  id: "status_dropdown",
   templateName: "EditDropdown",
   options: { attributeName: "status", relatedDataSource: "statuses_ds" },
   children: [{ id: "alias", value: "Статус" }]
@@ -319,6 +329,7 @@
 
 ```tsx
 {
+  id: "attachments_edit",
   templateName: "EditAttachment",
   options: {
     parentResourceId: "documents_root",
@@ -343,7 +354,7 @@
 | `title` | `string` | Подпись кнопки (default: из локализации) |
 
 ```tsx
-{ templateName: "ExportPdf", options: { icon: "download", title: "Скачать PDF" } }
+{ id: "pdf_export", templateName: "ExportPdf", options: { icon: "download", title: "Скачать PDF" } }
 ```
 
 ---
@@ -393,6 +404,7 @@
 
 ```tsx
 {
+  id: "page_filters",
   templateName: "Filters",
   options: { expandable: true, expanded: true },
   children: [
@@ -401,6 +413,8 @@
   ]
 }
 ```
+
+> **Исключение:** дочерние элементы `FiltersContainer` идентифицируются **не по `id`**, а по обязательному `options.filterName` — поэтому `id` у них не нужен. Это единственный контейнер с таким поведением (см. [[concepts#ID контейнеров и элементов|про id]]).
 
 ---
 
@@ -433,7 +447,7 @@
 | `expanded` | `boolean` | Развёрнута ли панель по умолчанию |
 
 ```tsx
-{ templateName: "Layers", options: { layerNames: ["buildings", "roads"], expandable: true } }
+{ id: "map_layers", templateName: "Layers", options: { layerNames: ["buildings", "roads"], expandable: true } }
 ```
 
 ---
@@ -456,6 +470,7 @@
 
 ```tsx
 {
+  id: "area_attr",
   templateName: "OneColumn",
   children: [
     { id: "alias", value: "Площадь" },
@@ -523,6 +538,7 @@
 
 ```tsx
 {
+  id: "status_card",
   templateName: "RoundedBackground",
   options: { big: true, colorAttribute: "status_color", inlineUnits: true }
 }
@@ -565,6 +581,7 @@
 
 ```tsx
 {
+  id: "main_tabs",
   templateName: "Tabs",
   options: { noBg: false, onlyIcon: false },
   children: [
@@ -592,6 +609,7 @@
 
 ```tsx
 {
+  id: "python_run",
   templateName: "Task",
   options: {
     title: "Запустить расчёт",
@@ -618,7 +636,7 @@
 | `fontColor` | `string` | Цвет текста заголовка |
 
 ```tsx
-{ templateName: "Title", options: { downloadById: "pdf_export", fontColor: "#2c3e50" } }
+{ id: "section_title", templateName: "Title", options: { downloadById: "pdf_export", fontColor: "#2c3e50" } }
 ```
 
 ---
@@ -641,6 +659,7 @@
 
 ```tsx
 {
+  id: "type_attr",
   templateName: "TwoColumn",
   options: { hideEmpty: true },
   children: [

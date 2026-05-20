@@ -6,6 +6,8 @@
 
 Все принимают `ContainerProps` (`type`, `elementConfig`, `renderElement`). Каждый элемент имеет тройку типов `<Name>Options` / `<Name>Config` / `<Name>Props` (см. [[types#Элементы|сводную таблицу]]). В карточках ниже указан литерал `type` и поля, реально читаемые из `<Name>Options`.
 
+**Каждый элемент обязан иметь поле `id`** — это **slot** (зарезервированное место) внутри parent-контейнера. Контейнер рендерит конкретный slot через `renderElement({ id: "<slot>" })` и ожидает фиксированные ключи (`alias`, `value`, `chart`, `legend`, `title`, `description`, `bgImage`, `icon`, `units`, ...). Если `id` элемента не совпадает с ожидаемым slot-id контейнера — элемент не отрисуется. Таблица slot-id по контейнерам и шапкам — в [[concepts#ID контейнеров и элементов|разделе про id]]. В примерах ниже slot-id выбран под типовой контейнер-родитель.
+
 Список `type`-литералов и их `<Name>` (для совместимости с legacy — некоторые типы носят историческое имя):
 
 | `type` | `<Name>` |
@@ -43,7 +45,7 @@
 **Поведение:** читает `attributeName` → `attribute.value` (URL) → `window.open(url)`. Если значение атрибута не строка или пустое — не рендерится.
 
 ```tsx
-{ type: "button", attributeName: "report_url", value: "Открыть отчёт", options: { icon: "open_in_new" } }
+{ id: "value", type: "button", attributeName: "report_url", value: "Открыть отчёт", options: { icon: "open_in_new" } }
 ```
 
 ---
@@ -66,7 +68,7 @@
 **Поведение:** `isLoadingSnapshot` → `LinearProgress`; нет снимков → `NoLiveSnapshot`; есть → `SmallPreview` + `Preview` (галерея)
 
 ```tsx
-{ type: "camera", attributeName: "cameraUrl", options: { expandable: true } }
+{ id: "value", type: "camera", attributeName: "cameraUrl", options: { expandable: true } }
 ```
 
 ---
@@ -104,6 +106,7 @@
 
 ```tsx
 {
+  id: "chart",
   type: "chart",
   options: {
     chartType: "bar",
@@ -133,7 +136,7 @@
 **Поведение:** `attribute.value.split(separator)` → массив тегов → `DashboardChip`
 
 ```tsx
-{ type: "tags", attributeName: "categories", options: { separator: ";", bgColor: "#e3f2fd", fontColor: "#1565c0" } }
+{ id: "value", type: "tags", attributeName: "categories", options: { separator: ";", bgColor: "#e3f2fd", fontColor: "#1565c0" } }
 ```
 
 ---
@@ -160,6 +163,7 @@
 
 ```tsx
 {
+  id: "value",
   type: "control",
   options: {
     relatedDataSource: "statusDs",
@@ -187,7 +191,7 @@
 **Поведение:** если указан `attributeName` — берёт значение атрибута как `IconTypesKeys`; иначе `elementConfig.value`.
 
 ```tsx
-{ type: "icon", value: "star", options: { fontSize: "24px", fontColor: "#f39c12" } }
+{ id: "icon", type: "icon", value: "star", options: { fontSize: "24px", fontColor: "#f39c12" } }
 ```
 
 ---
@@ -207,7 +211,7 @@
 **Поведение:** `value` → `getResourceUrl(value)`; `attributeName` → первый элемент из значения атрибута (разделённый `;`). Если URL не получен — не рендерится.
 
 ```tsx
-{ type: "image", attributeName: "photoUrl", options: { width: 200 } }
+{ id: "image", type: "image", attributeName: "photoUrl", options: { width: 200 } }
 ```
 
 ---
@@ -230,7 +234,7 @@
 **Поведение:** для line-чарта — показывает оси Y как элементы легенды; для bar/pie — items из `data[0].items` с alias из атрибутов.
 
 ```tsx
-{ type: "legend", options: { chartId: "myChart", twoColumns: false, fontSize: 12 } }
+{ id: "legend", type: "legend", options: { chartId: "chart", twoColumns: false, fontSize: 12 } }
 ```
 
 ---
@@ -250,7 +254,7 @@
 **Поведение:** `attribute.value` → `getResourceUrl` → если начинается с `http` → `ExternalLink`; иначе → `LocalLink`.
 
 ```tsx
-{ type: "link", attributeName: "docUrl", options: { simple: true, title: "Документация" } }
+{ id: "value", type: "link", attributeName: "docUrl", options: { simple: true, title: "Документация" } }
 ```
 
 ---
@@ -270,7 +274,7 @@
 **Поведение:** контент из `elementConfig.value` или `attributes[attributeName].value`. Рендерит через `react-markdown` с `rehype-raw`, `rehype-sanitize`, `remark-gfm`.
 
 ```tsx
-{ type: "markdown", attributeName: "description", options: { expandLength: 300 } }
+{ id: "value", type: "markdown", attributeName: "description", options: { expandLength: 300 } }
 ```
 
 ---
@@ -289,7 +293,7 @@
 **Поведение:** находит `ConfigModal` по `modalId`, рендерит `ContainerChildren` внутри `Dialog`.
 
 ```tsx
-{ type: "modal", options: { modalId: "detailsModal", icon: "info" } }
+{ id: "value", type: "modal", options: { modalId: "detailsModal", icon: "info" } }
 ```
 
 ---
@@ -313,7 +317,7 @@
 **Поведение:** если `relatedDataSource` → из features датасорса; иначе `getSlideshowImages({ element, attribute })`. Открывает `Preview` галерею по клику.
 
 ```tsx
-{ type: "slideshow", attributeName: "photos", options: { relatedDataSource: "photosDs", expandable: true } }
+{ id: "slideshow", type: "slideshow", attributeName: "photos", options: { relatedDataSource: "photosDs", expandable: true } }
 ```
 
 ---
@@ -338,7 +342,7 @@
 **Поведение:** `getSvgUrl({ elementConfig, layerInfo, attributes })` → `getResourceUrl(url)` → `SvgImage`.
 
 ```tsx
-{ type: "svg", attributeName: "iconUrl", options: { width: 32, height: 32, fontColor: "#2980b9" } }
+{ id: "icon", type: "svg", attributeName: "iconUrl", options: { width: 32, height: 32, fontColor: "#2980b9" } }
 ```
 
 ---
@@ -356,7 +360,7 @@
 | `icon` | `IconTypesKeys` | Иконка (default: `"question"`) |
 
 ```tsx
-{ type: "tooltip", attributeName: "hint", options: { icon: "info" } }
+{ id: "value", type: "tooltip", attributeName: "hint", options: { icon: "info" } }
 ```
 
 ---
@@ -380,6 +384,7 @@
 
 ```tsx
 {
+  id: "value",
   type: "uploader",
   options: {
     fileExtensions: ".csv,.xlsx",

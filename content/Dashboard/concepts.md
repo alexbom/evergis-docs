@@ -123,6 +123,82 @@ interface ConfigLayer {
 
 ---
 
+## ID контейнеров и элементов
+
+**Каждый узел конфига обязан иметь поле `id`** — это инвариант методологии Dashboard. Без `id` движок не сможет ни найти контейнер в большом конфиге, ни поместить элемент в нужное место рендера. Однако смысл `id` у контейнера и у элемента — **разный**.
+
+### Два разных смысла `id`
+
+| Узел | Что значит `id` | Тип | Уникальность |
+|---|---|---|---|
+| **Контейнер** (`templateName`-узел) | Уникальное имя для быстрого поиска и связей | `ContainerId` (бренд `string`), подтипы — `ChartId`, `ModalId`, `TabId` | Глобально уникален в `config` |
+| **Элемент** (`type`-узел внутри `children`) | Слот — зарезервированное место в parent-контейнере | Литеральный `string` из фиксированного набора | Уникален в пределах `children` одного контейнера |
+
+### `id` контейнера — уникальное имя
+
+Контейнер — это узел с полем `templateName` (`"Chart"`, `"Tabs"`, `"DataSource"`, ...). Его `id` живёт в едином keyspace `ConfigContainer.id` и должен быть **глобально уникален**. Через него работают:
+
+- **Навигация по страницам:** `id: "page_1"` — корневой контейнер страницы (ContainersGroup), используется `changePage`, `pageIndex`.
+- **Связи между узлами:**
+  - `PageChild.options.tabId` → `id` вкладки в `TabsContainer` (тип `TabId`)
+  - `ElementModal.options.modalId` → `id` модала в `config.modals[]` (тип `ModalId`)
+  - `ElementLegend.options.chartId` → `id` `ChartContainer` либо `id` дочернего элемента-чарта внутри него (тип `ChartId`)
+  - `TitleContainer.options.downloadById` → `id` `ExportPdfContainer`
+- **Управление состоянием:** `expandedContainers: ContainerId[]`, `expandContainer(id)`, `selectedTabId`.
+- **Утилиты:** `getRootElementId(type)` строит `${type}-root` для PDF-экспорта.
+
+Типизация — branded types (см. [[types#Branded types|Branded types]]).
+
+### `id` элемента — слот в контейнере
+
+Элемент — это узел с полем `type` (`"button"`, `"chart"`, `"icon"`, ...) внутри `children`. Его `id` — это **слот**, ключ из фиксированного набора, который контейнер ожидает у своих детей. Контейнер рендерит конкретный слот через `renderElement({ id: "<slot>" })`.
+
+Например, `ChartContainer` рендерит детей через `renderElement({ id: "chart" })`, `renderElement({ id: "alias" })`, `renderElement({ id: "legend" })`. Если у дочернего элемента `id` не совпадает с ожидаемым slot-id — элемент не отрисуется.
+
+#### Таблица фиксированных slot-id
+
+| Контейнер / шапка | Slot-id (обязательные и опциональные) |
+|---|---|
+| `ChartContainer` | `alias`, `chart`, `legend`, `title`, `titleIcon` |
+| `TwoColumnContainer`, `OneColumnContainer` | `alias`, `value`, `units` |
+| `CameraContainer` | `alias`, `value` |
+| `IconContainer` | `icon`, `alias`, `link`, `text` |
+| `ImageContainer` | `alias`, `text`, `button`, `image` |
+| `AttachmentContainer` (без `relatedDataSource`) | `value` |
+| `Edit*Container` | `alias` (label поля редактирования) |
+| `AddFeatureContainer` | дети-`type: "button"` — slot не фиксирован, идентификация по `type` |
+| `TabsContainer` | дети — табы с **уникальным** `id` (это `TabId`, а не slot — исключение) |
+| `FiltersContainer` | дети — фильтры с **обязательным** `options.filterName` (id не используется) |
+| `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
+| `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
+| `DashboardDefaultHeader`, `FeatureCardDefaultHeader` | `title`, `description`, `icon` |
+
+Типизация slot-id — литеральные string'и в parent-specific child-типах (`ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, ...). См. [[types#Slot-id — НЕ branded|Slot-id]].
+
+### Сводный пример с двумя уровнями `id`
+
+```tsx
+{
+  id: "chart_floors",                                                  // id контейнера: уникальное имя в keyspace
+  templateName: "Chart",
+  options: { twoColumns: true },
+  children: [
+    { id: "alias", value: "Этажность" },                               // slot
+    { id: "chart", type: "chart", options: { chartType: "bar" } },     // slot
+    { id: "legend", type: "legend", options: { chartId: "chart" } }    // slot; chartId ссылается на slot брата-чарта
+  ]
+}
+```
+
+### Что произойдёт без `id`
+
+| Узел | Симптом |
+|---|---|
+| Контейнер без `id` | Поломается навигация; связи `tabId`/`modalId`/`chartId`/`downloadById` не разрезолвятся; `expandedContainers` и `selectedTabId` не смогут управлять состоянием |
+| Элемент без `id` | Не попадёт в ожидаемый slot — `renderElement({ id })` вернёт `null`, контейнер пропустит элемент |
+
+---
+
 ## Контексты
 
 Дашборд использует три вложенных контекста. Каждый контекст предоставляет свой слой данных компонентам-потребителям.

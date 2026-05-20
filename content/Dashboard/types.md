@@ -60,6 +60,8 @@ findChart(modalId);          // ❌ TS error — ModalId ≠ ChartId
 
 ### Slot-id — НЕ branded
 
+Slot-id обязателен у каждого элемента — без него контейнер не разместит элемент в нужное место (см. [[concepts#ID контейнеров и элементов|семантику id]]).
+
 Литеральные slot-id (`"alias"`, `"chart"`, `"legend"`, `"title"`, `"value"`, `"units"`, ...) — это не entity-id, а ключи фиксированного набора. Они сужаются через literal `id` в parent-specific child-типах (см. `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild` в `componentTypes.ts`).
 
 ---

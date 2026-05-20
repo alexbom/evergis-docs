@@ -4,6 +4,8 @@
 
 Шапки рендерятся через [[utils|утилиты]] `getDashboardHeader` / `getFeatureCardHeader` по `templateName` из конфига. Точка входа — [[components|компонент]] `DashboardHeader` (для Dashboard) и `FeatureCardHeader` (для FeatureCard).
 
+Дочерние элементы шапки **обязательно** идентифицируются по slot-`id` из фиксированного набора (`title`, `description`, `bgImage`, `icon`, `slideshow`) — конкретный набор зависит от типа шапки. Подробности и таблица slot-id — в [[concepts#ID контейнеров и элементов|разделе про id]].
+
 `HeaderTemplate` enum (см. [[types|Типы]]):
 
 | Значение | Шапка | Виджет |
