@@ -33,10 +33,18 @@
 {
   id: "buildings_add",
   templateName: "AddFeature",
-  children: [{
-    type: "button",
-    options: { icon: "feature_add", title: "Добавить здание", layerName: "buildings", geometryType: "Polygon" }
-  }]
+  children: [
+    {
+      id: "add_building_polygon",
+      type: "button",
+      options: { icon: "feature_add", title: "Добавить здание", layerName: "buildings", geometryType: "Polygon" }
+    },
+    {
+      id: "add_road_line",
+      type: "button",
+      options: { icon: "feature_add", title: "Добавить дорогу", layerName: "roads", geometryType: "LineString" }
+    }
+  ]
 }
 ```
 
@@ -408,13 +416,13 @@
   templateName: "Filters",
   options: { expandable: true, expanded: true },
   children: [
-    { options: { filterName: "floors", filterType: "rangeNumber", label: "Этажность" } },
-    { options: { filterName: "type", filterType: "chips", relatedDataSource: "types_ds", label: "Тип" } }
+    { id: "floors_filter", options: { filterName: "floors", filterType: "rangeNumber", label: "Этажность" } },
+    { id: "type_filter", options: { filterName: "type", filterType: "chips", relatedDataSource: "types_ds", label: "Тип" } }
   ]
 }
 ```
 
-> **Исключение:** дочерние элементы `FiltersContainer` идентифицируются **не по `id`**, а по обязательному `options.filterName` — поэтому `id` у них не нужен. Это единственный контейнер с таким поведением (см. [[concepts#ID контейнеров и элементов|про id]]).
+> У каждого фильтра в `children` обязательны **оба** поля: `id` (уникальное имя узла в коллекции, как у перечисляемой сущности) и `options.filterName` (ключ фильтра из `ConfigFilter.name` страницы — связывает фильтр с конфигом, по нему работает подстановка в `condition` и сброс). `id` и `filterName` — разные вещи: `id` адресует узел в `children`, `filterName` связывает фильтр со страничным конфигом. См. [[concepts#Перечисляемые сущности в children|подраздел про перечисляемые сущности]].
 
 ---
 

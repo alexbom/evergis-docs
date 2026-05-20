@@ -125,14 +125,15 @@ interface ConfigLayer {
 
 ## ID контейнеров и элементов
 
-**Каждый узел конфига обязан иметь поле `id`** — это инвариант методологии Dashboard. Без `id` движок не сможет ни найти контейнер в большом конфиге, ни поместить элемент в нужное место рендера. Однако смысл `id` у контейнера и у элемента — **разный**.
+**Каждый узел конфига обязан иметь поле `id`** — это инвариант методологии Dashboard. Без `id` движок не сможет ни найти контейнер в большом конфиге, ни поместить элемент в нужное место рендера, ни адресовать конкретный фильтр/таб/кнопку в коллекции. Смысл `id` зависит от роли узла — есть **три случая**.
 
-### Два разных смысла `id`
+### Три смысла `id`
 
-| Узел | Что значит `id` | Тип | Уникальность |
+| Роль узла | Что значит `id` | Тип | Уникальность |
 |---|---|---|---|
 | **Контейнер** (`templateName`-узел) | Уникальное имя для быстрого поиска и связей | `ContainerId` (бренд `string`), подтипы — `ChartId`, `ModalId`, `TabId` | Глобально уникален в `config` |
 | **Элемент** (`type`-узел внутри `children`) | Слот — зарезервированное место в parent-контейнере | Литеральный `string` из фиксированного набора | Уникален в пределах `children` одного контейнера |
+| **Перечисляемая сущность в `children`** (фильтр в `FiltersContainer`, таб в `TabsContainer`, кнопка в `AddFeatureContainer` — узлы со специализированными child-типами без своего `templateName`/`type`) | Уникальное имя, как у контейнера | `string` (для табов — `TabId`) | Уникален в пределах `children` одного контейнера |
 
 ### `id` контейнера — уникальное имя
 
@@ -155,6 +156,18 @@ interface ConfigLayer {
 
 Например, `ChartContainer` рендерит детей через `renderElement({ id: "chart" })`, `renderElement({ id: "alias" })`, `renderElement({ id: "legend" })`. Если у дочернего элемента `id` не совпадает с ожидаемым slot-id — элемент не отрисуется.
 
+### Перечисляемые сущности в `children`
+
+Некоторые контейнеры держат в `children` не элементы и не вложенные контейнеры, а **специализированные child-типы**:
+
+- `FiltersContainer` → `FilterChild` (фильтр с `options.filterName`)
+- `TabsContainer` → `TabChild` (вкладка)
+- `AddFeatureContainer` → `AddFeatureButtonChild` (кнопка добавления фичи)
+
+Это **перечисляемые сущности** — каждая своя со своим действием/конфигом, не slot из фиксированного набора. У них `id` — **уникальное имя в пределах `children`**, как у контейнера. По нему React строит `key` для списка, а внешний код адресует конкретный экземпляр (например, `PageChild.options.tabId` ссылается на `id` нужной вкладки в `TabsContainer`).
+
+У **фильтра** в придачу к `id` обязателен `options.filterName` — это ключ фильтра из `ConfigFilter.name` на странице, по которому работает логика подстановки в `condition` и сброса. `id` и `filterName` — **разные вещи**: `id` идентифицирует узел в `children`, `filterName` связывает фильтр со страничным конфигом.
+
 #### Таблица фиксированных slot-id
 
 | Контейнер / шапка | Slot-id (обязательные и опциональные) |
@@ -166,9 +179,9 @@ interface ConfigLayer {
 | `ImageContainer` | `alias`, `text`, `button`, `image` |
 | `AttachmentContainer` (без `relatedDataSource`) | `value` |
 | `Edit*Container` | `alias` (label поля редактирования) |
-| `AddFeatureContainer` | дети-`type: "button"` — slot не фиксирован, идентификация по `type` |
-| `TabsContainer` | дети — табы с **уникальным** `id` (это `TabId`, а не slot — исключение) |
-| `FiltersContainer` | дети — фильтры с **обязательным** `options.filterName` (id не используется) |
+| `AddFeatureContainer` | **дети — кнопки `AddFeatureButtonChild` с уникальным `id`** (перечисляемые сущности — см. подраздел выше) |
+| `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности) |
+| `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader`, `FeatureCardDefaultHeader` | `title`, `description`, `icon` |
@@ -196,6 +209,7 @@ interface ConfigLayer {
 |---|---|
 | Контейнер без `id` | Поломается навигация; связи `tabId`/`modalId`/`chartId`/`downloadById` не разрезолвятся; `expandedContainers` и `selectedTabId` не смогут управлять состоянием |
 | Элемент без `id` | Не попадёт в ожидаемый slot — `renderElement({ id })` вернёт `null`, контейнер пропустит элемент |
+| Перечисляемая сущность в `children` без `id` | Невозможно адресовать конкретный фильтр/таб/кнопку в коллекции — поломаются связи (`tabId` со стороны `PageChild`, обращение к фильтру), нарушится React `key` для списка рендеринга |
 
 ---
 
