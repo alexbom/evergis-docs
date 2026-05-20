@@ -4,8 +4,20 @@
 
 Шапки рендерятся через [[utils|утилиты]] `getDashboardHeader` / `getFeatureCardHeader` по `templateName` из конфига. Точка входа — [[components|компонент]] `DashboardHeader` (для Dashboard) и `FeatureCardHeader` (для FeatureCard).
 
-Доступные типы для Dashboard: `HeaderTemplate.Default`.
-Доступные типы для FeatureCard: `HeaderTemplate.Default`, `HeaderTemplate.Gradient`, `HeaderTemplate.Icon`, `HeaderTemplate.Slideshow`.
+`HeaderTemplate` enum (см. [[types|Типы]]):
+
+| Значение | Шапка | Виджет |
+|---|---|---|
+| `HeaderTemplate.Default` | **DashboardDefaultHeader** | `WidgetType.Dashboard` |
+| `HeaderTemplate.Default` | **FeatureCardDefaultHeader** | `WidgetType.FeatureCard` |
+| `HeaderTemplate.Background` | **FeatureCardBackgroundHeader** | `WidgetType.FeatureCard` |
+| `HeaderTemplate.Slideshow` | **FeatureCardSlideshowHeader** | `WidgetType.FeatureCard` |
+
+Union типов конфигов шапок: `DashboardHeaderConfig` (см. [[types#Union шапок DashboardHeaderConfig|типы]]). `HeaderTemplate.Default` сразу матчится двумя ветвями (Dashboard vs FeatureCard) — конкретная выбирается на уровне виджета.
+
+Shared-компоненты в `headers/components/`:
+- **HeaderLayerIcon** — кликабельная иконка слоя с тултипом «приблизить к объекту»; используется во всех `FeatureCard*Header`.
+- **HeaderTitle** — заголовок карточки (значение `titleAttribute` или `feature.id`) + описание слоя; используется в `FeatureCardDefaultHeader`.
 
 ---
 
@@ -13,32 +25,33 @@
 
 **Назначение:** Шапка дашборда — логотип, кнопки панели, заголовок текущей страницы, пагинация, меню страниц.
 
+**Типы:** `templateName = HeaderTemplate.Default` · `DashboardDefaultHeaderOptions` · `DashboardDefaultHeaderConfig`. См. [[types#Шапки|сводную таблицу]].
+
 **Props:** нет (данные из контекста)
 
 **Зависимости:**
 - [[hooks|хук]] `useDashboardHeader` — `title`, `pageId`, `image`, `icon`, `tooltip`, `themeName`, `onClickLogo`
-- `useWidgetContext` — `toggleLayersVisibility`, `components.ProjectPanelMenu`, `components.ProjectPagesMenu`
+- [[hooks|хук]] `useWidgetContext` — `toggleLayersVisibility`, `components.ProjectPanelMenu`, `components.ProjectPagesMenu`
 
-**Опции конфига шапки:**
+**Опции:**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `image` | `string` | URL логотипа (поддерживает `/sp/resources/file/...`) |
-| `icon` | `IconTypesKeys` | Иконка логотипа (если нет изображения) |
-| `tooltip` | `string` | Тултип при наведении на логотип |
-| `title` | `string \| attributeName` | Заголовок страницы (из конфига или атрибута) |
+| `url` | `string` | URL логотипа (через `image` из `useDashboardHeader`) |
+
+Остальные данные (image, icon, tooltip, themeName) приходят из `useDashboardHeader`, который читает `projectInfo.content.dashboardConfiguration.header.options` напрямую и нормализует.
 
 **Структура:**
 ```
 DefaultHeaderContainer (image, isDark)
   ├── LinearProgress (если !pageId — страница загружается)
-  ├── TopContainer: [LogoContainer, ProjectPanelMenu]
-  └── PageTitleContainer: [Tooltip(PageTitle), ProjectPagesMenu, Pagination]
+  ├── TopContainer: [LogoContainer(icon), ProjectPanelMenu]
+  └── PageTitleContainer: [Tooltip(PageTitle onClick=toggleLayersVisibility), ProjectPagesMenu, Pagination]
 ```
 
 ```tsx
-// Регистрируется автоматически как HeaderTemplate.Default
-{ header: { templateName: "Default", options: { image: "/logo.svg", tooltip: "На главную" } } }
+// HeaderTemplate.Default в контексте WidgetType.Dashboard
+{ header: { templateName: "Default", options: { url: "/logo.svg" } } }
 ```
 
 ---
@@ -47,99 +60,101 @@ DefaultHeaderContainer (image, isDark)
 
 **Назначение:** Шапка карточки объекта по умолчанию — иконка слоя, название объекта, кнопки действий (редактирование, закрытие).
 
+**Типы:** `templateName = HeaderTemplate.Default` · `FeatureCardDefaultHeaderOptions` · `FeatureCardDefaultHeaderConfig`.
+
 **Props:** `noFeature?: boolean`
 
-**Зависимости:** `useWidgetContext(WidgetType.FeatureCard)` — `layerInfo`
+**Зависимости:**
+- [[hooks|хук]] `useWidgetConfig(WidgetType.FeatureCard)` — конфиг карточки
+- [[utils|утилита]] `getThemeByName(themeName)` — применение темы к шапке
 
-**Опции конфига шапки:**
+**Опции:**
 
-Конфига нет — все данные автоматически берутся из `FeatureCardContext` (`layerInfo`, `attributes`). Иконка слоя — из `layerInfo.configuration.icon`. Заголовок — значение `idAttribute` объекта.
+| Опция | Тип | Описание |
+|---|---|---|
+| `themeName` | `"light" \| "dark"` | Принудительная тема для шапки |
+| `withPadding` | `boolean` | Внутренние отступы вокруг заголовка |
+| `column` | `boolean` | Вертикальная раскладка (иначе строкой) |
+| `height` | `number` | Высота шапки в px |
+| `overlay` | `string` | CSS-наложение поверх содержимого |
+
+**Дочерние элементы:**
+
+Кастомные дети не используются — структура фиксирована.
 
 **Структура:**
 ```
-DefaultHeaderWrapper
-  └── Header ($isRow)
-      └── HeaderFrontView (isDefault)
-          ├── HeaderContainer: [LayerIcon, HeaderTitle(noFeature)]
-          └── FeatureCardButtons (кнопки: Edit, Save, Cancel, Close)
+DefaultHeaderWrapper(withPadding, height)
+  └── ThemeProvider(getThemeByName(themeName))
+      └── Header($overlay, $isRow=!column)
+          └── HeaderFrontView(isDefault=!column)
+              ├── HeaderContainer: [HeaderLayerIcon, HeaderTitle(noFeature)]
+              └── FeatureCardButtons (Edit, Save, Cancel, Close)
 ```
 
 ```tsx
-{ header: { templateName: "Default" } }
+{ header: { templateName: "Default", options: { themeName: "light", withPadding: true } } }
 ```
 
 ---
 
-## FeatureCardGradientHeader
+## FeatureCardBackgroundHeader
 
-**Назначение:** Шапка с градиентным фоном. Поддерживает кастомный цвет фона и текста. Подходит для эмоционального выделения карточки.
+**Назначение:** Шапка карточки с цветной/градиентной заливкой фона и опциональным фоновым изображением. Подходит для эмоционального выделения карточки и визуального обозначения типа объекта (через `bigIcon` или `bgImage`).
 
-**Props:** `isRow?: boolean`
+**Типы:** `templateName = HeaderTemplate.Background` · `FeatureCardBackgroundHeaderOptions` · `FeatureCardBackgroundHeaderConfig`.
 
-**Зависимости:** `useWidgetConfig(WidgetType.FeatureCard)`, `useHeaderRender(header)`, `useWidgetContext`
+**Props:** нет
+
+**Зависимости:**
+- [[hooks|хук]] `useWidgetConfig(WidgetType.FeatureCard)` — конфиг карточки
+- [[hooks|хук]] `useHeaderRender(header)` — функция рендера дочерних элементов шапки
+- [[utils|утилита]] `getThemeByName(themeName)`
 
 **Опции:**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `bgColor` | `string` | Цвет фона шапки (CSS-значение, например `"#2c3e50"`) |
-| `fontColor` | `string` | Цвет текста и иконок шапки (например `"#ffffff"`) |
+| `fontColor` | `string` | Цвет текста шапки |
+| `bgColor` | `string` | Цвет фона |
+| `height` | `number` | Высота |
+| `overlay` | `string` | CSS-наложение поверх фона |
+| `bigIcon` | `boolean` | Увеличенная иконка (занимает половину шапки) |
+| `withPadding` | `boolean` | Внутренние отступы |
+| `bottomBlur` | `boolean` | Эффект размытия снизу |
+| `themeName` | `"light" \| "dark"` | Принудительная тема |
+| `column` | `boolean` | Вертикальная раскладка |
 
-**Дочерние элементы шапки (по `id`):**
+**Дочерние элементы (по `id`):**
 
 | id | Описание |
 |---|---|
-| `title` | Заголовок (из атрибута или статически) |
+| `title` | Заголовок (рендерится через `renderElement({ id: "title", wrap: false })`) |
 | `description` | Подзаголовок / краткое описание |
+| `bgImage` | Фоновое изображение (в `ImageContainerBg`) |
+| `icon` | Иконка объекта (в `HeaderIcon`) — обычно `type: "svg"` или `type: "icon"` |
 
-```tsx
-{
-  header: {
-    templateName: "Gradient",
-    options: { bgColor: "#2c3e50", fontColor: "#fff" },
-    children: [
-      { id: "title", attributeName: "name" },
-      { id: "description", attributeName: "address" }
-    ]
-  }
-}
+**Структура:**
+```
+BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $bottomBlur)
+  └── ThemeProvider(getThemeByName(themeName))
+      └── Header($overlay, $isRow=!column)
+          ├── HeaderFrontView
+          │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
+          │   └── FeatureCardButtons
+          ├── ImageContainerBg → renderElement(id="bgImage")
+          └── HeaderIcon → renderElement(id="icon")
 ```
 
----
-
-## FeatureCardIconHeader
-
-**Назначение:** Шапка с большой иконкой рядом с заголовком. Поддерживает режим `bigIcon` для акцента на иконке типа объекта.
-
-**Props:** `isRow?: boolean`
-
-**Зависимости:** `useWidgetConfig(WidgetType.FeatureCard)`, `useHeaderRender(header)`, `useWidgetContext`
-
-**Опции:**
-
-| Опция | Тип | Описание |
-|---|---|---|
-| `bgColor` | `string` | Цвет фона шапки |
-| `fontColor` | `string` | Цвет текста |
-| `bigIcon` | `boolean` | Увеличенная иконка (занимает половину шапки, подходит для иконок типа объекта) |
-
-**Дочерние элементы шапки (по `id`):**
-
-| id | Описание |
-|---|---|
-| `icon` | SVG или иконка типа объекта (`type: "svg"` или `type: "icon"`) |
-| `title` | Заголовок карточки |
-| `description` | Подзаголовок |
-
 ```tsx
 {
   header: {
-    templateName: "Icon",
-    options: { bigIcon: true, bgColor: "#f0f4f8" },
+    templateName: "Background",
+    options: { bgColor: "#2c3e50", fontColor: "#fff", bigIcon: true },
     children: [
-      { id: "icon", type: "svg", attributeName: "iconUrl" },
       { id: "title", attributeName: "name" },
-      { id: "description", attributeName: "category" }
+      { id: "description", attributeName: "category" },
+      { id: "icon", type: "svg", attributeName: "iconUrl" }
     ]
   }
 }
@@ -149,27 +164,48 @@ DefaultHeaderWrapper
 
 ## FeatureCardSlideshowHeader
 
-**Назначение:** Шапка со слайдшоу фоновых изображений. Заголовок и описание отображаются поверх изображений. Используется для карточек объектов с фотографиями.
+**Назначение:** Шапка со слайдшоу фоновых изображений. Заголовок и описание отображаются поверх изображений. Используется для карточек объектов с фотогалереей.
 
-**Props:** `isRow?: boolean`
+**Типы:** `templateName = HeaderTemplate.Slideshow` · `FeatureCardSlideshowHeaderOptions` · `FeatureCardSlideshowHeaderConfig`.
 
-**Зависимости:** `useWidgetConfig(WidgetType.FeatureCard)`, `useHeaderRender(header)`, `useWidgetContext`
+**Props:** нет
+
+**Зависимости:**
+- [[hooks|хук]] `useWidgetConfig(WidgetType.FeatureCard)`
+- [[hooks|хук]] `useHeaderRender(header)`
+- [[utils|утилита]] `getThemeByName(themeName)`
 
 **Опции:**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `height` | `number \| string` | Высота блока шапки в px или CSS-значение |
-| `withPadding` | `boolean` | Добавить внутренние отступы вокруг заголовка |
+| `height` | `number` | Высота блока шапки в px |
+| `fontColor` | `string` | Цвет текста |
+| `withPadding` | `boolean` | Внутренние отступы вокруг заголовка |
+| `themeName` | `"light" \| "dark"` | Принудительная тема |
+| `column` | `boolean` | Вертикальная раскладка |
+| `overlay` | `string` | CSS-наложение |
 
-**Дочерние элементы шапки (по `id`):**
+**Дочерние элементы (по `id`):**
 
 | id | Описание |
 |---|---|
-| `slideshow` | Источник изображений — `attributeName` с URL фото через разделитель, или `relatedDataSource` |
-| `bgImage` | Статическое фоновое изображение (если нет слайдшоу) |
 | `title` | Заголовок поверх изображений |
-| `description` | Подзаголовок поверх изображений |
+| `description` | Подзаголовок |
+| `bgImage` | Статическое фоновое изображение (под слайдшоу) |
+| `slideshow` | Источник изображений (`type: "slideshow"`) — `attributeName` со списком URL или `relatedDataSource` |
+
+**Структура:**
+```
+SlideshowHeaderWrapper(fontColor, withPadding, height, big)
+  └── ThemeProvider(getThemeByName(themeName))
+      └── Header($overlay, $isRow=!column)
+          ├── HeaderFrontView
+          │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
+          │   └── FeatureCardButtons
+          ├── ImageContainerBg → renderElement(id="bgImage")
+          └── HeaderSlideshow(height) → renderElement(id="slideshow")
+```
 
 ```tsx
 {
@@ -177,7 +213,7 @@ DefaultHeaderWrapper
     templateName: "Slideshow",
     options: { height: 200, withPadding: true },
     children: [
-      { id: "slideshow", attributeName: "photos" },
+      { id: "slideshow", type: "slideshow", attributeName: "photos" },
       { id: "title", attributeName: "name" },
       { id: "description", attributeName: "address" }
     ]
@@ -189,4 +225,4 @@ DefaultHeaderWrapper
 
 ## Связанные разделы
 
-[[components|Компоненты]] | [[utils|Утилиты]] | [[setup|Подключение]]
+[[components|Компоненты]] | [[utils|Утилиты]] | [[setup|Подключение]] | [[options|Опции]] | [[types|Типы]]

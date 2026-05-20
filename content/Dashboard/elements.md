@@ -2,9 +2,29 @@
 
 ## Обзор
 
-Элементы — «листовые» компоненты, отображающие отдельные значения внутри контейнеров. Регистрируются в `elements/registry.ts` по строковому ключу (`type`). Рендерятся через [[utils|утилиту]] `getRenderElement`.
+Элементы — «листовые» компоненты, отображающие отдельные значения внутри контейнеров. Регистрируются в `elements/registry.ts` (типобезопасно через `as const satisfies ElementComponentRegistry`) по строковому ключу (`type`). Рендерятся через [[utils|утилиту]] `getRenderElement`.
 
-Все принимают `ContainerProps` (`type`, `elementConfig`, `renderElement`).
+Все принимают `ContainerProps` (`type`, `elementConfig`, `renderElement`). Каждый элемент имеет тройку типов `<Name>Options` / `<Name>Config` / `<Name>Props` (см. [[types#Элементы|сводную таблицу]]). В карточках ниже указан литерал `type` и поля, реально читаемые из `<Name>Options`.
+
+Список `type`-литералов и их `<Name>` (для совместимости с legacy — некоторые типы носят историческое имя):
+
+| `type` | `<Name>` |
+|---|---|
+| `button` | `ElementButton` |
+| `camera` | `ElementCamera` |
+| `chart` | `ElementChart` |
+| `tags` | `ElementChips` (исторически `chips`) |
+| `control` | `ElementControl` |
+| `icon` | `ElementIcon` |
+| `image` | `ElementImage` |
+| `legend` | `ElementLegend` |
+| `link` | `ElementLink` |
+| `markdown` | `ElementMarkdown` |
+| `modal` | `ElementModal` |
+| `slideshow` | `ElementSlideshow` |
+| `svg` | `ElementSvg` |
+| `tooltip` | `ElementTooltip` |
+| `uploader` | `ElementUploader` |
 
 ---
 
@@ -53,20 +73,34 @@
 
 ## ElementChart
 
-**Назначение:** Обёртка-делегат для [[components|компонента]] `Chart`. Получает конфиг через `useWidgetConfig`. Поддерживает типы: `bar`, `pie`, `line`, `stackBar`.
+**Назначение:** Обёртка-делегат для [[components|компонента]] `Chart`. Получает конфиг через `useWidgetConfig`. Поддерживает типы: `bar`, `pie`, `line`, `stack`.
 
-**Опции:**
+**Типы:** `type = "chart"` · `ElementChartOptions` · `ElementChartProps`.
+
+**Опции (`ElementChartOptions` Pick):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `chartType` | `"bar" \| "pie" \| "line" \| "stackBar"` | Тип графика |
+| `chartType` | `"bar" \| "line" \| "pie" \| "stack"` | Тип графика (`ChartType` union) |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Источники данных для осей: `{ name, chartAxis: "x" \| "y", attributeName, attributeAlias }` |
-| `otherItems` | `number` | Максимальное кол-во элементов, остальные группируются в «Другое» |
-| `shownItems` | `number` | Кол-во отображаемых элементов (с кнопкой «Ещё») |
-| `sortByValue` | `boolean` | Сортировать данные по значению |
+| `column` | `boolean` | Вертикальная раскладка |
 | `markers` | `BarChartMarker[] \| string` | Маркеры на барчарте (массив или имя датасорса) |
-| `horizontal` | `boolean` | Горизонтальный барчарт |
-| `stackedBar` | `boolean` | Столбчатый с накоплением |
+| `showLabels` | `boolean` | Подписи столбцов |
+| `showMarkers` | `number` | Шаг показа маркеров |
+| `showTotal` | `boolean` | Показывать итог |
+| `totalWord` | `string` | Слово для итога |
+| `totalAttribute` | `string` | Имя атрибута для итога |
+| `expandable` | `boolean` | Разрешить сворачивание |
+| `expanded` | `boolean` | Развёрнут ли по умолчанию |
+| `defaultColor` | `string` | Цвет по умолчанию (PieChart-секторов) |
+| `dotSnapping` | `boolean` | Привязка точек LineChart |
+| `height`, `width` | `number` | Размеры |
+| `radius` | `number` | Радиус PieChart |
+| `padding` | `number` | Внутренние отступы |
+| `fontColor` | `string` | Цвет текста |
+| `angle` | `number` | Угол поворота подписей оси |
+| `barWidth` | `number` | Ширина столбца BarChart |
+| `cornerRadius` | `number` | Закругление столбцов BarChart |
 
 ```tsx
 {
@@ -264,7 +298,9 @@
 
 **Назначение:** Слайдшоу изображений с поддержкой полноэкранного просмотра. Может использовать источник данных или атрибут объекта.
 
-**Опции:**
+**Типы:** `type = "slideshow"` · `ElementSlideshowOptions` · `ElementSlideshowProps`. Локальный тип — `DashboardSlideshowProps` (Pick от `ElementSlideshowProps`) в `elements/ElementSlideshow/types.ts`.
+
+**Опции (`ElementSlideshowOptions` Pick):**
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -272,6 +308,7 @@
 | `relatedDataSource` | `string` | Источник данных с изображениями (приоритет над `attributeName`) |
 | `expandable` | `boolean` | Разрешить сворачивание |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
+| `controls` | `ConfigControl[]` | Маппинг полей источника на поля слайдшоу |
 
 **Поведение:** если `relatedDataSource` → из features датасорса; иначе `getSlideshowImages({ element, attribute })`. Открывает `Preview` галерею по клику.
 
@@ -357,4 +394,4 @@
 
 ## Связанные разделы
 
-[[containers|Контейнеры]] | [[concepts|Основные понятия]] | [[hooks|Хуки]]
+[[containers|Контейнеры]] | [[concepts|Основные понятия]] | [[hooks|Хуки]] | [[options|Опции]] | [[types|Типы]]

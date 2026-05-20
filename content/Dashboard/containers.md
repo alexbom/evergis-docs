@@ -2,7 +2,9 @@
 
 ## Обзор
 
-Контейнеры — компоненты верхнего уровня, управляющие расположением и логикой отображения контента. Регистрируются в `containers/registry.ts` по значению `ContainerTemplate`. Рендерятся динамически через [[utils|утилиту]] `getContainerComponent`. Все принимают `ContainerProps`.
+Контейнеры — компоненты верхнего уровня, управляющие расположением и логикой отображения контента. Регистрируются в `containers/registry.ts` (типобезопасно через `as const satisfies ContainerComponentRegistry`) по значению `ContainerTemplate`. Рендерятся динамически через [[utils|утилиту]] `getContainerComponent`. Все принимают `ContainerProps`.
+
+Каждый контейнер имеет тройку типов `<Name>ContainerOptions` / `<Name>ContainerConfig` / `<Name>ContainerProps` (см. [[types#Контейнеры|сводную таблицу]]). В карточках ниже указан литерал `templateName` и поля `<Name>Options` — какие опции из [[options|`ConfigOptions`]] контейнер реально читает.
 
 ---
 
@@ -12,16 +14,18 @@
 
 **Назначение:** Отображает кнопки добавления объектов на слой карты. При нажатии активирует инструмент рисования для указанного слоя и типа геометрии.
 
+**Типы:** `templateName = "AddFeature"` · `AddFeatureContainerOptions` (Record<string, never>) · `AddFeatureContainerProps`. Дети — `AddFeatureButtonChild` (`type: "button"`, `AddFeatureButtonOptions`).
+
 **Props:** `ContainerProps` (использует `elementConfig.children` с `type === "button"`)
 
-**Опции дочерних элементов:**
+**Опции дочерних элементов (`AddFeatureButtonOptions`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
 | `icon` | `IconTypesKeys` | Иконка кнопки |
 | `title` | `string` | Подпись кнопки |
-| `layerName` | `string` | Имя слоя, на который добавляется объект |
-| `geometryType` | `string` | Тип геометрии: `"Point"`, `"LineString"`, `"Polygon"` |
+| `layerName` | `string` | Имя слоя, на который добавляется объект (см. [[types#Branded types\|LayerName]]) |
+| `geometryType` | `OgcGeometryType \| EditGeometryType` | Тип геометрии: `"Point"`, `"LineString"`, `"Polygon"`, ... |
 
 ```tsx
 {
@@ -35,13 +39,55 @@
 
 ---
 
+### AttachmentContainer
+
+**Назначение:** Отображение списка вложений (документы, изображения, ссылки) объекта или источника данных. Поддерживает превью изображений с авторизованной загрузкой через `api.catalog.getFile`, fallback-иконки по типу файла, переключение `viewMode` (`grid` / `list`), пагинацию `shownItems`/`otherItems`.
+
+**Типы:** `templateName = "Attachment"` · `AttachmentContainerOptions` · `AttachmentContainerConfig`. Локальные типы — `FileType` enum (XLSX/PDF/CSV/...), `IMAGE_FILE_TYPES`, `AttachmentViewMode`, `Attachment` (в `containers/AttachmentContainer/types.ts`).
+
+**Props:** `AttachmentContainerProps`
+
+**Опции (`AttachmentContainerOptions`):**
+
+| Опция | Тип | Описание |
+|---|---|---|
+| `expandable` | `boolean` | Разрешить сворачивание |
+| `expanded` | `boolean` | Развёрнут ли по умолчанию |
+| `viewMode` | `"grid" \| "list"` | Режим отображения коллекции |
+| `shownItems` | `number` | Сколько элементов показывать сразу |
+| `otherItems` | `number` | Лимит «остальных» в развёрнутом списке |
+| `relatedDataSource` | `string` | Источник данных вложений (см. [[types#Branded types\|DataSourceName]]) |
+| `controls` | `ConfigControl[]` | Маппинг полей источника на поля `Attachment`: `[{ attributeLink, attributeName, attributeMime, attributeDate }]` |
+
+**Зависимости:**
+- [[hooks|хук]] `useAttachmentItems` — извлекает список `Attachment[]` из атрибута или источника
+- [[hooks|хук]] `useAttachmentPreviewImages` — превращает в `IPreviewImage[]` с загрузкой blob
+
+Без `relatedDataSource` источник вложений — значение `attributeName` дочернего элемента с `id: "value"` (через `parseAttachments`).
+
+```tsx
+{
+  templateName: "Attachment",
+  options: {
+    viewMode: "grid",
+    shownItems: 6,
+    relatedDataSource: "files_ds",
+    controls: [{ attributeLink: "url", attributeName: "name", attributeMime: "mime_type", attributeDate: "uploaded_at" }]
+  }
+}
+```
+
+---
+
 ### CameraContainer
 
 **Назначение:** Обёртка для элемента камеры — отображает галерею снимков камеры видеонаблюдения с таймлайном.
 
+**Типы:** `templateName = "Camera"` · `CameraContainerOptions` · `CameraContainerProps`.
+
 **Props:** `ContainerProps` + поддержка `expandable/expanded`
 
-**Опции:**
+**Опции (`CameraContainerOptions`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -212,20 +258,23 @@
 
 **Props:** `ContainerProps`
 
+**Типы EditContainer:** `templateName = "Edit"` · `EditContainerOptions` (Record<string, never>) · `EditContainerProps`.
+
 #### Подтипы EditContainer
 
-Все подтипы принимают `ContainerProps` и обращаются к контексту FeatureCard для получения/установки значения атрибута. Тип поля задаётся через `templateName`.
+Все подтипы принимают `ContainerProps` и обращаются к контексту FeatureCard для получения/установки значения атрибута. Тип поля задаётся через `templateName`. Большинство подтипов используют только опцию `controls: ConfigControl[]` (соответствующая `<Name>Options`).
 
-| Подтип | `templateName` | Описание |
-|---|---|---|
-| `EditBooleanContainer` | `EditBoolean` | Переключатель для boolean-атрибута |
-| `EditCheckboxContainer` | `EditCheckbox` | Чекбокс с кастомным label |
-| `EditChipsContainer` | `EditChips` | Мультиселект в виде чипов |
-| `EditDateContainer` | `EditDate` | Выбор даты/времени через календарь |
-| `EditDropdownContainer` | `EditDropdown` | Выпадающий список значений |
-| `EditGroupContainer` | `EditGroup` | Группа edit-полей (без поля ввода, только обёртка) |
-| `EditNumberContainer` | `EditNumber` | Числовой инпут |
-| `EditStringContainer` | `EditString` | Строковый текстовый инпут |
+| Подтип | `templateName` | `<Name>Options` Pick | Описание |
+|---|---|---|---|
+| `EditBooleanContainer` | `EditBoolean` | `controls` | Переключатель для boolean-атрибута |
+| `EditCheckboxContainer` | `EditCheckbox` | `controls` | Чекбокс с кастомным label |
+| `EditChipsContainer` | `EditChips` | `controls` | Мультиселект в виде чипов |
+| `EditDateContainer` | `EditDate` | `controls`, `withTime` | Выбор даты/времени через календарь |
+| `EditDropdownContainer` | `EditDropdown` | `controls` | Выпадающий список значений |
+| `EditGroupContainer` | `EditGroup` | `controls`, `useProjectHiddenAttributes`, `expandable`, `expanded` | Группа edit-полей (использует [[hooks\|`useEditGroupAttributes`]] для фильтрации) |
+| `EditNumberContainer` | `EditNumber` | `controls` | Числовой инпут |
+| `EditStringContainer` | `EditString` | `controls` | Строковый текстовый инпут |
+| `EditAttachmentContainer` | `EditAttachment` | `parentResourceId`, `fileExtensions`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` | Редактируемый список вложений (см. ниже) |
 
 **Общие опции для полей редактирования:**
 
@@ -249,6 +298,34 @@
   templateName: "EditDropdown",
   options: { attributeName: "status", relatedDataSource: "statuses_ds" },
   children: [{ id: "alias", value: "Статус" }]
+}
+```
+
+#### EditAttachmentContainer (детально)
+
+**Назначение:** Редактируемый список вложений — `AttachmentContainer` + кнопки добавления/удаления файлов. Используется внутри FeatureCard в режиме редактирования.
+
+**Опции (`EditAttachmentContainerOptions`):**
+
+| Опция | Тип | Описание |
+|---|---|---|
+| `parentResourceId` | `string` | Id родительского ресурса для загрузки файлов (см. [[types#Branded types\|ResourceId]]) |
+| `fileExtensions` | `string` | Допустимые расширения файлов (например `".pdf,.png,.jpg"`) |
+| `viewMode` | `"grid" \| "list"` | Режим отображения коллекции |
+| `shownItems` | `number` | Сколько элементов показывать сразу |
+| `otherItems` | `number` | Лимит «остальных» |
+| `relatedDataSource` | `string` | Источник данных вложений |
+| `controls` | `ConfigControl[]` | Маппинг полей источника на `Attachment` |
+
+```tsx
+{
+  templateName: "EditAttachment",
+  options: {
+    parentResourceId: "documents_root",
+    fileExtensions: ".pdf,.docx",
+    viewMode: "list",
+    relatedDataSource: "object_attachments"
+  }
 }
 ```
 
@@ -371,7 +448,8 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributes` | `string[]` | Список имён атрибутов для отображения |
+| `attributes` | `string[]` | Список имён атрибутов для отображения. Пустой массив = все атрибуты слоя |
+| `useProjectHiddenAttributes` | `boolean` | Если `true` — список `attributes` фильтруется по `hiddenAttributes` слоя проекта (хук [[hooks\|`useLayerHiddenAttributes`]]). По умолчанию `false` — атрибуты, скрытые в проекте, всё равно отображаются |
 | `hideEmpty` | `boolean` | Скрыть пустые атрибуты |
 | `fontSize` | `string \| number` | Размер шрифта значения |
 | `fontColor` | `string` | Цвет шрифта значения |
@@ -555,7 +633,8 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributes` | `string[]` | Список имён атрибутов для отображения |
+| `attributes` | `string[]` | Список имён атрибутов для отображения. Пустой массив = все атрибуты слоя |
+| `useProjectHiddenAttributes` | `boolean` | Если `true` — список `attributes` фильтруется по `hiddenAttributes` слоя проекта (хук [[hooks\|`useLayerHiddenAttributes`]]). По умолчанию `false` — атрибуты, скрытые в проекте, всё равно отображаются |
 | `hideEmpty` | `boolean` | Скрыть строки с пустым значением |
 | `fontColor` | `string` | Цвет значений |
 | `fontSize` | `string \| number` | Размер шрифта значений |
@@ -590,4 +669,4 @@
 
 ## Связанные разделы
 
-[[elements|Элементы]] | [[concepts|Основные понятия]] | [[hooks|Хуки]] | [[components|Компоненты]]
+[[elements|Элементы]] | [[concepts|Основные понятия]] | [[hooks|Хуки]] | [[components|Компоненты]] | [[options|Опции]] | [[types|Типы]]

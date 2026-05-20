@@ -4,6 +4,47 @@
 
 Хуки расположены в `D:/projects/spcore_api/packages/react/src/components/Dashboard/hooks/`. Предоставляют бизнес-логику для компонентов Dashboard и FeatureCard.
 
+Публичные экспорты — см. `hooks/index.ts`. Internal-хуки (`useEditControl`, `useRenderContainer`, `useRenderContainerItem`) используются внутренними контейнерами и не экспортируются наружу.
+
+---
+
+## useAttachmentItems
+
+**Назначение:** Извлечение списка вложений (`Attachment[]`) из атрибута объекта или связанного источника данных. Используется в `AttachmentContainer` и `EditAttachmentContainer`.
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `type` | `WidgetType?` |
+| `elementConfig` | `ConfigContainerChild?` |
+| `valueOverride` | `unknown?` |
+
+**Возвращает:** `{ items: Attachment[], attributeName?: string, rawValue: unknown }`
+
+Если `options.relatedDataSource` задан — берёт features из источника через `attachmentsFromFeatures(features, mapping)` (mapping в `controls[0]`). Иначе парсит сырое значение через `parseAttachments(rawValue)`.
+
+```ts
+const { items } = useAttachmentItems({ type, elementConfig });
+```
+
+---
+
+## useAttachmentPreviewImages
+
+**Назначение:** Превращает список `Attachment[]` в `IPreviewImage[]` для компонента `Preview` из `@evergis/uilib-gl`. Для изображений из защищённого хранилища загружает blob через `api.catalog.getFile`, кэширует `URL.createObjectURL`, отслеживает loading/error. Для внешних URL — отдаёт ссылку напрямую. Для не-изображений — иконку типа файла через `getFileTypeIcon`.
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `items` | `Attachment[]` |
+| `active` | `boolean` |
+
+**Возвращает:** `IPreviewImage[]` — `{ src, fileName, hasError?, isLoading? }[]`
+
+При размонтировании автоматически вызывает `URL.revokeObjectURL` для всех созданных blob URL.
+
 ---
 
 ## useAutoCompleteControl
@@ -61,6 +102,18 @@ const { items, value, onChange } = useAutoCompleteControl(type, elementConfig);
 ```ts
 const { data, loading } = useChartData({ element: chartElement, type });
 ```
+
+---
+
+## useContainerAttributes
+
+**Назначение:** Подготовка списка атрибутов и фабрики рендера для `OneColumnContainer` и `TwoColumnContainer`. Учитывает `options.attributes` (явный список) или все доступные `attributes` контекста + фильтр `useProjectHiddenAttributes` (см. `useLayerHiddenAttributes`).
+
+**Параметры:** `Pick<ContainerProps, "elementConfig" | "type" | "renderElement">`
+
+**Возвращает:** `{ getRenderContainerItem, attributesToRender }`
+- `getRenderContainerItem` — фабрика из `useRenderContainerItem`
+- `attributesToRender` — `string[] | null` (null если `options.attributes` не задан)
 
 ---
 
@@ -127,7 +180,7 @@ const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type,
 
 ## useEditControl
 
-**Назначение:** Логика для edit-контейнеров. Получает значение атрибута и обработчик его изменения.
+**Назначение:** Логика для edit-контейнеров. Получает значение атрибута и обработчик его изменения. Internal-хук (не экспортируется).
 
 **Параметры:**
 | Параметр | Тип |
@@ -136,6 +189,18 @@ const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type,
 | `elementConfig` | `ConfigContainerChild` |
 
 **Возвращает:** `{ value, onChange, attribute, isDisabled }`
+
+---
+
+## useEditGroupAttributes
+
+**Назначение:** Фильтрация атрибутов и контролов для `EditGroupContainer`. Исключает `idAttribute` слоя и (если `useProjectHiddenAttributes`) скрытые атрибуты проекта.
+
+**Параметры:** `Pick<ContainerProps, "elementConfig" | "type">`
+
+**Возвращает:** `{ filteredAttributes, filteredControls }`
+- `filteredAttributes` — `ClientFeatureAttribute[]` без `idAttribute` и скрытых
+- `filteredControls` — `ConfigControl[] | undefined` без контролов, чьи `targetAttributeName` входят в `hiddenAttributes`
 
 ---
 
@@ -282,9 +347,25 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 ---
 
+## useRenderContainer
+
+**Назначение:** Internal-хук для контейнеров `OneColumnContainer` и `TwoColumnContainer`. Объединяет `useContainerAttributes` и `useRenderContainerItem`; поддерживает переопределение `templateName` по атрибуту через `getDisplayTemplateNameFromAttribute`.
+
+**Параметры:**
+| Параметр | Тип |
+|---|---|
+| `elementConfig`, `type`, `renderElement` | из `ContainerProps` |
+| `renderBody` | `(item, attribute?) => ReactNode` — функция отрисовки тела |
+
+**Возвращает:** `{ renderContainer(attribute?), attributesToRender }`
+
+Если у атрибута есть override-templateName — рендерится соответствующий `<OverrideContainer>` через `getContainerComponent`; иначе вызывается `renderBody(item, attribute)`.
+
+---
+
 ## useRenderContainerItem
 
-**Назначение:** Фабрика для рендеринга одного элемента контейнера (OneColumn / TwoColumn). Возвращает `getRenderContainerItem`.
+**Назначение:** Фабрика для рендеринга одного элемента контейнера (OneColumn / TwoColumn). Internal-хук. Возвращает `getRenderContainerItem`.
 
 **Параметры:** `type: WidgetType`, `renderElement: RenderElementFunction`
 
@@ -386,4 +467,4 @@ const { pageIndex, currentPage } = useWidgetPage(type);
 
 ## Связанные разделы
 
-[[components|Компоненты]] | [[utils|Утилиты]] | [[concepts|Основные понятия]] | [[setup|Подключение]]
+[[components|Компоненты]] | [[utils|Утилиты]] | [[concepts|Основные понятия]] | [[setup|Подключение]] | [[types|Типы]]

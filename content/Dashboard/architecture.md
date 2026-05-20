@@ -2,29 +2,41 @@
 
 ## Паттерн конфигурационного управления
 
-Dashboard использует registry-pattern: каждый контейнер и элемент регистрируется по ключу (`ContainerTemplate` enum или строковое название) в `registry.ts`. При рендеринге компонент определяется динамически по значению `templateName` / `type` из конфига.
+Dashboard использует registry-pattern: каждый контейнер и элемент регистрируется по ключу (`ContainerTemplate` enum для контейнеров, строковый `type` для элементов) в `registry.ts`. При рендеринге компонент определяется динамически по значению `templateName` / `type` из конфига.
 
 ```ts
-// containers/registry.ts
-export const containerComponents: Record<string, FC<ContainerProps>> = {
+// containers/registry.ts — as const satisfies ContainerComponentRegistry
+export const containerComponents = {
   [ContainerTemplate.Chart]: ChartContainer,
   [ContainerTemplate.DataSource]: DataSourceContainer,
   [ContainerTemplate.Filters]: FiltersContainer,
-  // ...30+ записей
+  // ...34 записи + default
   default: ContainersGroupContainer,
-};
+} as const satisfies ContainerComponentRegistry;
 
-// elements/registry.ts
-export const elementComponents: Record<string, FC<ContainerProps>> = {
+// elements/registry.ts — as const satisfies ElementComponentRegistry
+export const elementComponents = {
   chart: ElementChart,
   image: ElementImage,
   // ...15 записей
-};
+} as const satisfies ElementComponentRegistry;
 ```
+
+Реестры — типобезопасные: `ContainerComponentRegistry` и `ElementComponentRegistry` (см. [[types#Типизированные реестры|Типизированные реестры]]) гарантируют, что каждый зарегистрированный компонент принимает корректные `<Name>Props`.
 
 Разрешение компонента:
 - Контейнер: `getContainerComponent(templateName)` → `containerComponents[name] || default`
 - Элемент: `getRenderElement(...)` возвращает функцию, которая по `id` находит дочерний элемент в конфиге и рендерит нужный компонент
+
+## Типизация
+
+Типы сгруппированы в три слоя:
+
+1. **Per-component тройка** `<Name>Options` / `<Name>Config` / `<Name>Props` — для каждого контейнера, элемента и шапки в `componentTypes.ts`. Сводная таблица — [[types#Per-component типы|Per-component типы]].
+2. **Branded keyspaces** — `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId` в `branded.ts`. Защищают от перепутывания entity-id на этапе компиляции. См. [[types#Branded types|Branded types]].
+3. **Доменная группировка опций** — `ConfigOptions extends` 12 миксинов (`ConfigLayoutOptions`, `ConfigTypographyOptions`, `ConfigChartOptions`, ...). См. [[options|Опции]].
+
+Discriminated union `DashboardChild` (15 вариантов элементов + 22 варианта контейнеров) и `DashboardHeaderConfig` (4 ветви шапок) позволяют TS сужать ветвь по полю `type` / `templateName` и валидировать `options`. Детали — [[types#Дискриминированный union DashboardChild|Дискриминированный union]].
 
 ## Иерархия компонентов
 
@@ -84,4 +96,4 @@ getRenderElement() → ElementComponent
 
 ## Связанные разделы
 
-[[concepts|Основные понятия]] | [[setup|Подключение]] | [[hooks|Хуки]]
+[[concepts|Основные понятия]] | [[options|Опции]] | [[types|Типы]] | [[setup|Подключение]] | [[hooks|Хуки]]

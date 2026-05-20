@@ -256,7 +256,23 @@ Resolves контейнер из registry. Если не найден — воз
 
 `(attribute: ClientFeatureAttribute) => ContainerTemplate`
 
-Маппинг `AttributeType` на `ContainerTemplate` для Edit-контейнеров: `Boolean` → `EditBoolean`, `Int32/Int64/Double` → `EditNumber`, `DateTime` → `EditDate`, иначе → `EditString`.
+Маппинг `AttributeType` на `ContainerTemplate` для Edit-контейнеров: `Boolean` → `EditBoolean`, `Int32/Int64/Double` → `EditNumber`, `DateTime` → `EditDate`, `Resource` → `EditAttachment`, иначе → `EditString`.
+
+---
+
+### getDisplayTemplateNameFromAttribute
+
+`(attribute?: ClientFeatureAttribute) => ContainerTemplate | undefined`
+
+Для display-режима (не edit): возвращает специальный `ContainerTemplate` для атрибута, если он требует особого рендера (например, `AttributeType.Resource` → `ContainerTemplate.Attachment`). Используется в [[hooks|хуке]] `useRenderContainer` для переопределения template дочернего контейнера в `OneColumn`/`TwoColumn`.
+
+---
+
+### getThemeByName
+
+`(themeName?: ThemeName) => DefaultTheme`
+
+Возвращает объект темы (`ITheme`) для `ThemeProvider`. Используется в шапках `FeatureCard*Header` для принудительной темы шапки независимо от глобальной.
 
 ---
 
@@ -440,6 +456,42 @@ Resolves контейнер из registry. Если не найден — воз
 
 ---
 
+## Утилиты AttachmentContainer
+
+Локальные в `containers/AttachmentContainer/utils/`:
+
+### parseAttachments
+
+`(rawValue: unknown) => Attachment[]`
+
+Парсит сырое значение атрибута (строка, массив, JSON) в массив `Attachment` (`{ link, name, mimeType, uploadedAt, isExternal }`).
+
+---
+
+### attachmentsFromFeatures
+
+`(features?: FeatureDc[], mapping?: { attributeLink?, attributeName?, attributeMime?, attributeDate? }) => Attachment[]`
+
+Извлекает вложения из features связанного источника данных согласно маппингу полей.
+
+---
+
+### getFileType
+
+`(mimeType?: string, fileName?: string) => FileType`
+
+Определяет `FileType` (`XLSX`, `PDF`, `CSV`, `PNG`, ...) из MIME-типа или расширения файла.
+
+---
+
+### getFileTypeIcon
+
+`(fileType: FileType) => string`
+
+Возвращает URL иконки-заглушки по типу файла (для preview, когда сам файл не загружен или не является изображением).
+
+---
+
 ## Прочие
 
 ### pieChartTooltipFromAttributes
@@ -492,4 +544,4 @@ Resolves контейнер из registry. Если не найден — воз
 
 ## Связанные разделы
 
-[[hooks|Хуки]] | [[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]]
+[[hooks|Хуки]] | [[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[types|Типы]]

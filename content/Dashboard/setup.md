@@ -55,7 +55,7 @@
 
 Файл: `contexts/DashboardContext/index.tsx`
 
-Тонкий `memo`-компонент, создающий `DashboardContext` из всех переданных props.
+Тонкий `memo`-компонент, создающий `DashboardContext` из всех переданных props. Конфиг `config: ConfigContainer` содержит `children: DashboardChild[]` (discriminated union из [[types#Дискриминированный union DashboardChild|типов]]).
 
 ### Props (`DashboardContextProps`)
 
@@ -157,4 +157,4 @@
 
 ## Связанные разделы
 
-[[hooks|Хуки]] | [[components|Компоненты]] | [[requirements|Системные требования]] | [[architecture|Архитектура]]
+[[hooks|Хуки]] | [[components|Компоненты]] | [[requirements|Системные требования]] | [[architecture|Архитектура]] | [[types|Типы]]

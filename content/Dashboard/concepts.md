@@ -19,6 +19,8 @@
 
 **Навигация:** `pageIndex` (0-based) — текущая страница. Методы из [[setup|DashboardContextProps]]: `nextPage(total)`, `prevPage(total)`, `changePage(index)`. Хук: [[hooks|хук]] `useWidgetPage` — возвращает `pageIndex`, `currentPage` (с объединёнными dataSources/filters из конфига), методы обновления конфига страницы.
 
+Связь страницы с табом — поле `options.tabId` ребёнка `PagesContainer` (тип `PageChildOptions`, см. [[types|Типы]]).
+
 Создание новой страницы: [[utils|утилита]] `createConfigPage(props)` → `ConfigContainerChild` с ID формата `page_${n}`.
 
 ---
@@ -50,7 +52,7 @@
 
 **Умная инвалидация:** при изменении значения фильтра система вычисляет список изменившихся фильтров → `getUpdatingDataSources()` возвращает только те источники, в `condition` или `parameters` которых есть ссылка `%filterName` → перезагружаются только они. Остальные источники не тронуты.
 
-Хук: [[hooks|хук]] `useDataSources`.
+Хук: [[hooks|хук]] `useDataSources`. Имя источника типизируется branded-типом [[types#Branded types|DataSourceName]] (`asDataSourceName`).
 
 ---
 
@@ -87,7 +89,7 @@ interface SelectedFilter {
 }
 ```
 
-**ConfigFilter** — описание фильтра в конфиге страницы: `name`, `defaultValue`, `valueType`, `relatedDataSource` (откуда брать список вариантов), `resetFilters` (сбрасываемые при изменении фильтры).
+**ConfigFilter** — описание фильтра в конфиге страницы: `name`, `defaultValue`, `valueType`, `relatedDataSource` (откуда брать список вариантов), `resetFilters` (сбрасываемые при изменении фильтры). Имя фильтра типизируется branded-типом [[types#Branded types|FilterName]] (`asFilterName`).
 
 **Геометрический фильтр:** специальный фильтр с именем `geometry`. Позволяет фильтровать объекты на карте по нарисованной области (polygon, bbox). Передаётся как `ewktGeometry` через [[setup|GlobalContext]]. При вставке в условие: `%geometry` → `'SRID=4326;POLYGON(...)'`. Пример: пользователь рисует прямоугольник на карте → все источники данных с `%geometry` в условии перезапрашиваются для выбранного района.
 
@@ -115,7 +117,7 @@ interface ConfigLayer {
 }
 ```
 
-**DashboardLayerPayload** — обновление состояния слоя в runtime: `{ name: string, isVisible?: boolean, condition?: string, ... }`. Вызывается через `setDashboardLayer` из контекста.
+**DashboardLayerPayload** — обновление состояния слоя в runtime: `{ name: string, isVisible?: boolean, condition?: string, ... }`. Вызывается через `setDashboardLayer` из контекста. Имя слоя типизируется branded-типом [[types#Branded types|LayerName]] (`asLayerName`).
 
 **layerInfos** — метаданные слоёв (`QueryLayerServiceInfoDc[]`), передаются через DashboardProvider. Используются для: форматирования значений атрибутов по их типу (`Int32`, `DateTime`, `String` и т.д.), отображения иконки слоя в шапке, резолва связанных атрибутов (join).
 
@@ -196,24 +198,26 @@ interface ConfigLayer {
 
 **Регистрация контейнеров** в `containers/registry.ts`:
 ```ts
-export const containersRegistry: ContainersRegistry = {
+export const containerComponents = {
   [ContainerTemplate.Chart]: ChartContainer,
   [ContainerTemplate.DataSource]: DataSourceContainer,
   [ContainerTemplate.Filters]: FiltersContainer,
-  // ... 30+ контейнеров
+  // ... 34 контейнера
   default: ContainersGroupContainer, // если templateName не найден
-};
+} as const satisfies ContainerComponentRegistry;
 ```
 
 **Регистрация элементов** в `elements/registry.ts`:
 ```ts
-export const elementsRegistry: ElementsRegistry = {
+export const elementComponents = {
   chart: ElementChart,
   image: ElementImage,
   icon: ElementIcon,
   // ... 15 элементов
-};
+} as const satisfies ElementComponentRegistry;
 ```
+
+Контракт `ContainerComponentRegistry` / `ElementComponentRegistry` (см. [[types#Типизированные реестры|Типизированные реестры]]) на этапе компиляции проверяет, что каждый зарегистрированный компонент принимает корректные `<Name>Props`.
 
 Разрешение:
 - [[utils|утилита]] `getContainerComponent(templateName)` → `FC<ContainerProps> | null`
@@ -225,4 +229,4 @@ export const elementsRegistry: ElementsRegistry = {
 
 ## Связанные разделы
 
-[[architecture|Архитектура]] | [[hooks|Хуки]] | [[containers|Контейнеры]] | [[elements|Элементы]]
+[[architecture|Архитектура]] | [[options|Опции]] | [[types|Типы]] | [[hooks|Хуки]] | [[containers|Контейнеры]] | [[elements|Элементы]]

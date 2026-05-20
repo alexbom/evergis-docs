@@ -9,9 +9,11 @@
 3. [[requirements|Системные требования]] — зависимости и пакеты
 4. [[architecture|Архитектура]] — структура и иерархия компонентов
 5. [[concepts|Основные понятия]] — страницы, фильтры, источники данных, слои, контексты
-6. [[containers|Контейнеры]] — все контейнеры Dashboard
-7. [[headers|Шапки]] — типы шапок Dashboard и FeatureCard
-8. [[elements|Элементы]] — все элементы Dashboard
-9. [[hooks|Хуки]] — хуки: назначение, параметры, примеры
-10. [[utils|Утилиты]] — утилитные функции
-11. [[components|Компоненты]] — переиспользуемые React-компоненты
+6. [[options|Опции]] — доменная группировка `ConfigOptions` (Layout / Typography / Chart / ...)
+7. [[types|Типы]] — branded keyspaces, discriminated union, per-component тройки, реестры
+8. [[containers|Контейнеры]] — все контейнеры Dashboard
+9. [[headers|Шапки]] — типы шапок Dashboard и FeatureCard
+10. [[elements|Элементы]] — все элементы Dashboard
+11. [[hooks|Хуки]] — хуки: назначение, параметры, примеры
+12. [[utils|Утилиты]] — утилитные функции
+13. [[components|Компоненты]] — переиспользуемые React-компоненты
