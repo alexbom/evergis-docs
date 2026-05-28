@@ -34,12 +34,17 @@
 
 **Назначение:** Кнопка, открывающая URL из атрибута объекта в новой вкладке.
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
 
-| Опция | Тип | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
 | `value` | `string` | Текст кнопки |
 | `attributeName` | `string` | Имя атрибута, содержащего URL для открытия |
+
+**Опции (`options`):**
+
+| Опция | Тип | Описание |
+|---|---|---|
 | `icon` | `IconTypesKeys` | Иконка кнопки |
 
 **Поведение:** читает `attributeName` → `attribute.value` (URL) → `window.open(url)`. Если значение атрибута не строка или пустое — не рендерится.
@@ -56,11 +61,16 @@
 
 **Props:** `CameraAttributeProps` (`type, elementConfig, renderElement, field?`)
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `attributeName` | `string` | Имя атрибута, содержащего URL камеры |
+
+**Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута, содержащего URL камеры |
 | `expandable` | `boolean` | Разрешить раскрытие галереи |
 
 **Зависимости:** `useCameraAttribute(cameraUrl)` — `galleryImages`, `totalCount`, `isLoadingSnapshot`, `isLoadingTimeline`
@@ -123,7 +133,13 @@
 
 **Назначение:** Теги-чипы, разобранные из строки атрибута по разделителю. Используется для отображения категорий, тегов, статусов.
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `attributeName` | `string` | Имя атрибута со строкой тегов |
+
+**Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -179,12 +195,17 @@
 
 **Назначение:** Иконка из библиотеки `@evergis/uilib-gl` или из значения атрибута.
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
 
-| Опция | Тип | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
 | `value` | `IconTypesKeys` | Статическое имя иконки из библиотеки |
 | `attributeName` | `string` | Имя атрибута, содержащего имя иконки |
+
+**Опции (`options`):**
+
+| Опция | Тип | Описание |
+|---|---|---|
 | `fontSize` | `string \| number` | Размер иконки |
 | `fontColor` | `string` | Цвет иконки |
 
@@ -200,17 +221,26 @@
 
 **Назначение:** Изображение из ресурса или атрибута. Загружает с авторизацией через [[hooks|хук]] `useFetchImageWithAuth`.
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
 
-| Опция | Тип | Описание |
+| Поле | Тип | Описание |
 |---|---|---|
 | `value` | `string` | Статический URL или путь ресурса |
 | `attributeName` | `string` | Имя атрибута, содержащего URL изображения |
+
+**Опции (`options`):**
+
+| Опция | Тип | Описание |
+|---|---|---|
 | `width` | `number \| string` | Ширина изображения в px или CSS-значение |
 
 **Поведение:** `value` → `getResourceUrl(value)`; `attributeName` → первый элемент из значения атрибута (разделённый `;`). Если URL не получен — не рендерится.
 
 ```tsx
+// статический URL
+{ id: "bgImage", type: "image", value: "https://example.com/bg.png", options: { width: 200 } }
+
+// из атрибута объекта
 { id: "image", type: "image", attributeName: "photoUrl", options: { width: 200 } }
 ```
 
@@ -243,11 +273,16 @@
 
 **Назначение:** Ссылка из значения атрибута. Внешние ссылки (`http...`) открываются в новой вкладке, внутренние — через `LocalLink` (SPA-навигация).
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `attributeName` | `string` | Имя атрибута, содержащего URL |
+
+**Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута, содержащего URL |
 | `simple` | `boolean` | Простой `<a>` без стилизации |
 | `title` | `string` | Статический текст ссылки (вместо URL из атрибута) |
 
@@ -263,12 +298,17 @@
 
 **Назначение:** Рендеринг Markdown-контента с поддержкой раскрытия по длине. Полезен для описаний объектов, инструкций.
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `value` | `string` | Статический Markdown-контент |
+| `attributeName` | `string` | Имя атрибута, содержащего Markdown-текст |
+
+**Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута, содержащего Markdown-текст |
-| `value` | `string` | Статический Markdown-контент |
 | `expandLength` | `number` | Число символов до скрытия текста. `0` = не скрывать |
 
 **Поведение:** контент из `elementConfig.value` или `attributes[attributeName].value`. Рендерит через `react-markdown` с `rehype-raw`, `rehype-sanitize`, `remark-gfm`.
@@ -292,8 +332,32 @@
 
 **Поведение:** находит `ConfigModal` по `modalId`, рендерит `ContainerChildren` внутри `Dialog`.
 
+**Конфигурация модалки (`config.modals[]`, `ConfigModal`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `id` | `ModalId` | Id модалки, на который ссылается `ElementModal.options.modalId` |
+| `options.title` | `string` | Заголовок диалога |
+| `options.maxWidth` | `string` | CSS `max-width` диалога |
+| `options.minWidth` | `string` | CSS `min-width` диалога |
+| `options.minHeight` | `string` | CSS `min-height` диалога |
+| `children` | `ConfigContainerChild[]` | Содержимое модалки (рендерится через `ContainerChildren`) |
+
 ```tsx
-{ id: "value", type: "modal", options: { modalId: "detailsModal", icon: "info" } }
+// Кнопка-открытие в children контейнера
+{ id: "open_details", type: "modal", options: { modalId: "detailsModal", icon: "info" } }
+
+// Сама модалка — на корневом уровне config
+modals: [
+  {
+    id: "detailsModal",
+    options: { title: "Подробности", maxWidth: "800px", minHeight: "400px" },
+    children: [
+      { id: "chart", templateName: "Chart", options: { chartType: "bar", relatedDataSource: "sales" } },
+      { id: "txt", type: "markdown", attributeName: "description" }
+    ]
+  }
+]
 ```
 
 ---
@@ -304,11 +368,16 @@
 
 **Типы:** `type = "slideshow"` · `ElementSlideshowOptions` · `ElementSlideshowProps`. Локальный тип — `DashboardSlideshowProps` (Pick от `ElementSlideshowProps`) в `elements/ElementSlideshow/types.ts`.
 
-**Опции (`ElementSlideshowOptions` Pick):**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `attributeName` | `string` | Имя атрибута, содержащего URL изображений (через разделитель) |
+
+**Опции (`options`, `ElementSlideshowOptions` Pick):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута, содержащего URL изображений (через разделитель) |
 | `relatedDataSource` | `string` | Источник данных с изображениями (приоритет над `attributeName`) |
 | `expandable` | `boolean` | Разрешить сворачивание |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
@@ -328,13 +397,18 @@
 
 **Props:** `ContainerProps` + опционально `layerInfo`, `attributes`
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `value` | `string` | Статический путь к SVG-ресурсу |
+| `attributeName` | `string` | Имя атрибута с URL SVG |
+| `attributeIcon` | `string` | Имя атрибута для поиска иконки слоя |
+
+**Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута с URL SVG |
-| `attributeIcon` | `string` | Имя атрибута для поиска иконки слоя |
-| `value` | `string` | Статический путь к SVG-ресурсу |
 | `width` | `number \| string` | Ширина |
 | `height` | `number \| string` | Высота |
 | `fontColor` | `string` | Цвет заливки SVG (через CSS `color`) |
@@ -351,12 +425,17 @@
 
 **Назначение:** Иконка с всплывающей подсказкой при наведении. Текст берётся из атрибута или статического значения.
 
-**Опции:**
+**Поля конфига (корневой уровень `ConfigContainerChild`):**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `value` | `string` | Статический текст тултипа |
+| `attributeName` | `string` | Имя атрибута, содержащего текст тултипа |
+
+**Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута, содержащего текст тултипа |
-| `value` | `string` | Статический текст тултипа |
 | `icon` | `IconTypesKeys` | Иконка (default: `"question"`) |
 
 ```tsx

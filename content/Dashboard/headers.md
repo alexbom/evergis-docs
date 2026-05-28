@@ -152,15 +152,18 @@ BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $
 {
   header: {
     templateName: "Background",
-    options: { bgColor: "#2c3e50", fontColor: "#fff", bigIcon: true },
+    options: { bgColor: "#2c3e50", fontColor: "#fff", bigIcon: true, height: 120 },
     children: [
       { id: "title", attributeName: "name" },
       { id: "description", attributeName: "category" },
-      { id: "icon", type: "svg", attributeName: "iconUrl" }
+      { id: "icon", type: "svg", attributeName: "iconUrl" },
+      { id: "bgImage", type: "image", value: "https://example.com/bg.png" }
     ]
   }
 }
 ```
+
+> ⚠️ `bgImage` — это `type: "image"`, URL лежит в **корневом** `value` (или `attributeName`), а не в `options.value`. В `options` для image допустим только `width` (см. [[elements#ElementImage]]).
 
 ---
 
@@ -216,6 +219,7 @@ SlideshowHeaderWrapper(fontColor, withPadding, height, big)
     options: { height: 200, withPadding: true },
     children: [
       { id: "slideshow", type: "slideshow", attributeName: "photos" },
+      { id: "bgImage", type: "image", value: "https://example.com/fallback-bg.png" },
       { id: "title", attributeName: "name" },
       { id: "description", attributeName: "address" }
     ]

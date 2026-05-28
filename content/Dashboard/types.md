@@ -153,6 +153,8 @@ type DashboardHeaderConfig =
 
 ### Элементы
 
+> Колонка `<Name>Options` — это **только** поля внутри JSON-ключа `options`. Корневые поля элемента (`id`, `type`, `value`, `attributeName`, `style`, `relatedDataSource` и т.п.) лежат на верхнем уровне `ConfigContainerChild` — подробности по каждому элементу см. в [[elements]].
+
 | Component | `type` | `<Name>Options` (Pick полей) |
 |---|---|---|
 | `ElementButton` | `"button"` | — (Record<string, never>) |
