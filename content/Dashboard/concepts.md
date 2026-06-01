@@ -282,6 +282,45 @@ interface ConfigLayer {
 
 ---
 
+## Серверные хуки сохранения (beforeSave / afterSave)
+
+**Save-хуки** — это серверные python-скрипты, которые выполняются при сохранении объекта в FeatureCard: один до сохранения (валидация), другой после (побочное действие). Они описываются в конфигурации слоя `layerInfo.configuration.editConfiguration.options` и не требуют изменения клиентского кода.
+
+- **`beforeSave`** — синхронная серверная проверка **перед** сохранением. Save ждёт завершения задачи: при статусе `Completed` сохранение продолжается, при `Error` — отменяется. Текст ошибки показывается из `log` задачи. Практический пример: проверка пересечения геометрии нового участка с уже существующими — если пересечение есть, сохранение блокируется.
+- **`afterSave`** — fire-and-forget действие **после** успешного сохранения. Не блокирует UI и не влияет на результат save. Практический пример: пересчёт связанной агрегации или запуск нотификации смежной службе.
+
+```json
+{
+  "editConfiguration": {
+    "options": {
+      "beforeSave": {
+        "resourceId": "validate-geometry-script",
+        "methodName": "validate",
+        "parameters": { "tolerance": { "default": 0.5 } }
+      },
+      "afterSave": {
+        "fileName": "recalc.py",
+        "methodName": "run",
+        "parameters": {}
+      }
+    }
+  }
+}
+```
+
+Описание скрипта — тип `ConfigRelatedResource` (`resourceId`/`fileName`, `methodName`, `parameters`, `script`). Контейнер `editConfiguration.options` — тип `EditConfigurationOptions` (`{ beforeSave?, afterSave? }`). Вход хуков — `SaveHookInput`:
+
+```ts
+interface SaveHookInput {
+  featureId: number | string | null; // null при создании нового объекта
+  changedProperties: Record<string, unknown>;
+}
+```
+
+Механизм реализован хуками [[hooks|Хуки]] `useFeatureSaveHooks` (orchestrator), `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`. Параметры скрипта собираются через [[utils|утилиту]] `applyQueryFilters` (подстановка фильтров/геометрии) и запускаются как remote task (`pythonrunner/run`). Имя ресурса типизируется branded-типом [[types#Branded types|ResourceId]].
+
+---
+
 ## Registry
 
 **Registry** — механизм, связывающий строковое имя типа из JSON-конфига с React-компонентом. Это позволяет декларативно описывать UI через JSON-конфиг, не упоминая компоненты напрямую.

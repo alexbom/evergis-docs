@@ -274,8 +274,9 @@ interface ConfigOptions
 | `groupTooltip` | `boolean` | Группировать tooltip |
 | `wrap` | `boolean` | Переносить содержимое |
 | `modalId`, `tabId`, `downloadById`, `parentResourceId` | `string` | Дубликаты entity-ref для удобства Pick |
+| `useNotifications` | `boolean` | Показывать прогресс-уведомления о выполнении задачи (`TaskContainer`) |
 
-**Используется в:** `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`).
+**Используется в:** `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`).
 
 ---
 

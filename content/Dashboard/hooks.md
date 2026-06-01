@@ -6,6 +6,30 @@
 
 Публичные экспорты — см. `hooks/index.ts`. Internal-хуки (`useEditControl`, `useRenderContainer`, `useRenderContainerItem`) используются внутренними контейнерами и не экспортируются наружу.
 
+Серверные хуки сохранения (`useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`) реализуют механизм `beforeSave`/`afterSave` python-скриптов — концептуально описан в [[concepts#Серверные хуки сохранения (beforeSave / afterSave)|Основных понятиях]].
+
+---
+
+## useAfterSave
+
+**Назначение:** Фабрика fire-and-forget действия после успешного сохранения объекта в FeatureCard. Запускает python-скрипт (`afterSave`) через remote task; показывает уведомление о прогрессе/успехе/ошибке, но **не блокирует** сохранение и ничего не возвращает в поток сохранения.
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `hook` | `ConfigRelatedResource \| undefined` — описание `afterSave`-скрипта из `editConfiguration.options` |
+| `buildPrototype` | `(hook, input: SaveHookInput) => TaskPrototypeDto` — билдер прототипа задачи (из `useSavePrototypeBuilder`) |
+
+**Возвращает:** `(input: SaveHookInput) => Promise<void>`
+
+Если `hook` неактивен (нет `resourceId` и `fileName` — см. `isHookActive`) — действие пропускается. См. [[types|тип]] `ConfigRelatedResource`, `SaveHookInput`.
+
+```ts
+const runAfterSave = useAfterSave(options?.afterSave, buildPrototype);
+await runAfterSave({ featureId, changedProperties });
+```
+
 ---
 
 ## useAttachmentItems
@@ -61,6 +85,29 @@ const { items } = useAttachmentItems({ type, elementConfig });
 
 ```ts
 const { items, value, onChange } = useAutoCompleteControl(type, elementConfig);
+```
+
+---
+
+## useBeforeSave
+
+**Назначение:** Фабрика синхронной серверной проверки перед сохранением объекта в FeatureCard. Запускает python-скрипт (`beforeSave`) через remote task и **ждёт** его завершения: при `RemoteTaskStatus.Completed` resolves `true` (сохранение продолжается), иначе — `false` (сохранение должно быть отменено). Показывает уведомление о прогрессе/успехе/ошибке (текст ошибки берётся из `log` задачи).
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `hook` | `ConfigRelatedResource \| undefined` — описание `beforeSave`-скрипта из `editConfiguration.options` |
+| `buildPrototype` | `(hook, input: SaveHookInput) => TaskPrototypeDto` — билдер прототипа задачи (из `useSavePrototypeBuilder`) |
+
+**Возвращает:** `(input: SaveHookInput) => Promise<boolean>` — `false` означает «проверка не пройдена, отменить save»
+
+Если `hook` неактивен (нет `resourceId` и `fileName`) — возвращает `true` (проверка пропускается, сохранение не блокируется). См. [[concepts#Серверные хуки сохранения (beforeSave / afterSave)|Основные понятия]].
+
+```ts
+const runBeforeSave = useBeforeSave(options?.beforeSave, buildPrototype);
+
+if (!(await runBeforeSave({ featureId, changedProperties }))) return; // save отменён
 ```
 
 ---
@@ -238,6 +285,35 @@ const { loading, onExport } = useExportPdf(getRootElementId(type));
 
 ---
 
+## useFeatureSaveHooks
+
+**Назначение:** Orchestrator-хук серверных `beforeSave` / `afterSave` python-скриптов. Читает их описание из `layerInfo.configuration.editConfiguration.options` (тип [[types|EditConfigurationOptions]]) текущего слоя FeatureCard и собирает готовые к вызову функции через **useBeforeSave** / **useAfterSave** и билдер из **useSavePrototypeBuilder**.
+
+Активируется только если в [[setup|GlobalProvider]] переданы `api`, `notification`, `t`, а приложение обёрнуто в `<ServerNotificationsProvider>` (SignalR-подписка на прогресс задачи).
+
+**Параметры:** нет
+
+**Возвращает:**
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `runBeforeSave` | `(input: SaveHookInput) => Promise<boolean>` | Проверка перед сохранением; `false` → отменить save |
+| `runAfterSave` | `(input: SaveHookInput) => Promise<void>` | Действие после успешного save (fire-and-forget) |
+
+Вспомогательные функции и константы — в `useFeatureSaveHooks.utils.ts`: `isHookActive(hook)` (хук активен при наличии `resourceId` или `fileName`), `createSaveNotificationId()` (уникальный id уведомления), `SAVE_HOOK_RESULT_DURATION` (4000 мс — длительность показа результата).
+
+```ts
+const { runBeforeSave, runAfterSave } = useFeatureSaveHooks();
+
+const onSave = async (input: SaveHookInput) => {
+  if (!(await runBeforeSave(input))) return;
+  await save();
+  runAfterSave(input);
+};
+```
+
+---
+
 ## useFetchImageWithAuth
 
 **Назначение:** Загрузка изображения по URL с авторизацией (Bearer token из localStorage). Возвращает object URL.
@@ -380,6 +456,23 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 **Параметры:** `GetRenderElementProps`
 
 **Возвращает:** `RenderElementFunction`
+
+---
+
+## useSavePrototypeBuilder
+
+**Назначение:** Билдер `TaskPrototypeDto` для запуска `beforeSave`/`afterSave` python-скрипта. Собирает параметры скрипта из контекста FeatureCard и Dashboard: подставляет фильтры/геометрию в `hook.parameters` через [[utils|утилиту]] `applyQueryFilters`, добавляет служебные `projectName`, `layerName`, `featureId`, `properties` (изменённые поля). Используется внутри **useFeatureSaveHooks**.
+
+**Параметры:** нет
+
+**Возвращает:** `(hook: ConfigRelatedResource, input: SaveHookInput) => TaskPrototypeDto`
+
+Прототип содержит один `pythonService`-subtask (`method: "pythonrunner/run"`) с `resourceId`/`fileName`/`methodName` из `hook` и собранными `parameters`.
+
+```ts
+const buildPrototype = useSavePrototypeBuilder();
+const prototype = buildPrototype(hook, { featureId, changedProperties });
+```
 
 ---
 

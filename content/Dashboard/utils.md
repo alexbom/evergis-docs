@@ -426,9 +426,16 @@ Resolves контейнер из registry. Если не найден — воз
 
 ### applyQueryFilters
 
-`({ parameters, filters, selectedFilters, dataSources, geometry }) => Record<string, any>`
+`({ parameters, filters, selectedFilters, geometry, attributes?, layerInfo?, dataSources, projectDataSources? }) => Record<string, any>`
 
-Заменяет `%filterName` в `parameters` на значения фильтров. Поддерживает `.min`, `.max`, `.property`, геометрию.
+Резолвит значения `parameters` (EQL-параметров или параметров python-скрипта) из нескольких источников:
+
+- `%filterName` → значение фильтра; поддерживает `.min`, `.max`, `.property` и `%geometry`;
+- `$card:layerName:fieldName` → значение атрибута текущего объекта FeatureCard (из `attributes`, если `layerInfo.name === layerName`);
+- `$left:layerName:fieldName` → значение из первого feature `projectDataSources` по имени слоя;
+- `{attributeName}` → подстановка/интерполяция значений атрибутов объекта.
+
+Используется в источниках данных, а также билдером [[hooks|хука]] `useSavePrototypeBuilder` для сборки параметров `beforeSave`/`afterSave` скриптов.
 
 ---
 

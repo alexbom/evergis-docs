@@ -207,8 +207,8 @@ type DashboardHeaderConfig =
 | `ProgressContainer` | `Progress` | `bgColor`, `innerTemplateStyle`, `maxValue`, `hideTitle`, `innerValue`, `colors`, `colorAttribute` |
 | `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `center`, `fontColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute` |
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` |
-| `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength` (+ `TabChild`: `icon`) |
-| `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters` |
+| `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
+| `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` |
 | `TitleContainer` | `Title` | `simple`, `downloadById` |
 | `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` |
 | `UploadContainer` | `Upload` | `expandable`, `expanded` |
@@ -302,6 +302,27 @@ const RoundedBackgroundContainerTyped =
 | `containers/AttachmentContainer/constants.ts` | MIME-типы, лимиты, расширения |
 | `elements/ElementCamera/types.ts` | `SmallPreviewProps` (`images`, `totalCount`, `currentIndex`), `CameraAttributeProps` |
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
+
+---
+
+## Типы серверных хуков сохранения
+
+Типы для механизма `beforeSave`/`afterSave` (см. [[concepts#Серверные хуки сохранения (beforeSave / afterSave)|Основные понятия]] и [[hooks|хук]] `useFeatureSaveHooks`). Определены в `types.ts`.
+
+| Тип | Содержимое | Назначение |
+|---|---|---|
+| `ConfigRelatedResource` | `resourceId`, `parameters`, `script?`, `fileName?`, `methodName?` | Описание серверного python-ресурса. Используется и в `TaskContainer.options.relatedResources`, и в save-хуках |
+| `EditConfigurationOptions` | `beforeSave?: ConfigRelatedResource`, `afterSave?: ConfigRelatedResource` | Контейнер `editConfiguration.options` слоя |
+| `SaveHookInput` | `featureId: number \| string \| null`, `changedProperties: Record<string, unknown>` | Вход `runBeforeSave`/`runAfterSave`; `featureId === null` при создании нового объекта |
+
+```ts
+interface EditConfigurationOptions {
+  beforeSave?: ConfigRelatedResource; // синхронная валидация перед save
+  afterSave?: ConfigRelatedResource;  // fire-and-forget после save
+}
+```
+
+Хук считает скрипт активным (`isHookActive`), если у `ConfigRelatedResource` задан `resourceId` или `fileName`. Имя ресурса типизируется branded-типом [[#Branded types|ResourceId]].
 
 ---
 

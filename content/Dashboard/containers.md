@@ -614,6 +614,8 @@
 | `center` | `boolean` | Центрировать кнопку |
 | `icon` | `IconTypesKeys` | Иконка кнопки |
 | `statusColors` | `Record<string, string>` | Цвет по статусу задачи (`{ "running": "#f39c12", "done": "#27ae60" }`) |
+| `responseFilters` | `Record<string, string>` | Маппинг полей ответа задачи на фильтры |
+| `useNotifications` | `boolean` | Показывать прогресс-уведомления о выполнении задачи |
 
 ```tsx
 {

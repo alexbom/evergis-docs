@@ -132,6 +132,7 @@
 | `ewktGeometry` | `string` | EWKT-геометрия для геофильтра |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
+| `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`). Нужен для прогресс-уведомлений серверных [[hooks|хуков]] `beforeSave`/`afterSave` |
 
 ```tsx
 <GlobalProvider api={api} t={t} ewktGeometry={geometry} themeName="Light">
