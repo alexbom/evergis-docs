@@ -479,7 +479,7 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 | `edit.featureGeometry` | `geometryToEwkt(input.changedGeometry)` | только если геометрия объекта менялась |
 | `...resolvedParameters` | `applyQueryFilters(hook.parameters, ...)` | подстановка фильтров/геометрии |
 
-Прототип содержит один `pythonService`-subtask (`method: "pythonrunner/run"`) с `resourceId`/`fileName`/`methodName` из `hook` и собранными `parameters`.
+Прототип содержит один `pythonService`-subtask (`method: "pythonrunner/run"`) с `resourceId`/`fileName`/`methodName` из `hook` и собранными `parameters`. Полное описание того, что python-скрипт получает на входе, — [[concepts#Дата-контракт python-скрипта|дата-контракт]] в Основных понятиях.
 
 ```ts
 const buildPrototype = useSavePrototypeBuilder();

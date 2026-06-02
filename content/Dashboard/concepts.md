@@ -318,20 +318,42 @@ interface SaveHookInput {
 }
 ```
 
-**Передача геометрии.** При редактировании геометрии объекта новая GeoJSON-геометрия (в WGS84) передаётся в `changedGeometry`. Билдер прототипа конвертирует её в EWKT-строку (`geometryToEwkt`) и кладёт в payload скрипта как `edit.featureGeometry`. Если геометрия не менялась — `changedGeometry` опускается, и `edit.featureGeometry` в payload не попадает. Отдельно, если на карте активен геометрический фильтр (`ewktGeometry`), он добавляется в payload как `selectionGeometry`. Практический пример: `beforeSave`-скрипт получает `featureGeometry` нового участка и проверяет его пересечение с существующими объектами слоя.
+### Дата-контракт python-скрипта
+
+`SaveHookInput` — это вход хука **на клиенте**; на сервер он попадает не напрямую. Билдер [[hooks|хук]] `useSavePrototypeBuilder` собирает из него (и из контекста FeatureCard/Dashboard) объект `parameters`, который передаётся python-скрипту как аргумент вызова `pythonrunner/run`. Именно эту структуру скрипт читает на входе — и для `beforeSave`, и для `afterSave` контракт одинаковый.
 
 ```json
 {
-  "projectName": "...",
-  "layerName": "...",
+  "projectName": "city_cadastre",
+  "layerName": "parcels",
   "featureId": null,
-  "selectionGeometry": "SRID=4326;POLYGON(...)",
+  "selectionGeometry": "SRID=4326;POLYGON((37.6 55.7, ...))",
   "edit": {
-    "attributes": { "name": "Участок №5" },
-    "featureGeometry": "SRID=4326;POLYGON(...)"
-  }
+    "attributes": { "name": "Участок №5", "area": 1240 },
+    "featureGeometry": "SRID=4326;POLYGON((37.6 55.7, ...))"
+  },
+  "tolerance": 0.5
 }
 ```
+
+| Поле | Тип | Источник | Наличие |
+|---|---|---|---|
+| `projectName` | `string` | `projectInfo.name` (контекст Dashboard) | всегда |
+| `layerName` | `string` | `layerInfo.name` (контекст FeatureCard) | всегда |
+| `featureId` | `number \| string \| null` | `SaveHookInput.featureId` | всегда; `null` при создании нового объекта |
+| `selectionGeometry` | `string` (EWKT, `SRID=4326;...`) | геометрический фильтр карты `ewktGeometry` из [[setup\|GlobalContext]] | только если фильтр на карте активен |
+| `edit.attributes` | `Record<string, unknown>` | `SaveHookInput.changedProperties` | всегда (может быть `{}`) |
+| `edit.featureGeometry` | `string` (EWKT, `SRID=4326;...`) | `geometryToEwkt(SaveHookInput.changedGeometry)` | только если геометрия объекта менялась |
+| *(пользовательские поля)* | любые | `hook.parameters` после подстановки фильтров через `applyQueryFilters` | как заданы в конфиге |
+
+**Ключевые моменты контракта:**
+
+- **`edit` — это «что изменил пользователь».** `edit.attributes` содержит только изменённые атрибуты, `edit.featureGeometry` — только изменённую геометрию. Если геометрия не редактировалась — ключ `featureGeometry` **отсутствует** (а не приходит `null`); скрипт должен проверять его наличие.
+- **Геометрия — в EWKT, WGS84.** На клиенте `changedGeometry` — это GeoJSON `Geometry`; билдер конвертирует его в строку EWKT (`SRID=4326;...`) через `geometryToEwkt`. То же касается `selectionGeometry`.
+- **`selectionGeometry` ≠ `edit.featureGeometry`.** Первое — область выделения/фильтра на карте (контекст «где смотрит пользователь»), второе — собственная геометрия сохраняемого объекта.
+- **Пользовательские `parameters` мёржатся на верхний уровень.** Поля из `hook.parameters` (в примере конфига выше — `tolerance`) проходят через `applyQueryFilters` (подстановка `%filterName`, геометрии и т.п.) и добавляются в payload **последними** — при совпадении имён они переопределяют служебные поля, поэтому не называйте свои параметры `projectName`/`layerName`/`featureId`/`edit`.
+
+Практический пример: `beforeSave`-скрипт читает `edit.featureGeometry` нового участка, сверяет его с уже существующими объектами слоя `layerName` в проекте `projectName` и возвращает ошибку (статус задачи `Error` + текст в `log`), если есть пересечение — клиент отменяет сохранение.
 
 Механизм реализован хуками [[hooks|Хуки]] `useFeatureSaveHooks` (orchestrator), `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`. Параметры скрипта собираются через [[utils|утилиту]] `applyQueryFilters` (подстановка фильтров/геометрии) и запускаются как remote task (`pythonrunner/run`). Имя ресурса типизируется branded-типом [[types#Branded types|ResourceId]].
 
