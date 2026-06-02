@@ -312,8 +312,24 @@ interface ConfigLayer {
 
 ```ts
 interface SaveHookInput {
-  featureId: number | string | null; // null при создании нового объекта
-  changedProperties: Record<string, unknown>;
+  featureId: number | string | null;          // null при создании нового объекта
+  changedProperties: Record<string, unknown>; // изменённые атрибуты
+  changedGeometry?: Geometry;                  // новая/изменённая GeoJSON-геометрия (WGS84)
+}
+```
+
+**Передача геометрии.** При редактировании геометрии объекта новая GeoJSON-геометрия (в WGS84) передаётся в `changedGeometry`. Билдер прототипа конвертирует её в EWKT-строку (`geometryToEwkt`) и кладёт в payload скрипта как `edit.featureGeometry`. Если геометрия не менялась — `changedGeometry` опускается, и `edit.featureGeometry` в payload не попадает. Отдельно, если на карте активен геометрический фильтр (`ewktGeometry`), он добавляется в payload как `selectionGeometry`. Практический пример: `beforeSave`-скрипт получает `featureGeometry` нового участка и проверяет его пересечение с существующими объектами слоя.
+
+```json
+{
+  "projectName": "...",
+  "layerName": "...",
+  "featureId": null,
+  "selectionGeometry": "SRID=4326;POLYGON(...)",
+  "edit": {
+    "attributes": { "name": "Участок №5" },
+    "featureGeometry": "SRID=4326;POLYGON(...)"
+  }
 }
 ```
 

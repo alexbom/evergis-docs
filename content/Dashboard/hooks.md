@@ -461,17 +461,29 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 ## useSavePrototypeBuilder
 
-**Назначение:** Билдер `TaskPrototypeDto` для запуска `beforeSave`/`afterSave` python-скрипта. Собирает параметры скрипта из контекста FeatureCard и Dashboard: подставляет фильтры/геометрию в `hook.parameters` через [[utils|утилиту]] `applyQueryFilters`, добавляет служебные `projectName`, `layerName`, `featureId`, `properties` (изменённые поля). Используется внутри **useFeatureSaveHooks**.
+**Назначение:** Билдер `TaskPrototypeDto` для запуска `beforeSave`/`afterSave` python-скрипта. Собирает параметры скрипта из контекста FeatureCard и Dashboard: подставляет фильтры/геометрию в `hook.parameters` через [[utils|утилиту]] `applyQueryFilters`, добавляет служебные `projectName`, `layerName`, `featureId`, объект `edit` (изменённые атрибуты + геометрия) и, при активном геометрическом фильтре карты, `selectionGeometry`. Используется внутри **useFeatureSaveHooks**.
 
 **Параметры:** нет
 
 **Возвращает:** `(hook: ConfigRelatedResource, input: SaveHookInput) => TaskPrototypeDto`
 
+Структура собираемого payload (`scriptParameters`):
+
+| Поле | Источник | Условие |
+|---|---|---|
+| `projectName` | `projectInfo.name` (Dashboard) | всегда |
+| `layerName` | `layerInfo.name` (FeatureCard) | всегда |
+| `featureId` | `input.featureId` | всегда (`null` при создании) |
+| `selectionGeometry` | `ewktGeometry` из [[setup\|GlobalContext]] | только если геом-фильтр карты активен |
+| `edit.attributes` | `input.changedProperties` | всегда |
+| `edit.featureGeometry` | `geometryToEwkt(input.changedGeometry)` | только если геометрия объекта менялась |
+| `...resolvedParameters` | `applyQueryFilters(hook.parameters, ...)` | подстановка фильтров/геометрии |
+
 Прототип содержит один `pythonService`-subtask (`method: "pythonrunner/run"`) с `resourceId`/`fileName`/`methodName` из `hook` и собранными `parameters`.
 
 ```ts
 const buildPrototype = useSavePrototypeBuilder();
-const prototype = buildPrototype(hook, { featureId, changedProperties });
+const prototype = buildPrototype(hook, { featureId, changedProperties, changedGeometry });
 ```
 
 ---

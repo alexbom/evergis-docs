@@ -313,12 +313,18 @@ const RoundedBackgroundContainerTyped =
 |---|---|---|
 | `ConfigRelatedResource` | `resourceId`, `parameters`, `script?`, `fileName?`, `methodName?` | Описание серверного python-ресурса. Используется и в `TaskContainer.options.relatedResources`, и в save-хуках |
 | `EditConfigurationOptions` | `beforeSave?: ConfigRelatedResource`, `afterSave?: ConfigRelatedResource` | Контейнер `editConfiguration.options` слоя |
-| `SaveHookInput` | `featureId: number \| string \| null`, `changedProperties: Record<string, unknown>` | Вход `runBeforeSave`/`runAfterSave`; `featureId === null` при создании нового объекта |
+| `SaveHookInput` | `featureId: number \| string \| null`, `changedProperties: Record<string, unknown>`, `changedGeometry?: Geometry` | Вход `runBeforeSave`/`runAfterSave`; `featureId === null` при создании нового объекта; `changedGeometry` — новая/отредактированная GeoJSON-геометрия (WGS84), опущена если геометрия не менялась |
 
 ```ts
 interface EditConfigurationOptions {
   beforeSave?: ConfigRelatedResource; // синхронная валидация перед save
   afterSave?: ConfigRelatedResource;  // fire-and-forget после save
+}
+
+interface SaveHookInput {
+  featureId: number | string | null;          // null при создании нового объекта
+  changedProperties: Record<string, unknown>; // изменённые атрибуты
+  changedGeometry?: Geometry;                  // GeoJSON-геометрия (WGS84); опущена если не менялась
 }
 ```
 
