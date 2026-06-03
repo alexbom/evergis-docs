@@ -28,6 +28,14 @@ const attr = getAttributeByName("name", attributes);
 
 ---
 
+### getAttributeValue
+
+`(element: ConfigContainerChild, attributes: ClientFeatureAttribute[]) => ReactNode | string`
+
+Извлекает значение атрибута элемента для отображения. Boolean-атрибут → [[components|компонент]] `DashboardCheckbox`; массив `attributeName` → конкатенация значений через `separator`; объект → `JSON.stringify`; при заданном `options.maxLength` оборачивает в [[components|`TextTrim`]]. Используется в `getElementValue` для `type === "attributeValue"`.
+
+---
+
 ### getChartAxes
 
 `(chartElement: ConfigContainerChild) => ConfigRelatedDataSource[]`
@@ -124,11 +132,27 @@ Resolves контейнер из registry. Если не найден — воз
 
 ---
 
+### getElementValue
+
+`({ type, config, elementConfig, renderElement, layerInfo, attributes, element, getDefaultContainer? }) => RenderElementValue`
+
+Центральный диспетчер рендера элемента по полю `type`. Text/attribute-рендеры обрабатываются напрямую: `text` → `value`; `attributeAlias` → alias атрибута (с `TextTrim`); `attributeValue` → делегирует `getAttributeValue`; `attributeUnits` → `stringFormat.unitsLabel`; `attributeDescription` → описание атрибута из конфига слоя; `layerName` → `layerInfo.name`. Иначе ищет компонент в `elements/registry.ts` (`elementComponents[type]`) и рендерит его; при отсутствии — `getDefaultContainer()`. Используется внутри `getRenderElement`.
+
+---
+
 ### getFeatureAttributes
 
 `(feature, layer?, dataSource?) => ClientFeatureAttribute[]`
 
 Преобразует `FeatureDc` + `QueryLayerServiceInfoDc` в массив `ClientFeatureAttribute` с alias, type, value, readOnly, stringFormat и т.д.
+
+---
+
+### getFeatureCardHeader
+
+`(templateName: HeaderTemplate) => FC<ContainerProps>`
+
+Возвращает компонент [[headers|шапки]] FeatureCard по `HeaderTemplate`: `Slideshow` → `FeatureCardSlideshowHeader`, `Background` → `FeatureCardBackgroundHeader`, `Default` (и fallback) → `FeatureCardDefaultHeader`. Парный к `getDashboardHeader`; используется в [[components|компоненте]] `FeatureCardHeader`.
 
 ---
 
@@ -209,6 +233,14 @@ Resolves контейнер из registry. Если не найден — воз
 `(layerInfo, sourceAttributeName, relatedLayerName) => ConfigRelatedAttribute | undefined`
 
 Находит связанный атрибут из конфига карточки слоя (`cardConfiguration`).
+
+---
+
+### getRenderElement
+
+`(props: GetRenderElementProps) => RenderElementFunction`
+
+Фабрика функции `renderElement({ id?, index?, wrap? })` для рендера дочерних элементов контейнера. Находит ребёнка по `id` (через `returnFound` из `find-and`) или по `index`; резолвит ссылки `containerId` на контейнер верхнего уровня; рекурсивно строит вложенный `renderElement`; делегирует значение `getElementValue`; скрывает пустые элементы (`isHiddenEmptyValue`) и форматирует результат через `formatElementValue`. Ключевая утилита registry-рендера — см. [[architecture#Поток данных|Поток данных]]. Парный хук — [[hooks|`useRenderElement`]].
 
 ---
 
@@ -509,6 +541,14 @@ Resolves контейнер из registry. Если не найден — воз
 
 ---
 
+### pieChartTooltipFromRelatedFeatures
+
+`(t, data: PieChartData[], relatedAttributes, layerInfo) => string`
+
+Форматирует строку тултипа PieChart из features связанного источника данных (аналог `pieChartTooltipFromAttributes` для related-features-сценария).
+
+---
+
 ### roundTotalSum
 
 `(value: number) => string | number`
@@ -546,6 +586,14 @@ Resolves контейнер из registry. Если не найден — воз
 `(t, value, relatedAttributes, layerInfo) => number | string | ReactNode`
 
 Делегирует `formatChartRelatedValue`.
+
+---
+
+### toRenderableValue
+
+`(value: unknown) => ReactNode`
+
+Возвращает безопасное для рендера в React значение. Если на вход пришёл не-примитивный объект (массив или plain-object), не являющийся React-элементом, — возвращает пустую строку, чтобы избежать runtime-ошибки «Objects are not valid as a React child». React-элементы и примитивы проходят без изменений. Нужно там, где слот получает сырое значение атрибута, которое может быть структурированным payload (например, атрибут с `subType: Attachments`, чьё значение — `Attachment[]`).
 
 ---
 

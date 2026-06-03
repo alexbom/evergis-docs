@@ -393,7 +393,7 @@
 | `checkbox` | `CheckboxFilter` | Список чекбоксов из `relatedDataSource` |
 | `rangeNumber` | `RangeNumberFilter` | Числовой диапазон (ползунок или два инпута) |
 | `rangeDate` | `RangeDateFilter` | Диапазон дат (два date-picker) |
-| `text` | `TextFilter` | Текстовый поиск с debounce |
+| `text` | `TextFilter` | Текстовое поле с автодополнением (`AutoComplete`). Режим свободного ввода (значение сохраняется строкой), если нет `variants` и у `searchFilterName`-фильтра не заданы `attributeAlias`/`attributeValue`; иначе — автодополнение по `searchFilterName`/`variants` с infinite scroll (значение — массив) |
 | `chips` | `ChipsFilter` | Мультиселект в виде чипов |
 | `barChart` | `BarChartFilter` | Интерактивный барчарт — клик по бару выбирает значение |
 | `dropdown` | `DropdownFilter` | Выпадающий список (default) |
