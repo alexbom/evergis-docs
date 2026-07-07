@@ -1,5 +1,8 @@
 # Основные понятия
 
+> [!danger] У каждого узла конфига обязателен `id`
+> И как `slot` (у элементов), и как уникальный ключ (у контейнеров и перечисляемых сущностей). Узел без `id` молча не рендерится; типы это не ловят. Подробно — ниже в разделе «[[concepts#ID контейнеров и элементов|ID контейнеров и элементов]]», кратко с чек-листом — на странице [[authoring|Правила генерации]].
+
 ## Страницы
 
 **Страница** — это независимая единица отображения в дашборде, содержащая собственный набор слоёв, источников данных, фильтров и контейнеров. Технически — `ConfigContainerChild` с `templateName: ContainerTemplate.ContainersGroup`, хранящийся в `config.children[0].children`.
@@ -90,6 +93,36 @@ interface SelectedFilter {
 ```
 
 **ConfigFilter** — описание фильтра в конфиге страницы: `name`, `defaultValue`, `valueType`, `relatedDataSource` (откуда брать список вариантов), `resetFilters` (сбрасываемые при изменении фильтры). Имя фильтра типизируется branded-типом [[types#Branded types|FilterName]] (`asFilterName`).
+
+**Тип контрола** (`FilterType`) — каким UI-виджетом рисуется фильтр: `"checkbox"`, `"rangeNumber"`, `"rangeDate"`, `"text"`, `"dropdown"`, `"barChart"`, `"chips"`, `"tree"`.
+
+**Иерархический фильтр `"tree"`:** для справочников «уровень → подуровень» (регион → район → населённый пункт). В дополнение к базовым полям **ConfigFilter** задаёт атрибуты дерева:
+
+| Поле | Назначение |
+|---|---|
+| `attributeValue` | атрибут хранимого значения — то, что фильтр отдаёт потребителям; для дерева служит идентичностью узла (`TreeItemProps.id`) |
+| `attributeName` | атрибут-имя записи — служебная связь дерева (`child.attributeParentName == parent.attributeName`) |
+| `attributeParentName` | атрибут-имя родителя — связывает узел с родительским |
+| `attributeLevel` | атрибут числового уровня узла (корень = 1) |
+| `attributeHasChildren` | атрибут-флаг наличия детей (показ шеврона раскрытия) |
+| `limit` | единый лимит на запросы дерева (дети уровня, поиск) |
+
+Значение tree-фильтра — `TreeFilterValue`: объект «уровень → массив id», ключи вида `l{N}` (`l1`, `l3`, ...); уровни без выбранных элементов не включаются. Например, выбор двух регионов и одного города даёт `{ l1: [1, 2], l3: [1023] }`. Это объектный вариант `SelectedFilter["value"]` (отличается от скалярных/массивных значений — `ScalarFilterValue`).
+
+```json
+{
+  "name": "territory",
+  "valueType": "array",
+  "attributeValue": "id",
+  "attributeName": "code",
+  "attributeParentName": "parent_code",
+  "attributeLevel": "level",
+  "attributeHasChildren": "hasChildren",
+  "limit": 100
+}
+```
+
+Подстановка tree-значения в условие — [[utils|утилита]] `applyTreeFilterToCondition`: заменяет плейсхолдеры уровней `%name.l{N}` на список id (`[id1,id2,...]` для оператора `IN`). Пустые/отсутствующие уровни не подставляются. Вызывается из `applyFiltersToCondition` (которую агрегирует `formatDataSourceCondition`) для значений, прошедших проверку `isTreeFilterValue`.
 
 **Геометрический фильтр:** специальный фильтр с именем `geometry`. Позволяет фильтровать объекты на карте по нарисованной области (polygon, bbox). Передаётся как `ewktGeometry` через [[setup|GlobalContext]]. При вставке в условие: `%geometry` → `'SRID=4326;POLYGON(...)'`. Пример: пользователь рисует прямоугольник на карте → все источники данных с `%geometry` в условии перезапрашиваются для выбранного района.
 
@@ -210,6 +243,24 @@ interface ConfigLayer {
 | Контейнер без `id` | Поломается навигация; связи `tabId`/`modalId`/`chartId`/`downloadById` не разрезолвятся; `expandedContainers` и `selectedTabId` не смогут управлять состоянием |
 | Элемент без `id` | Не попадёт в ожидаемый slot — `renderElement({ id })` вернёт `null`, контейнер пропустит элемент |
 | Перечисляемая сущность в `children` без `id` | Невозможно адресовать конкретный фильтр/таб/кнопку в коллекции — поломаются связи (`tabId` со стороны `PageChild`, обращение к фильтру), нарушится React `key` для списка рендеринга |
+
+```ts
+// ❌ так НЕ работает — ни контейнер, ни его элементы не отрендерятся
+{ templateName: "Chart", children: [{ type: "chart" }, { type: "legend" }] }
+
+// ✅ так работает — id у контейнера и корректные slot-id у элементов
+{
+  id: "chart_floors",
+  templateName: "Chart",
+  children: [
+    { id: "alias", value: "Этажность" },
+    { id: "chart", type: "chart" },
+    { id: "legend", type: "legend", options: { chartId: "chart" } },
+  ],
+}
+```
+
+Готовые правила и чек-лист генерации — на странице [[authoring|Правила генерации]].
 
 ---
 
@@ -390,7 +441,7 @@ export const elementComponents = {
 - [[utils|утилита]] `getContainerComponent(templateName)` → `FC<ContainerProps> | null`
 - [[utils|утилита]] `getRenderElement(props)` → `ReactNode`
 
-**Расширение:** клиент может добавить свои контейнеры/элементы, зарегистрировав их под новыми именами `ContainerTemplate` / `ElementTemplate`. Рендеринг автоматически использует новые компоненты.
+**Расширение:** клиент может добавить свои контейнеры под новыми значениями `ContainerTemplate`, а элементы — под новыми строковыми литералами `type` (`ConfigElementType`). Рендеринг автоматически использует новые компоненты.
 
 ---
 

@@ -1,5 +1,8 @@
 # Шапки
 
+> [!danger] Дочерние элементы шапки обязаны иметь slot-`id`
+> Каждый ребёнок шапки идентифицируется по slot-`id` из фиксированного набора (`title`, `description`, `bgImage`, `icon`, `slideshow`). Без него элемент шапки не отрисуется. Таблица slot-id и чек-лист — [[authoring|Правила генерации]].
+
 ## Обзор
 
 Шапки рендерятся через [[utils|утилиты]] `getDashboardHeader` / `getFeatureCardHeader` по `templateName` из конфига. Точка входа — [[components|компонент]] `DashboardHeader` (для Dashboard) и `FeatureCardHeader` (для FeatureCard).

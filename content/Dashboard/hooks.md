@@ -73,18 +73,24 @@ const { items } = useAttachmentItems({ type, elementConfig });
 
 ## useAutoCompleteControl
 
-**Назначение:** Автозаполнение для edit-контрола. Загружает варианты значений из источника данных.
+**Назначение:** Состояние автозаполнения для edit-контрола. Хранит текущее введённое значение и список опций; статические опции собираются из переданного списка значений, динамические — задаются через `setOptions`.
 
 **Параметры:**
-| Параметр | Тип |
-|---|---|
-| `type` | `WidgetType` |
-| `elementConfig` | `ConfigContainerChild` |
 
-**Возвращает:** `{ items: IOption[], value, onChange }`
+- `items` — `(string | number | boolean | null | undefined)[]?` — значения для статических опций (фильтруются по `Boolean`)
+
+**Возвращает:**
+
+| Поле | Тип |
+|---|---|
+| `value` | `string` |
+| `setValue` | `(value: string) => void` |
+| `onChange` | `(value: string) => void` |
+| `options` | `IOption[]` — статические (если есть) либо динамические |
+| `setOptions` | `(options: IOption[]) => void` |
 
 ```ts
-const { items, value, onChange } = useAutoCompleteControl(type, elementConfig);
+const { value, options, onChange } = useAutoCompleteControl(variants);
 ```
 
 ---
@@ -142,9 +148,9 @@ if (!(await runBeforeSave({ featureId, changedProperties }))) return; // save о
 | `element` | `ConfigContainerChild` — конфиг чарт-элемента |
 | `type` | `WidgetType` |
 
-**Возвращает:** `{ data: ChartDataItem[], loading: boolean }`
+**Возвращает:** `{ data: ChartDataProps[], loading: boolean }`
 
-`ChartDataItem`: `{ items, layerInfo, attributeName, attributeUnits, dataSourceName, color }`
+`ChartDataProps`: `{ items, layerInfo, attributeName, attributeUnits, dataSourceName, color }`
 
 ```ts
 const { data, loading } = useChartData({ element: chartElement, type });
@@ -173,11 +179,12 @@ const { data, loading } = useChartData({ element: chartElement, type });
 **Возвращает:**
 | Поле | Тип |
 |---|---|
-| `title` | `string` |
 | `pageId` | `string` |
-| `image` | `string` |
+| `image` | `string \| null` |
 | `icon` | `ReactNode` |
-| `tooltip` | `string` |
+| `title` | `ReactNode` |
+| `url` | `string` |
+| `tooltip` | `ReactNode` |
 | `themeName` | `ThemeName` |
 | `onClickLogo` | `VoidFunction` |
 
@@ -227,7 +234,7 @@ const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type,
 
 ## useEditControl
 
-**Назначение:** Логика для edit-контейнеров. Получает значение атрибута и обработчик его изменения. Internal-хук (не экспортируется).
+**Назначение:** Логика для edit-контролов. Находит контрол по `targetAttributeName`, разрешает текущее значение (из `controls` или `attributes`, с фоллбэком на `defaultValue`), собирает список вариантов (из `variants` контрола или features связанного источника) и обработчик изменения. При наличии `defaultValue` и отсутствии значения проставляет его в `controls`. Internal-хук (не экспортируется).
 
 **Параметры:**
 | Параметр | Тип |
@@ -235,7 +242,12 @@ const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type,
 | `type` | `WidgetType` |
 | `elementConfig` | `ConfigContainerChild` |
 
-**Возвращает:** `{ value, onChange, attribute, isDisabled }`
+**Возвращает:** `{ control, value, dataSource, items, onChange }`
+- `control` — найденный `ConfigControl | undefined`
+- `value` — текущее значение атрибута (с учётом `defaultValue`)
+- `dataSource` — связанный источник данных контрола
+- `items` — `string[]` варианты значений
+- `onChange` — `(value: EditAttributeValue) => void`
 
 ---
 
@@ -349,11 +361,16 @@ const data = useFetchWithAuth<MyType>(url, resp => resp.json(), () => {});
 
 ## useGetConfigLayer
 
-**Назначение:** Получение `ConfigLayer` из конфига текущей страницы по имени слоя.
+**Назначение:** Возвращает геттер `ConfigLayer` из слоёв текущей страницы (через **useWidgetPage**) по имени слоя.
 
-**Параметры:** `type: WidgetType`, `layerName: string`
+**Параметры:** нет
 
-**Возвращает:** `ConfigLayer | undefined`
+**Возвращает:** `(layerName: string) => ConfigLayer | undefined`
+
+```ts
+const getConfigLayer = useGetConfigLayer();
+const layer = getConfigLayer("myLayer");
+```
 
 ---
 
@@ -373,9 +390,9 @@ const { api, t, ewktGeometry } = useGlobalContext();
 
 ## useHeaderRender
 
-**Назначение:** Создаёт функцию `renderElement` для шапок FeatureCard. Аналог getRenderElement для `ConfigContainerHeader`.
+**Назначение:** Создаёт функцию `renderElement` для шапок (header) дашборда / FeatureCard. Аналог `getRenderElement` для `ConfigContainerHeader`.
 
-**Параметры:** `header: ConfigContainerHeader`
+**Параметры:** `elementConfig: ConfigContainerHeader`, `type?: WidgetType` (default `Dashboard`)
 
 **Возвращает:** `RenderElementFunction`
 
@@ -414,12 +431,12 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 **Параметры:**
 | Параметр | Тип |
 |---|---|
-| `type` | `WidgetType` |
+| `type` | `WidgetType` (default `Dashboard`) |
 | `elementConfig` | `ConfigContainerChild` |
-| `dataSources` | `WidgetDataSource[]` |
+| `dataSources` | `FetchedDataSource[]` |
 | `feature` | `FeatureDc?` |
 
-**Возвращает:** `{ attributes: ClientFeatureAttribute[], layerInfo: QueryLayerServiceInfoDc, dataSource: WidgetDataSource }`
+**Возвращает:** `{ attributes: ClientFeatureAttribute[], layerInfo: QueryLayerServiceInfoDc, dataSource?: FetchedDataSource }`
 
 ---
 
@@ -451,9 +468,9 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 ## useRenderElement
 
-**Назначение:** Хук, возвращающий `renderElement` функцию для рендеринга дочерних элементов по `id`.
+**Назначение:** Хук, возвращающий `renderElement` функцию для рендеринга дочерних элементов по `id`. Собирает контекст (config, layerInfo, attributes, табы, страница) из **useWidgetContext** / **useWidgetConfig** / **useWidgetPage** и передаёт в `getRenderElement`.
 
-**Параметры:** `GetRenderElementProps`
+**Параметры:** `type?: WidgetType` (default `Dashboard`), `elementConfig: ConfigContainerChild`
 
 **Возвращает:** `RenderElementFunction`
 
@@ -500,11 +517,24 @@ const prototype = buildPrototype(hook, { featureId, changedProperties, changedGe
 
 ## useUpdateDataSource
 
-**Назначение:** Обновление данных одного источника данных (например, после изменения записи).
+**Назначение:** Перезагрузка данных одного источника (например, после изменения записи или для пагинации). Использует **useDataSources** под капотом.
 
-**Параметры:** `type: WidgetType`
+**Параметры:** объект
+| Параметр | Тип |
+|---|---|
+| `dataSource` | `ConfigDataSource` |
+| `config` | `ConfigContainerChild` |
+| `filters` | `SelectedFilters` |
+| `attributes` | `ClientFeatureAttribute[]?` |
+| `layerParams` | `Record<string, string>?` |
+| `eqlParameters` | `QueryLayerServiceConfigurationDc["eqlParameters"]?` |
 
-**Возвращает:** `updateDataSource: (dataSourceName: string) => Promise<void>`
+**Возвращает:** `(newFilters: SelectedFilters, offset?: number) => Promise<{ items, totalCount }>`
+
+```ts
+const updateDataSource = useUpdateDataSource({ dataSource, config, filters });
+const { items, totalCount } = await updateDataSource(newFilters, offset);
+```
 
 ---
 
@@ -538,11 +568,16 @@ const { dataSources, filters, attributes } = useWidgetContext(type);
 
 ## useWidgetFilters
 
-**Назначение:** Логика применения фильтра к чарту — форматирование цвета, обработчик клика по элементу.
+**Назначение:** Логика применения фильтра к чарту — форматирование цвета, проверка активности, обработчик клика по элементу.
 
-**Параметры:** `type: WidgetType`, `filterName: string`, `items: FilterItem[]`
+**Параметры:** `type: WidgetType`, `filterName: string`, `items?: FilterItem[]`
 
-**Возвращает:** `{ formatFilterColor: (name, color, default?) => string, onFilter: (name: string) => void }`
+**Возвращает:** `{ filters, formatFilterColor, hasAnyFilter, isFiltered, onFilter }`
+- `filters` — текущие выбранные фильтры
+- `formatFilterColor` — `(name, color, defaultColor?) => string`
+- `hasAnyFilter` — `boolean`, есть ли активное значение фильтра
+- `isFiltered` — `(name: string) => boolean`
+- `onFilter` — `(name: string) => void`
 
 ---
 
@@ -559,7 +594,7 @@ const { dataSources, filters, attributes } = useWidgetContext(type);
 | `currentPage` | `ConfigContainerChild` (merged dataSources + filters) |
 | `changePage(index)` | Перейти на страницу |
 | `updateConfigPage(data)` | Обновить конфиг страницы |
-| `addConfigPage(props?)` | Добавить страницу |
+| `addConfigPage()` | Добавить страницу |
 | `deleteConfigPage(index)` | Удалить страницу |
 | `updateConfigLayer(name, data)` | Обновить слой страницы |
 | `updateConfigLayers(layers)` | Обновить все слои |

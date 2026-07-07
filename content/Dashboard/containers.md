@@ -1,5 +1,8 @@
 # Контейнеры
 
+> [!danger] У каждого контейнера обязателен уникальный `id`
+> Без него не работают навигация, связи и управление состоянием — контейнер выпадает из рендера. Правила и чек-лист генерации — [[authoring|Правила генерации]].
+
 ## Обзор
 
 Контейнеры — компоненты верхнего уровня, управляющие расположением и логикой отображения контента. Регистрируются в `containers/registry.ts` (типобезопасно через `as const satisfies ContainerComponentRegistry`) по значению `ContainerTemplate`. Рендерятся динамически через [[utils|утилиту]] `getContainerComponent`. Все принимают `ContainerProps`.
@@ -124,6 +127,8 @@
 
 **Назначение:** Контейнер для отображения графика с легендой и псевдонимом. Поддерживает Bar, Pie, Line и другие типы через дочерний элемент `chart`. Использует [[hooks|хук]] `useChartData`.
 
+**Типы:** `templateName = "Chart"` · `ChartContainerOptions` · `ChartContainerProps`. Дети — `ChartContainerChild`: `ChartAliasChild` (`id: "alias"`), `ChartChartChild` (`id: "chart"`, `type: "chart"`), `ChartLegendChild` (`id: "legend"`, `type: "legend"`, опции `ChartLegendChildOptions` = `ElementLegendOptions` + `center`), `ChartTitleChild` (`id: "title"`, `type: "text"`) и `ChartTitleIconChild` (`id: "titleIcon"`, `type: "icon"`) — два последних от ExpandableTitle. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps` (использует `elementConfig.children` с id `alias`, `chart`, `legend`)
 
 **Опции:**
@@ -188,11 +193,9 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `relatedDataSource` | `string` | **Обязательный.** Имя источника данных из `dataSources` страницы |
-| `column` | `boolean` | Располагать элементы в колонку (`true`) или строку (`false`) |
+| `column` | `boolean` | Располагать элементы в колонку (`true`, default) или строку (`false`) |
 | `expandable` | `boolean` | Разрешить сворачивание контейнера |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
-| `shownItems` | `number` | Количество отображаемых элементов до кнопки «Показать ещё» |
-| `otherItems` | `number` | Максимум элементов вместе с «Другое» |
 
 При `!relatedDataSource` → `null`. При ошибке → `<DataSourceError />`. До загрузки → `<ContainerLoading />`.
 
@@ -200,7 +203,7 @@
 {
   id: "buildings_list",
   templateName: "DataSource",
-  options: { relatedDataSource: "buildings_ds", shownItems: 5 },
+  options: { relatedDataSource: "buildings_ds", column: true },
   children: [{ id: "status_card", templateName: "RoundedBackground", ... }]
 }
 ```
@@ -396,19 +399,23 @@
 | `text` | `TextFilter` | Текстовое поле с автодополнением (`AutoComplete`). Режим свободного ввода (значение сохраняется строкой), если нет `variants` и у `searchFilterName`-фильтра не заданы `attributeAlias`/`attributeValue`; иначе — автодополнение по `searchFilterName`/`variants` с infinite scroll (значение — массив) |
 | `chips` | `ChipsFilter` | Мультиселект в виде чипов |
 | `barChart` | `BarChartFilter` | Интерактивный барчарт — клик по бару выбирает значение |
+| `tree` | `TreeFilter` | Иерархический справочник — поэлементный выбор узлов дерева из `relatedDataSource` (см. [[concepts\|Основные понятия]]) |
 | `dropdown` | `DropdownFilter` | Выпадающий список (default) |
 
-**Опции дочернего элемента фильтра:**
+**Опции дочернего элемента фильтра (`FilterChildOptions`):**
+
+Тип фильтра задаётся полем `type` дочернего элемента (один из **FilterType**), не через опции.
 
 | Опция | Тип | Описание |
 |---|---|---|
 | `filterName` | `string` | **Обязательный.** Имя фильтра из `ConfigFilter.name` |
-| `filterType` | `FilterType` | Тип компонента фильтра |
 | `relatedDataSource` | `string` | Источник данных для вариантов фильтра |
 | `label` | `string` | Подпись фильтра |
 | `placeholder` | `string` | Placeholder |
-| `showSearch` | `boolean` | Показать поле поиска внутри фильтра |
-| `multiSelect` | `boolean` | Разрешить множественный выбор (для dropdown) |
+| `control` | `ConfigControl` | Одиночный маппинг поля источника |
+| `controls` | `ConfigControl[]` | Маппинг полей источника |
+| `minValue` | `number` | Минимум диапазона (для `rangeNumber`/`rangeDate`) |
+| `maxValue` | `number` | Максимум диапазона (для `rangeNumber`/`rangeDate`) |
 
 ```tsx
 {
@@ -416,8 +423,8 @@
   templateName: "Filters",
   options: { expandable: true, expanded: true },
   children: [
-    { id: "floors_filter", options: { filterName: "floors", filterType: "rangeNumber", label: "Этажность" } },
-    { id: "type_filter", options: { filterName: "type", filterType: "chips", relatedDataSource: "types_ds", label: "Тип" } }
+    { id: "floors_filter", type: "rangeNumber", options: { filterName: "floors", label: "Этажность" } },
+    { id: "type_filter", type: "chips", options: { filterName: "type", relatedDataSource: "types_ds", label: "Тип" } }
   ]
 }
 ```
@@ -473,8 +480,7 @@
 | `attributes` | `string[]` | Список имён атрибутов для отображения. Пустой массив = все атрибуты слоя |
 | `useProjectHiddenAttributes` | `boolean` | Если `true` — список `attributes` фильтруется по `hiddenAttributes` слоя проекта (хук [[hooks\|`useLayerHiddenAttributes`]]). По умолчанию `false` — атрибуты, скрытые в проекте, всё равно отображаются |
 | `hideEmpty` | `boolean` | Скрыть пустые атрибуты |
-| `fontSize` | `string \| number` | Размер шрифта значения |
-| `fontColor` | `string` | Цвет шрифта значения |
+| `innerTemplateStyle` | `object` | Кастомные CSS-стили внутренних элементов |
 
 ```tsx
 {
@@ -584,6 +590,7 @@
 | `onlyIcon` | `boolean` | Показывать только иконку без текста |
 | `shownItems` | `number` | Количество видимых вкладок (остальные — в overflow) |
 | `maxLength` | `number` | Максимальная длина текста вкладки |
+| `wordBreak` | `string` | CSS `word-break` для текста вкладок |
 
 Дочерние элементы — вкладки: `{ id: "tab_1", value: "Общая информация", options: { icon: "info" } }`.
 
@@ -643,10 +650,11 @@
 |---|---|---|
 | `simple` | `boolean` | Простой заголовок без кнопок управления |
 | `downloadById` | `string` | ID элемента `ExportPdf` — добавляет кнопку скачивания рядом с заголовком |
-| `fontColor` | `string` | Цвет текста заголовка |
+
+`fontColor` задаётся не опцией, а одноимённым prop контейнера (см. Props выше).
 
 ```tsx
-{ id: "section_title", templateName: "Title", options: { downloadById: "pdf_export", fontColor: "#2c3e50" } }
+{ id: "section_title", templateName: "Title", options: { downloadById: "pdf_export" } }
 ```
 
 ---
@@ -664,8 +672,7 @@
 | `attributes` | `string[]` | Список имён атрибутов для отображения. Пустой массив = все атрибуты слоя |
 | `useProjectHiddenAttributes` | `boolean` | Если `true` — список `attributes` фильтруется по `hiddenAttributes` слоя проекта (хук [[hooks\|`useLayerHiddenAttributes`]]). По умолчанию `false` — атрибуты, скрытые в проекте, всё равно отображаются |
 | `hideEmpty` | `boolean` | Скрыть строки с пустым значением |
-| `fontColor` | `string` | Цвет значений |
-| `fontSize` | `string \| number` | Размер шрифта значений |
+| `innerTemplateStyle` | `object` | Кастомные CSS-стили внутренних элементов |
 
 ```tsx
 {

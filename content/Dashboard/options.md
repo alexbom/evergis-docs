@@ -17,9 +17,10 @@ interface ConfigOptions
     ConfigCollectionOptions,
     ConfigMapLayerOptions,
     ConfigEditOptions,
-    ConfigEntityRefOptions,
     ConfigMiscOptions {}
 ```
+
+> `ConfigEntityRefOptions` — двенадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
 
 Каждый компонент использует только часть полей. В `componentTypes.ts` для каждого компонента определён `<Name>Options = Pick<ConfigOptions, ...>` — список фактически читаемых полей. Это даёт:
 
@@ -164,6 +165,7 @@ interface ConfigOptions
 | `hideTitle` | `boolean` | Скрыть заголовок |
 | `simple` | `boolean` | Упрощённый вариант (Title/Link без обвязки) |
 | `maxLength` | `number` | Максимальная длина текста до обрезки |
+| `wordBreak` | `"break-word" \| "break-all"` | Стратегия переноса длинного текста |
 | `separator` | `string` | Разделитель элементов (Chips) |
 | `lineBreak` | `string` | Кастомный перевод строки |
 

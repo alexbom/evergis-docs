@@ -188,14 +188,6 @@ Resolves контейнер из registry. Если не найден — воз
 
 ---
 
-### getLayerDefinition
-
-`(layer?: QueryLayerServiceInfoDc) => LayerDefinitionDc`
-
-Извлекает `layerDefinition` из слоя с normalization атрибутов и fallback для пустого `attributes`.
-
----
-
 ### getLayerInfo
 
 `(layer?: QueryLayerServiceInfoDc) => QueryLayerServiceInfoDc`
@@ -347,6 +339,16 @@ Resolves контейнер из registry. Если не найден — воз
 `({ condition, configFilters, filters, attributes, geometry, layerParams?, eqlParameters? }) => string`
 
 Основная утилита подстановки фильтров в EQL-условие. Обрабатывает `$(params)` секции и основную часть условия через `applyVarsToCondition`. Заменяет `%filterName`, `%filterName.min`, `%filterName.max`, `%geometry`, `{attributeName}`.
+
+---
+
+### applyTreeFilterToCondition
+
+`(condition: string, name: string, value: TreeFilterValue, isSingle?: boolean) => string`
+
+Подставляет в EQL-условие плейсхолдеры уровней иерархического фильтра «tree» — `%name.l{N}` — значениями id соответствующего уровня (формат `[id1,id2,...]` для оператора `IN`). Уровни, отсутствующие в значении (или пустые), не подставляются — плейсхолдер остаётся нетронутым. Форматирование значений уровня делегирует **formatConditionValue**.
+
+Рядом экспортируется type-guard `isTreeFilterValue(value)`, отличающий объектное значение tree-фильтра («уровень → массив id») от скалярных/массивных значений остальных фильтров. См. [[concepts|фильтр «tree»]].
 
 ---
 
@@ -528,6 +530,14 @@ Resolves контейнер из registry. Если не найден — воз
 `(fileType: FileType) => string`
 
 Возвращает URL иконки-заглушки по типу файла (для preview, когда сам файл не загружен или не является изображением).
+
+---
+
+### getMimeTypeFromUrl
+
+`(url: string) => string`
+
+Определяет MIME-тип по расширению файла в URL (с отбрасыванием query/hash). Возвращает пустую строку, если расширение неизвестно или отсутствует. Рядом экспортируется `getFileNameFromUrl(url)` — извлекает имя файла из URL (через `new URL`, с fallback на последний сегмент пути).
 
 ---
 

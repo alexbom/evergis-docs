@@ -16,7 +16,7 @@
 
 ## @evergis/api
 
-`AttributeDefinitionDc`, `AttributeFormatDefinitionDc`, `AttributeType`, `EqlRequestDc`, `ExtendedProjectInfoDc`, `FeatureDc`, `LayerDefinitionDc`, `OgcGeometryType`, `PagedFeaturesListDc`, `PositionDc`, `ProjectContentItemDc`, `QueryLayerServiceConfigurationDc`, `QueryLayerServiceInfoDc`, `RemoteTaskStatus`, `StringSubType`
+`AttributeDefinitionDc`, `AttributeFormatDefinitionDc`, `AttributeType`, `CatalogResourceDc`, `EqlRequestDc`, `ExtendedProjectInfoDc`, `FeatureDc`, `LayerDefinitionDc`, `OgcGeometryType`, `PagedFeaturesListDc`, `PositionDc`, `ProjectContentItemDc`, `QueryLayerServiceConfigurationDc`, `QueryLayerServiceInfoDc`, `RemoteTaskStatus`, `StringSubType`
 
 ## @evergis/uilib-gl
 

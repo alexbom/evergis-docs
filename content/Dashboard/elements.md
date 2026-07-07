@@ -1,5 +1,8 @@
 # Элементы
 
+> [!danger] У каждого элемента обязателен `id` = slot-id родителя
+> Значение `id` элемента должно совпадать со slot-id, который ожидает контейнер-родитель (`alias`, `chart`, `value`, ...). Неверный slot → элемент не отрисуется. Таблица slot-id и чек-лист — [[authoring|Правила генерации]].
+
 ## Обзор
 
 Элементы — «листовые» компоненты, отображающие отдельные значения внутри контейнеров. Регистрируются в `elements/registry.ts` (типобезопасно через `as const satisfies ElementComponentRegistry`) по строковому ключу (`type`). Рендерятся через [[utils|утилиту]] `getRenderElement`.
@@ -41,16 +44,12 @@
 | `value` | `string` | Текст кнопки |
 | `attributeName` | `string` | Имя атрибута, содержащего URL для открытия |
 
-**Опции (`options`):**
-
-| Опция | Тип | Описание |
-|---|---|---|
-| `icon` | `IconTypesKeys` | Иконка кнопки |
+**Опции (`options`):** нет — `ElementButtonOptions = Record<string, never>`.
 
 **Поведение:** читает `attributeName` → `attribute.value` (URL) → `window.open(url)`. Если значение атрибута не строка или пустое — не рендерится.
 
 ```tsx
-{ id: "value", type: "button", attributeName: "report_url", value: "Открыть отчёт", options: { icon: "open_in_new" } }
+{ id: "value", type: "button", attributeName: "report_url", value: "Открыть отчёт" }
 ```
 
 ---
@@ -72,6 +71,7 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `expandable` | `boolean` | Разрешить раскрытие галереи |
+| `expanded` | `boolean` | Развёрнута ли галерея по умолчанию |
 
 **Зависимости:** `useCameraAttribute(cameraUrl)` — `galleryImages`, `totalCount`, `isLoadingSnapshot`, `isLoadingTimeline`
 
@@ -121,8 +121,8 @@
   options: {
     chartType: "bar",
     relatedDataSources: [{ name: "floors_ds", chartAxis: "y", attributeName: "count" }],
-    otherItems: 10,
-    sortByValue: true
+    showLabels: true,
+    showTotal: true
   }
 }
 ```
@@ -148,6 +148,7 @@
 | `fontColor` | `string` | Цвет текста чипов |
 | `fontSize` | `string \| number` | Размер шрифта чипов |
 | `colorAttribute` | `string` | Имя атрибута, определяющего цвет чипа |
+| `variants` | `IOption[] \| ChipOption[]` | Варианты соответствия значение → цвет/подпись чипа |
 
 **Поведение:** `attribute.value.split(separator)` → массив тегов → `DashboardChip`
 
@@ -260,6 +261,7 @@
 | `twoColumns` | `boolean` | Отображать легенду в две колонки |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Источники данных (для line-чарта — оси Y) |
 | `fontSize` | `string \| number` | Размер шрифта элементов легенды |
+| `chartType` | `ChartType` | Тип привязанного чарта (`bar` \| `line` \| `pie` \| `stack`) |
 
 **Поведение:** для line-чарта — показывает оси Y как элементы легенды; для bar/pie — items из `data[0].items` с alias из атрибутов.
 

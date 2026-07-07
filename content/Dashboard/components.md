@@ -104,7 +104,14 @@
 
 ## DashboardCheckbox
 
-**Назначение:** Стилизованный чекбокс для Dashboard.
+**Назначение:** Стилизованный чекбокс для Dashboard. В режиме просмотра (без `onChange`) выводит локализованную метку «Да»/«Нет», в режиме редактирования — `CardCheckbox`.
+
+**Props:**
+| Prop | Тип |
+|---|---|
+| `title` | `ReactElement \| string` |
+| `checked` | `boolean` |
+| `onChange` | `VoidFunction?` |
 
 ---
 
@@ -124,7 +131,7 @@
 
 **Назначение:** Заглушка при ошибке загрузки датасорса (features === null).
 
-**Props:** `{ name?: string }`
+**Props:** `{ name: string }`
 
 ---
 
@@ -156,17 +163,17 @@
 
 ## FeatureCardTitle
 
-**Назначение:** Заголовок и описание в шапке FeatureCard.
+**Назначение:** Заголовок и описание в шапке FeatureCard. Заголовок разрешается из пропса `title`, иначе из значения `titleAttribute` (источник или layer definition), иначе `feature.id`.
 
-**Props:** `{ title: ReactNode, description?: ReactNode }`
+**Props:** `{ title: string, description: string }`
 
 ---
 
 ## HiddenTitleItems
 
-**Назначение:** Отображает выбранные фильтры в свёрнутом состоянии контейнера (под заголовком).
+**Назначение:** Отображает выбранные фильтры в свёрнутом состоянии контейнера (под заголовком) в виде чипов с кнопкой сброса.
 
-**Props:** `{ elementConfig, config, type, filter?: string }`
+**Props (`ContainerProps & { filter? }`):** `{ elementConfig, config, type, renderElement, filter?: string }`
 
 ---
 
@@ -188,9 +195,15 @@
 
 ## LogTerminal
 
-**Назначение:** Терминал для вывода лога выполнения Python-задачи. Используется в `TaskContainer`.
+**Назначение:** Терминал (xterm.js) для вывода лога выполнения Python-задачи. Используется в `TaskContainer`. Поддерживает инкрементальную дозапись строкового лога, вывод JSON-результата и Ctrl+C для копирования выделения.
 
-**Props:** `{ logs: string[], status: RemoteTaskStatus, statusColors?: Record<RemoteTaskStatus, string> }`
+**Props (`TaskLogTerminalProps`):**
+| Prop | Тип |
+|---|---|
+| `log` | `string \| Record<string, any>?` |
+| `className` | `string?` |
+| `styles` | `CSSProperties?` |
+| `terminalOptions` | `ITerminalOptions & ITerminalInitOnlyOptions?` |
 
 ---
 
@@ -232,7 +245,7 @@
 **Props:**
 | Prop | Тип |
 |---|---|
-| `url` | `string \| null` |
+| `url` | `string` |
 | `width` | `number?` |
 | `height` | `number?` |
 | `fontColor` | `string?` |
@@ -245,9 +258,16 @@
 
 ## TextTrim
 
-**Назначение:** Обрезает текст до `maxLength` символов с добавлением `...`.
+**Назначение:** Обрезает текст до `maxLength` символов с добавлением `...`. При `expandable` показывает кнопку «Подробнее»/«Свернуть», иначе полный текст в тултипе. Поддерживает перенос строк через `lineBreak` и режим переноса слов `wordBreak`.
 
-**Props:** `{ maxLength?: number, children: ReactNode }`
+**Props (`TextTrimProps`):**
+| Prop | Тип |
+|---|---|
+| `maxLength` | `number?` |
+| `expandable` | `boolean?` |
+| `lineBreak` | `string?` |
+| `wordBreak` | `ConfigTextDisplayOptions["wordBreak"]?` |
+| `children` | `string \| number?` |
 
 ```tsx
 <TextTrim maxLength={20}>{longTitle}</TextTrim>

@@ -7,14 +7,14 @@ Dashboard — конфигурационный UI-компонент из пак
 ## Ключевые возможности
 
 - **Многостраничность** — переключение между страницами (`pageIndex`), каждая страница имеет независимые слои, источники данных и фильтры
-- **Конфигурационное управление** — registry-pattern: контейнеры и элементы регистрируются по значениям `ContainerTemplate` / `ElementTemplate`, рендеринг полностью динамический
+- **Конфигурационное управление** — registry-pattern: контейнеры регистрируются по значениям `ContainerTemplate`, элементы — по строковому литералу `type` (`ConfigElementType`), рендеринг полностью динамический
 - **Источники данных** — поддержка EQL-запросов, layer features API, Python remote tasks (`resourceId`) и произвольных URL-эндпоинтов
 - **Фильтрация** — параметрические фильтры (`SelectedFilters`) + геометрический фильтр (ewkt); умная инвалидация: при изменении фильтра обновляются только затронутые источники
 - **Управление слоями** — управление видимостью и параметрами карт-слоёв через `DashboardLayerPayload`
 - **Real-time через WebSocket** — `autoSyncLayer` на `ConfigDataSource` подписывается на `FeatureLayerUpdated` и автоматически обновляет данные
 - **Разнообразные контейнеры** — 30+ типов: Charts, Filters, DataSource, Edit, Tabs, Layers, Slideshow, Task, ExportPdf и др.
 - **Разнообразные элементы** — 15 типов: Chart, Chips, Control, Image, Link, Icon, Modal, Tooltip, Markdown, Slideshow, Svg, Legend, Camera, Button, Uploader
-- **Несколько типов шапок** — Dashboard Default и 4 типа FeatureCard (Default, Gradient, Icon, Slideshow)
+- **Несколько типов шапок** — Dashboard Default и 3 типа FeatureCard (Default, Background, Slideshow)
 - **Экспорт в PDF** — через `useExportPdf`, использует `jsPDF` + `html2canvas`
 - **Карточка объекта (FeatureCard)** — отдельный виджет для отображения атрибутов выбранного объекта слоя, работает параллельно с Dashboard
 

@@ -17,6 +17,10 @@
 | `useDashboardPages()` | `nextPage`, `prevPage`, `changePage` |
 | `useDashboardLayers()` | `dashboardLayers`, `setDashboardLayer` |
 | `useLayersListVisibility()` | `isVisible`, `toggleVisibility` |
+| `useDialog()` | `openDialog` — открытие диалога каталога ресурсов |
+| `useValidateDashboardConfig()` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки (см. [[authoring\|Правила генерации]]) |
+
+Колбэк `selectAttachmentsFromCatalog` открывает диалог `DIALOGS.RESOURCE_CATALOG` (`ResourceCatalogOptions`) и передаёт выбранные `CatalogResourceDc[]` через `onApply`.
 
 ### Redux-селекторы
 
@@ -42,6 +46,7 @@
   projectInfo={projectInfo}
   dataSources={dataSources}
   filters={filters}
+  selectAttachmentsFromCatalog={selectAttachmentsFromCatalog}
   components={{ LayerItem, ProjectPagesMenu, ProjectPanelMenu }}
   ...
 >
@@ -84,6 +89,7 @@
 | `changePage` | `(index) => void` | Перейти на конкретную страницу |
 | `visibleLayers` | `boolean` | Список слоёв видим |
 | `toggleLayersVisibility` | `VoidFunction` | Переключить видимость слоёв |
+| `selectAttachmentsFromCatalog` | `(onApply: (resources: CatalogResourceDc[]) => void) => void` | Выбор вложений из каталога ресурсов |
 | `components` | `{ LayerItem?, ProjectPanelMenu?, ProjectPagesMenu? }` | Кастомные компоненты |
 
 ---
@@ -101,15 +107,21 @@
 | `config` | `ConfigContainer` | Конфиг карточки |
 | `attributes` | `ClientFeatureAttribute[]` | Атрибуты объекта |
 | `layerInfo` | `QueryLayerServiceInfoDc` | Информация о слое |
-| `feature` | `FeatureDc` | Выбранный объект |
+| `feature` | `SelectedFeature` | Выбранный объект |
 | `pageIndex` | `number` | Текущая страница |
+| `isRaster` | `boolean` | Карточка растрового объекта |
 | `editMode` | `boolean` | Режим редактирования |
 | `isFeatureEditable` | `boolean` | Можно ли редактировать объект |
+| `hasCopyRights` | `boolean` | Есть ли права на копирование |
+| `editOnly` | `boolean` | Режим «только редактирование» |
+| `selectedTabId` | `string` | ID выбранной вкладки |
+| `setSelectedTabId` | `(id) => void` | Выбрать вкладку |
 | `dataSources` | `WidgetDataSource[]` | Источники данных карточки |
+| `loading` | `boolean` | Идёт загрузка данных |
 | `filters` | `SelectedFilters` | Активные фильтры |
-| `controls` | `Record<string, any>` | Значения edit-контролов |
+| `controls` | `Record<string, EditAttributeValue>` | Значения edit-контролов |
 | `changeControls` | `(controls) => void` | Обновить контролы |
-| `changeFilters` | `(filters, reset?) => void` | Изменить фильтры |
+| `changeFilters` | `(filters) => void` | Изменить фильтры |
 | `closeFeatureCard` | `VoidFunction` | Закрыть карточку |
 | `expandedContainers` | `Record<string, boolean>` | Раскрытые контейнеры |
 | `expandContainer` | `(id, expanded?) => void` | Раскрыть/свернуть контейнер |

@@ -36,7 +36,7 @@ export const elementComponents = {
 2. **Branded keyspaces** — `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId` в `branded.ts`. Защищают от перепутывания entity-id на этапе компиляции. См. [[types#Branded types|Branded types]].
 3. **Доменная группировка опций** — `ConfigOptions extends` 12 миксинов (`ConfigLayoutOptions`, `ConfigTypographyOptions`, `ConfigChartOptions`, ...). См. [[options|Опции]].
 
-Discriminated union `DashboardChild` (15 вариантов элементов + 22 варианта контейнеров) и `DashboardHeaderConfig` (4 ветви шапок) позволяют TS сужать ветвь по полю `type` / `templateName` и валидировать `options`. Детали — [[types#Дискриминированный union DashboardChild|Дискриминированный union]].
+Discriminated union `DashboardChild` (15 вариантов элементов + 33 варианта контейнеров) и `DashboardHeaderConfig` (4 ветви шапок) позволяют TS сужать ветвь по полю `type` / `templateName` и валидировать `options`. Для авторинга новых конфигов есть строгие варианты `StrictConfigContainerChild` / `StrictDashboardChild`, у которых `id` обязателен (пропуск = ошибка компиляции). Детали — [[types#Дискриминированный union DashboardChild|Дискриминированный union]].
 
 ## Иерархия компонентов
 
