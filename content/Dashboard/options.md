@@ -265,7 +265,7 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `innerTemplateName` | `ContainerTemplate` | Имя контейнера для inner-рендера |
+| `innerTemplateName` | `ContainerTemplate` | **Обязателен для `DataSource`/`DataSourceProgress`.** Шаблон рендеринга каждой записи источника — читается пайплайном ([[containers\|`getRenderElement`]]) и конвертируется в проп `innerComponent` через `getContainerComponent`. Без него записи не рендерятся |
 | `themeName` | `"light" \| "dark"` | Принудительная тема для шапки |
 | `url` | `string` | URL (для DashboardDefaultHeader) |
 | `inlineUnits` | `boolean` | Показывать единицы измерения inline |
@@ -278,7 +278,10 @@ interface ConfigOptions
 | `modalId`, `tabId`, `downloadById`, `parentResourceId` | `string` | Дубликаты entity-ref для удобства Pick |
 | `useNotifications` | `boolean` | Показывать прогресс-уведомления о выполнении задачи (`TaskContainer`) |
 
-**Используется в:** `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`).
+**Используется в:** `DataSourceContainer`, `DataSourceProgressContainer` (`innerTemplateName` — через пайплайн рендера, не через Pick), `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`).
+
+> [!note] Опции, потребляемые пайплайном рендера (не через Pick)
+> Часть полей `ConfigMiscOptions` читается пайплайном рендера напрямую из `options`, а не через `<Name>Options`-Pick конкретного компонента — их «Используется в» определяется по фактическому чтению в коде, а не по Pick. Ключевой пример — **`innerTemplateName`**: его читает [[containers|`getRenderElement`]] и конвертирует в `innerComponent` (`getContainerComponent`) для `DataSourceContainer`/`DataSourceProgressContainer`. Такие поля не значатся ни в одном `<Name>Options`, но обязательны — не считай их неиспользуемыми.
 
 ---
 

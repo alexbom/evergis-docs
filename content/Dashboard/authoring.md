@@ -28,6 +28,7 @@
 | `Image` | `alias`, `text`, `button`, `image` |
 | `Attachment` (без `relatedDataSource`) | `value` |
 | `Edit*` | `alias` |
+| `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader`, `FeatureCardDefaultHeader` | `title`, `description`, `icon` |
@@ -39,6 +40,21 @@
 | `Tabs` | табы с уникальным `id` (тип `TabId`) | — |
 | `AddFeature` | кнопки с уникальным `id` | — |
 | `Filters` | фильтры с уникальным `id` | у каждого обязателен `options.filterName` |
+
+## DataSource-хосты и `innerTemplateName`
+
+Контейнеры `DataSource` и `DataSourceProgress` не рендерят детей напрямую — они проходят по **каждой записи** (`feature`) источника и рендерят её через **внутренний шаблон**, заданный `options.innerTemplateName` (пайплайн конвертирует имя в проп `innerComponent` через `getContainerComponent`). Поэтому:
+
+- **`options.innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → ни одна запись не рендерится, контейнер визуально пуст. Обязательность **типами не ловится** — `innerTemplateName` живёт в `ConfigMiscOptions`, а не в `DataSourceContainerOptions`/`DataSourceProgressContainerOptions`.
+- **`children` хоста — это slot-id выбранного внутреннего шаблона**, а не собственные слоты `DataSource`.
+- Неизвестное имя шаблона откатывается на `ContainersGroup` (реестровый `default`).
+
+| Внутренний шаблон (`innerTemplateName`) | Его слоты (`children` хоста) |
+|---|---|
+| `RoundedBackground` | `icon`, `alias`, `value`, `units` |
+| `Progress` (обычно для `DataSourceProgress`) | `icon`, `alias`, `value`, `units` |
+| `OneColumn`, `TwoColumn` | `alias`, `value`, `units` |
+| `ContainersGroup` | произвольная вёрстка (дети — вложенные контейнеры, а не слоты) |
 
 ## Фильтры
 
@@ -91,6 +107,28 @@
 }
 ```
 
+```ts
+// ❌ DataSource без innerTemplateName — записи источника не рендерятся, контейнер пуст
+{
+  id: "buildings_list",
+  templateName: "DataSource",
+  options: { relatedDataSource: "buildings_ds" },
+  children: [{ id: "alias", attributeName: "name" }, { id: "value", attributeName: "floors" }],
+}
+
+// ✅ задан innerTemplateName, а children — слоты этого внутреннего шаблона
+{
+  id: "buildings_list",
+  templateName: "DataSource",
+  options: { relatedDataSource: "buildings_ds", innerTemplateName: "RoundedBackground" },
+  children: [
+    { id: "icon", type: "icon", options: { icon: "building" } },
+    { id: "alias", attributeName: "name" },
+    { id: "value", attributeName: "floors" },
+  ],
+}
+```
+
 ## Чек-лист перед выдачей конфига
 
 Прогони сгенерированный конфиг по пунктам — **прежде чем отдавать**:
@@ -99,6 +137,7 @@
 - [ ] У **каждого** элемента (узел с `type`) есть `id`, равный корректному slot-id родителя (см. таблицу).
 - [ ] У **каждой** перечисляемой сущности (таб / кнопка / фильтр) есть уникальный `id`.
 - [ ] У **каждого** фильтра дополнительно есть `options.filterName`.
+- [ ] У **каждого** `DataSource` / `DataSourceProgress` задан `options.innerTemplateName`, а slot-id детей соответствуют этому внутреннему шаблону.
 - [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 

@@ -72,7 +72,7 @@ const attr = getAttributeByName("name", attributes);
 
 `(innerTemplateName: string) => FC<ContainerProps> | null`
 
-Resolves контейнер из registry. Если не найден — возвращает `default` (ContainersGroupContainer). Если `innerTemplateName` пустой — `null`.
+Resolves контейнер из registry. Если не найден — возвращает `default` (ContainersGroupContainer). Если `innerTemplateName` пустой — `null`. Так `options.innerTemplateName` [[containers|контейнеров]] `DataSource`/`DataSourceProgress` превращается в проп `innerComponent` (шаблон рендеринга каждой записи источника); пустое значение → `null` → записи не рендерятся.
 
 ---
 

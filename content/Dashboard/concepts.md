@@ -57,6 +57,26 @@
 
 Хук: [[hooks|хук]] `useDataSources`. Имя источника типизируется branded-типом [[types#Branded types|DataSourceName]] (`asDataSourceName`).
 
+### Рендеринг записей источника — `innerTemplateName`
+
+Контейнеры `DataSource` и `DataSourceProgress` (см. [[containers|Контейнеры]]) не рендерят детей напрямую: они проходят по **каждой записи** (`feature`) источника и рендерят её через **внутренний шаблон**, заданный `options.innerTemplateName`. Пайплайн рендера ([[utils|`getRenderElement`]] → [[utils|`getContainerComponent`]]) конвертирует это имя в проп `innerComponent`, который `DataSourceInnerContainer` применяет к каждой записи, подставляя её атрибуты.
+
+- **`innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → `innerComponent` не передан → `DataSourceInnerContainer` возвращает `null` → записи не рендерятся, контейнер визуально пуст. Опция живёт в `ConfigMiscOptions` (см. [[options|Опции]]), а не в опциях самих контейнеров, поэтому обязательность **типами не ловится**.
+- **`children` DataSource-хоста — это slot-id выбранного внутреннего шаблона** (`RoundedBackground`/`Progress` → `icon`/`alias`/`value`/`units`; `OneColumn`/`TwoColumn` → `alias`/`value`/`units`), а не собственные слоты хоста.
+
+```json
+{
+  "id": "buildings_list",
+  "templateName": "DataSource",
+  "options": { "relatedDataSource": "buildings_ds", "innerTemplateName": "RoundedBackground" },
+  "children": [
+    { "id": "icon", "type": "icon", "options": { "icon": "building" } },
+    { "id": "alias", "attributeName": "name" },
+    { "id": "value", "attributeName": "floors" }
+  ]
+}
+```
+
 ---
 
 ## Фильтры

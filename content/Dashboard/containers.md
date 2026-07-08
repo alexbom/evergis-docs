@@ -184,7 +184,7 @@
 
 ### DataSourceContainer
 
-**Назначение:** Отображает список объектов из источника данных — рендерит каждый `feature` через `DataSourceInnerContainer`. Используется для карточек списков: объекты недвижимости, инциденты, объекты мониторинга.
+**Назначение:** Отображает список объектов из источника данных — проходит по каждой записи (`feature`) и рендерит её через **внутренний шаблон** `options.innerTemplateName` (обёрнутый в `DataSourceInnerContainer`). Используется для карточек списков: объекты недвижимости, инциденты, объекты мониторинга.
 
 **Props:** `ContainerProps` + `innerComponent?: FC<InnerContainerProps>`
 
@@ -193,18 +193,28 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `relatedDataSource` | `string` | **Обязательный.** Имя источника данных из `dataSources` страницы |
+| `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи источника — конвертируется в проп `innerComponent`. Читается пайплайном рендера ([[utils\|`getRenderElement`]] → [[utils\|`getContainerComponent`]]), поэтому лежит в `ConfigMiscOptions` (см. [[options\|Опции]]), а не в `DataSourceContainerOptions`. Типовые значения: `RoundedBackground`, `Progress`, `OneColumn`, `TwoColumn`, `ContainersGroup` |
 | `column` | `boolean` | Располагать элементы в колонку (`true`, default) или строку (`false`) |
 | `expandable` | `boolean` | Разрешить сворачивание контейнера |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 
 При `!relatedDataSource` → `null`. При ошибке → `<DataSourceError />`. До загрузки → `<ContainerLoading />`.
 
+> [!warning] Без `innerTemplateName` контейнер визуально пуст
+> `getContainerComponent(undefined) === null` → `DataSourceInnerContainer` возвращает `null` → **ни одна запись не рендерится**. Типы это не ловят (`innerTemplateName` — в `ConfigMiscOptions`, а не в `DataSourceContainerOptions`). Неизвестное имя шаблона откатывается на `ContainersGroup` (реестровый `default`).
+
+**`children` DataSource-хоста — это slot-id выбранного `innerTemplateName`** (например для `RoundedBackground`: `icon`, `alias`, `value`, `units`; для `OneColumn`/`TwoColumn`: `alias`, `value`, `units`), а не собственные слоты `DataSource` и не вложенный контейнер.
+
 ```tsx
 {
   id: "buildings_list",
   templateName: "DataSource",
-  options: { relatedDataSource: "buildings_ds", column: true },
-  children: [{ id: "status_card", templateName: "RoundedBackground", ... }]
+  options: { relatedDataSource: "buildings_ds", column: true, innerTemplateName: "RoundedBackground" },
+  children: [
+    { id: "icon", type: "icon", options: { icon: "building" } },
+    { id: "alias", attributeName: "name" },
+    { id: "value", attributeName: "floors" }
+  ]
 }
 ```
 
@@ -212,7 +222,7 @@
 
 ### DataSourceInnerContainer
 
-**Назначение:** Рендерит один элемент из источника данных — оборачивает контейнер с атрибутами конкретного `feature`. Используется внутри `DataSourceContainer` и `DataSourceProgressContainer`.
+**Назначение:** Рендерит один элемент из источника данных — оборачивает `innerComponent` (внутренний шаблон, полученный из `innerTemplateName`) с атрибутами конкретного `feature`. Используется внутри `DataSourceContainer` и `DataSourceProgressContainer`. Если `innerComponent` не передан (не задан `innerTemplateName`) → возвращает `null`.
 
 **Props:** `InnerContainerProps` (`type, config, elementConfig, feature, index, maxValue, innerComponent`)
 
@@ -220,7 +230,7 @@
 
 ### DataSourceProgressContainer
 
-**Назначение:** Список прогресс-баров из источника данных с опциональным итогом. Полезен для рейтингов: топ зданий по этажности, топ районов по объёму сделок.
+**Назначение:** Список прогресс-баров из источника данных с опциональным итогом. Как и `DataSourceContainer`, рендерит каждую запись через внутренний шаблон `options.innerTemplateName` (обычно `Progress`). Полезен для рейтингов: топ зданий по этажности, топ районов по объёму сделок.
 
 **Props:** `ContainerProps` + `innerComponent`
 
@@ -229,6 +239,7 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `relatedDataSource` | `string` | **Обязательный.** Имя источника данных |
+| `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи (обычно `Progress`) — конвертируется в `innerComponent`. Живёт в `ConfigMiscOptions` (см. [[options\|Опции]]), а не в `DataSourceProgressContainerOptions`. Без него записи не рендерятся |
 | `maxValue` | `number \| string` | Максимальное значение для расчёта ширины бара. Если строка — имя атрибута |
 | `showTotal` | `boolean` | Показывать итоговую сумму под списком |
 | `expandable` | `boolean` | Разрешить сворачивание |
@@ -236,13 +247,17 @@
 | `shownItems` | `number` | Элементов до кнопки «Показать ещё» |
 | `otherItems` | `number` | Максимум элементов с «Другое» |
 
-Использует [[hooks|хук]] `useShownOtherItems` для пагинации. Вычисляет `totalValue` и `currentMaxValue` из features.
+Использует [[hooks|хук]] `useShownOtherItems` для пагинации. Вычисляет `totalValue` и `currentMaxValue` из features. `children` — slot-id внутреннего шаблона (`Progress`: `icon`, `alias`, `value`, `units`).
 
 ```tsx
 {
   id: "districts_progress",
   templateName: "DataSourceProgress",
-  options: { relatedDataSource: "districts_ds", showTotal: true, shownItems: 5 }
+  options: { relatedDataSource: "districts_ds", showTotal: true, shownItems: 5, innerTemplateName: "Progress" },
+  children: [
+    { id: "alias", attributeName: "district_name" },
+    { id: "value", attributeName: "deals_count" }
+  ]
 }
 ```
 
@@ -513,9 +528,11 @@
 
 ### ProgressContainer
 
-**Назначение:** Прогресс-бар с тултипом. Вычисляет ширину полосы по `value / maxValue * 100%`. Используется внутри `DataSourceProgressContainer`.
+**Назначение:** Прогресс-бар с тултипом. Вычисляет ширину полосы по `value / maxValue * 100%`. Используется как **внутренний шаблон** `DataSourceProgressContainer` — подключается через `options.innerTemplateName: "Progress"` на хосте (не как обычный вложенный контейнер).
 
-**Props:** `InnerContainerProps` (только как дочерний `DataSourceProgressContainer`)
+**Props:** `InnerContainerProps` (только как внутренний шаблон `DataSourceProgressContainer`)
+
+**Слоты (`children` хоста):** `icon`, `alias`, `value`, `units`.
 
 **Опции:**
 
@@ -533,9 +550,11 @@
 
 ### RoundedBackgroundContainer
 
-**Назначение:** Компактный блок с округлым фоновым блоком: иконка + значение + подпись. Используется внутри `DataSourceContainer` для списков.
+**Назначение:** Компактный блок с округлым фоновым блоком: иконка + значение + подпись. Используется как **внутренний шаблон** `DataSourceContainer` для списков — подключается через `options.innerTemplateName: "RoundedBackground"` на хосте.
 
 **Props:** `InnerContainerProps`
+
+**Слоты (`children` хоста):** `icon`, `alias`, `value`, `units`.
 
 **Опции:**
 
