@@ -170,6 +170,17 @@ const child: StrictConfigContainerChild = {
 
 Для каждого компонента из реестра определены `<Name>Options`, `<Name>Config`, `<Name>Props`. Сводная таблица — какие поля `ConfigOptions` (см. [[options|Опции]]) использует каждый компонент.
 
+### Общие миксины размеров
+
+Два размерных набора не перечисляются в каждом `Pick`, а подмешиваются к `<Name>Options` целиком:
+
+| Миксин | Поля | Кто подмешивает | Зачем |
+|---|---|---|---|
+| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `Task`, `TwoColumn`, `Upload` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
+| `NumericSizeOptions` | `width?: number`, `height?: number` | `ElementChart`, `ElementSvg`, `ElementControl` (только `width`) | размеры, которые обязаны остаться **числом в пикселях**: значение уходит в вычисления геометрии графика или в HTML-атрибут, где `"100%"` не работает |
+
+`ContainerBoxOptions` даёт `CssSize` (число = px, строка = любое CSS-значение); `"100%"` включает fill-режим обёртки (см. [[utils|`getWrapperSizeStyle`]]). `NumericSizeOptions`, наоборот, сужает те же имена до `number` — поэтому у `ElementChart` в таблице ниже `width`/`height` числовые, а у `ChartContainer` — `CssSize`.
+
 ### Элементы
 
 > Колонка `<Name>Options` — это **только** поля внутри JSON-ключа `options`. Корневые поля элемента (`id`, `type`, `value`, `attributeName`, `style`, `relatedDataSource` и т.п.) лежат на верхнем уровне `ConfigContainerChild` — подробности по каждому элементу см. в [[elements]].
@@ -182,10 +193,10 @@ const child: StrictConfigContainerChild = {
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
 | `ElementControl` | `"control"` | `relatedDataSource`, `label`, `width`, `control`, `placeholder` |
 | `ElementIcon` | `"icon"` | `fontSize`, `fontColor` |
-| `ElementImage` | `"image"` | `width` |
+| `ElementImage` | `"image"` | `width`, `height`, `fit` |
 | `ElementLegend` | `"legend"` | `twoColumns`, `chartId`, `relatedDataSources`, `fontSize`, `chartType` |
 | `ElementLink` | `"link"` | `simple`, `title` |
-| `ElementMarkdown` | `"markdown"` | `expandLength` |
+| `ElementMarkdown` | `"markdown"` | `expandLength`, `noMargin`, `typography` |
 | `ElementModal` | `"modal"` | `modalId`, `icon` |
 | `ElementSlideshow` | `"slideshow"` | `expandable`, `expanded`, `relatedDataSource`, `controls` |
 | `ElementSvg` | `"svg"` | `width`, `height`, `fontColor` |
@@ -197,13 +208,13 @@ const child: StrictConfigContainerChild = {
 | Component | `templateName` | `<Name>Options` (Pick полей) |
 |---|---|---|
 | `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `icon`, `title`, `layerName`, `geometryType`) |
-| `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` |
-| `CameraContainer` | `Camera` | `expandable`, `expanded` |
-| `ChartContainer` | `Chart` | `twoColumns`, `hideEmpty` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
-| `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded` |
-| `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `expandable`, `expanded` |
+| `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
+| `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
+| `ChartContainer` | `Chart` | `twoColumns`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
+| `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems` + `ContainerBoxOptions` |
+| `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded` + `ContainerBoxOptions` |
 | `DataSourceInnerContainer` | — | `relatedDataSource`, `filterName`, `column` |
-| `DataSourceProgressContainer` | `DataSourceProgress` | `maxValue`, `showTotal`, `relatedDataSource`, `expandable`, `expanded`, `shownItems` |
+| `DataSourceProgressContainer` | `DataSourceProgress` | `maxValue`, `showTotal`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
 | `DefaultAttributesContainer` | `DefaultAttributes` | — |
 | `DividerContainer` | `Divider` | `bgColor` (из глобального `config.options`) |
 | `EditContainer` | `Edit` | — |
@@ -217,20 +228,20 @@ const child: StrictConfigContainerChild = {
 | `EditDateContainer` | `EditDate` | `withTime`, `controls` |
 | `EditAttachmentContainer` | `EditAttachment` | `parentResourceId`, `fileExtensions`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` |
 | `ExportPdfContainer` | `ExportPdf` | `icon`, `title` |
-| `FiltersContainer` | `Filters` | `padding`, `bgColor`, `fontColor`, `fontSize`, `expandable`, `expanded` (+ `FilterChild`: `filterName`, `label`, `placeholder`, `control`, `controls`, `relatedDataSource`, `minValue`, `maxValue`) |
+| `FiltersContainer` | `Filters` | `padding`, `bgColor`, `fontColor`, `fontSize`, `expandable`, `expanded` + `ContainerBoxOptions` (+ `FilterChildOptions` — см. [[containers#FiltersContainer\|полный список]]) |
 | `IconContainer` | `Icon` | — |
-| `ImageContainer` | `Image` | — |
-| `LayersContainer` | `Layers` | `layerNames`, `expandable`, `expanded` |
-| `OneColumnContainer` | `OneColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` |
+| `ImageContainer` | `Image` | `ContainerBoxOptions` (собственных полей нет) |
+| `LayersContainer` | `Layers` | `layerNames`, `expandable`, `expanded` + `ContainerBoxOptions` |
+| `OneColumnContainer` | `OneColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
 | `PagesContainer` | `Pages` | `column`, `width` (+ `PageChild.options.tabId` связывает страницу с табом) |
 | `ProgressContainer` | `Progress` | `bgColor`, `innerTemplateStyle`, `maxValue`, `hideTitle`, `innerValue`, `colors`, `colorAttribute` |
-| `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `center`, `fontColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute` |
-| `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` |
+| `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `wordBreak`, `center`, `fontColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute` |
+| `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
-| `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` |
-| `TitleContainer` | `Title` | `simple`, `downloadById` |
-| `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` |
-| `UploadContainer` | `Upload` | `expandable`, `expanded` |
+| `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` |
+| `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
+| `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
+| `UploadContainer` | `Upload` | `expandable`, `expanded` + `ContainerBoxOptions` |
 
 ### Шапки
 
@@ -260,18 +271,34 @@ export type ContainerComponentRegistry = {
 } & { default: import("react").FC<ContainersGroupContainerProps> };
 ```
 
-`containers/registry.ts` использует `as const satisfies ContainerComponentRegistry`:
+`containers/registry.ts` использует `as const satisfies ContainerComponentRegistry`, но собирает объект **лениво** — через функцию с кэшем, а не константой на инициализации модуля:
 
 ```ts
-export const containerComponents = {
-  [ContainerTemplate.Chart]: ChartContainer,
-  [ContainerTemplate.DataSource]: DataSourceContainer,
-  // ...
-  default: ContainersGroupContainer,
-} as const satisfies ContainerComponentRegistry;
+const createContainerComponents = () =>
+  ({
+    [ContainerTemplate.Chart]: ChartContainer,
+    [ContainerTemplate.DataSource]: DataSourceContainer,
+    // ...
+    default: ContainersGroupContainer,
+  }) as const satisfies ContainerComponentRegistry;
+
+let cachedContainerComponents = null;
+
+export const getContainerComponents = () => {
+  if (!cachedContainerComponents) {
+    cachedContainerComponents = createContainerComponents();
+  }
+
+  return cachedContainerComponents;
+};
 ```
 
+> [!warning] Почему лениво — циклический импорт
+> Контейнеры импортируют баррели `../../components` и `../../utils`, а баррель utils через `getContainerComponent` тянет реестр обратно — получается цикл. Константа на этапе инициализации модуля читала бы `const` из ещё выполняющихся модулей контейнеров и падала с TDZ («Cannot access 'AddFeatureContainer' before initialization»): rollup спасает переупорядочиванием модулей, webpack — нет. К первому рендеру все модули уже инициализированы, поэтому чтение внутри функции безопасно; результат кэшируется и объект строится один раз. Потребители обращаются к реестру только через [[utils|`getContainerComponent`]] / `getContainerComponents()`, а не к экспортированной константе.
+
 TypeScript на этапе компиляции проверяет, что каждый компонент в реестре действительно принимает props, соответствующие `<Name>Props` своего ключа. Если кто-то добавит новый `ContainerTemplate`, но забудет зарегистрировать компонент — компиляция упадёт.
+
+Реестр элементов (`elements/registry.ts`) цикла не образует и остаётся обычной константой `elementComponents`.
 
 Аналогично `ElementComponentRegistry`:
 
@@ -321,6 +348,45 @@ const RoundedBackgroundContainerTyped =
 | `containers/AttachmentContainer/constants.ts` | MIME-типы, лимиты, расширения |
 | `elements/ElementCamera/types.ts` | `SmallPreviewProps` (`images`, `totalCount`, `currentIndex`), `CameraAttributeProps` |
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
+| `components/Chart/FillContext.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
+| `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `column`, `loading`) |
+
+---
+
+## Типографика markdown
+
+Опция `typography` (`ConfigTypographyOptions`, читает только `ElementMarkdown`) переопределяет размер/интервал/начертание отдельных markdown-тегов:
+
+```ts
+type MarkdownTypographyTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "li" | "code";
+
+interface MarkdownTagTypography {
+  fontSize?: FontSizeToken | string;
+  lineHeight?: string;
+  fontWeight?: number | string;
+  /** Отступ снизу — расстояние до следующего блока. */
+  marginBottom?: string;
+  /** Отступ сверху — расстояние до предыдущего блока. */
+  marginTop?: string;
+}
+
+type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypography>>;
+```
+
+Отсутствующий тег или отдельное свойство берут дефолт `MarkdownWrapper` (`elements/ElementMarkdown/styled.ts`) — задавать нужно только переопределяемое.
+
+---
+
+## Типы источника данных
+
+| Тип | Содержимое | Назначение |
+|---|---|---|
+| `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
+| `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
+| `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |
+| `FetchedDataSource` / `WidgetDataSource` | `name`, `features`, `layerName?`, `attributes?` | Загруженный источник в состоянии виджета |
+
+> Не путать `ConfigDataSource.attributes` (`ConfigDataSourceAttribute[]` — метаданные и формат атрибутов источника) с `options.attributes` (`string[]` — список имён атрибутов для отображения в `OneColumn`/`TwoColumn`).
 
 ---
 

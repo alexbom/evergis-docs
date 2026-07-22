@@ -5,16 +5,19 @@
 Dashboard использует registry-pattern: каждый контейнер и элемент регистрируется по ключу (`ContainerTemplate` enum для контейнеров, строковый `type` для элементов) в `registry.ts`. При рендеринге компонент определяется динамически по значению `templateName` / `type` из конфига.
 
 ```ts
-// containers/registry.ts — as const satisfies ContainerComponentRegistry
-export const containerComponents = {
-  [ContainerTemplate.Chart]: ChartContainer,
-  [ContainerTemplate.DataSource]: DataSourceContainer,
-  [ContainerTemplate.Filters]: FiltersContainer,
-  // ...34 записи + default
-  default: ContainersGroupContainer,
-} as const satisfies ContainerComponentRegistry;
+// containers/registry.ts — реестр строится ЛЕНИВО и кэшируется (циклический импорт → TDZ)
+const createContainerComponents = () =>
+  ({
+    [ContainerTemplate.Chart]: ChartContainer,
+    [ContainerTemplate.DataSource]: DataSourceContainer,
+    [ContainerTemplate.Filters]: FiltersContainer,
+    // ...34 записи + default
+    default: ContainersGroupContainer,
+  }) as const satisfies ContainerComponentRegistry;
 
-// elements/registry.ts — as const satisfies ElementComponentRegistry
+export const getContainerComponents = () => { /* кэширует createContainerComponents() */ };
+
+// elements/registry.ts — обычная константа, цикла нет
 export const elementComponents = {
   chart: ElementChart,
   image: ElementImage,
@@ -22,10 +25,10 @@ export const elementComponents = {
 } as const satisfies ElementComponentRegistry;
 ```
 
-Реестры — типобезопасные: `ContainerComponentRegistry` и `ElementComponentRegistry` (см. [[types#Типизированные реестры|Типизированные реестры]]) гарантируют, что каждый зарегистрированный компонент принимает корректные `<Name>Props`.
+Реестры — типобезопасные: `ContainerComponentRegistry` и `ElementComponentRegistry` (см. [[types#Типизированные реестры|Типизированные реестры]]) гарантируют, что каждый зарегистрированный компонент принимает корректные `<Name>Props`. Почему реестр контейнеров ленивый — [[types#Типизированные реестры|там же]].
 
 Разрешение компонента:
-- Контейнер: `getContainerComponent(templateName)` → `containerComponents[name] || default`
+- Контейнер: `getContainerComponent(templateName)` → `getContainerComponents()[name] || default`
 - Элемент: `getRenderElement(...)` возвращает функцию, которая по `id` находит дочерний элемент в конфиге и рендерит нужный компонент
 
 ## Типизация

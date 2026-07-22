@@ -233,16 +233,18 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `width` | `number \| string` | Ширина изображения в px или CSS-значение |
+| `width` | `CssSize` | Ширина изображения: число — px, строка — любое CSS-значение |
+| `height` | `CssSize` | Высота изображения |
+| `fit` | `"cover" \| "contain" \| "fill" \| "none" \| "scale-down"` | CSS `object-fit` — как изображение масштабируется внутри своего бокса |
 
-**Поведение:** `value` → `getResourceUrl(value)`; `attributeName` → первый элемент из значения атрибута (разделённый `;`). Если URL не получен — не рендерится.
+**Поведение:** `value` → `getResourceUrl(value)`; `attributeName` → первый элемент из значения атрибута (разделённый `;`). Если URL не получен — не рендерится. Размеры собираются через [[utils|`getWrapperSizeStyle`]] и уходят в CSS; в HTML-атрибут `width` попадает только числовое (пиксельное) значение.
 
 ```tsx
 // статический URL
 { id: "bgImage", type: "image", value: "https://example.com/bg.png", options: { width: 200 } }
 
-// из атрибута объекта
-{ id: "image", type: "image", attributeName: "photoUrl", options: { width: 200 } }
+// из атрибута объекта, вписать в бокс без искажений
+{ id: "image", type: "image", attributeName: "photoUrl", options: { width: "100%", height: 160, fit: "cover" } }
 ```
 
 ---
@@ -312,11 +314,24 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `expandLength` | `number` | Число символов до скрытия текста. `0` = не скрывать |
+| `noMargin` | `boolean` | Убрать внешний margin обёртки |
+| `typography` | `MarkdownTypography` | Пер-тег типографика: `{ h1..h6, p, li, code }` → `{ fontSize, lineHeight, fontWeight, marginTop, marginBottom }`. Незаданные теги/свойства берут дефолт `MarkdownWrapper` (см. [[types#Типографика markdown\|Типы]]) |
 
-**Поведение:** контент из `elementConfig.value` или `attributes[attributeName].value`. Рендерит через `react-markdown` с `rehype-raw`, `rehype-sanitize`, `remark-gfm`.
+**Поведение:** контент из `elementConfig.value` или `attributes[attributeName].value`. Рендерит через `react-markdown` с `rehype-raw`, `rehype-sanitize` (схема расширена — разрешён атрибут `style`), `remark-gfm`. При `expandLength > 0` и превышении длины показывает `LegendToggler` «Подробнее» / «Свернуть».
 
 ```tsx
-{ id: "value", type: "markdown", attributeName: "description", options: { expandLength: 300 } }
+{
+  id: "value",
+  type: "markdown",
+  attributeName: "description",
+  options: {
+    expandLength: 300,
+    typography: {
+      h2: { fontSize: "1.25rem", marginBottom: "0.5rem" },
+      p: { fontSize: "0.875rem", lineHeight: "1.4" }
+    }
+  }
+}
 ```
 
 ---

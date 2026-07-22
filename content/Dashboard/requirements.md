@@ -3,7 +3,7 @@
 ## @evergis/react
 
 Хуки:
-`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useChartData`, `useChartChange`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useEditGroupAttributes`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`
+`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useChartData`, `useChartChange`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useEditGroupAttributes`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`
 
 Компоненты и провайдеры:
 `DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `GlobalProvider`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
@@ -12,7 +12,7 @@
 `DashboardChild`, `DashboardHeaderConfig`, `ContainerComponentRegistry`, `ElementComponentRegistry`, `Brand`, `ContainerId`, `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId`. Конструкторы: `asContainerId`, `asChartId`, `asModalId`, `asTabId`, `asFilterName`, `asLayerName`, `asAttributeName`, `asDataSourceName`, `asResourceId`.
 
 Утилиты:
-`formatDataSourceCondition`, `applyQueryFilters`, `getContainerComponent`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `isVisibleContainer`, `checkEqualOrIncludes`
+`formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `getContainerComponent`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `toCssSize`, `isVisibleContainer`, `checkEqualOrIncludes`
 
 ## @evergis/api
 
@@ -52,6 +52,10 @@
 | `jsPDF`, `html2canvas` | `useExportPdf` — экспорт в PDF |
 | `d3` | `FEATURE_CARD_DEFAULT_COLORS` (`d3.schemeAccent`) для цветовой палитры карточки |
 | `maplibre-gl` | Типы `CircleLayerSpecification`, `FillLayerSpecification`, `LineLayerSpecification` для `CustomFeatureSelect` |
+| `@xterm/xterm`, `@xterm/addon-fit` | `LogTerminal` — вывод лога Python-задачи в `TaskContainer` |
+| `geojson` | Тип `Geometry` для `SaveHookInput.changedGeometry` (серверные хуки сохранения) |
+
+Браузерные API: `ResizeObserver` — [[hooks\|`useResizeBox`]] (измерение ячейки для `fill`-режима графика).
 
 ## Связанные разделы
 

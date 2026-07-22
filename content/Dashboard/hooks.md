@@ -476,6 +476,22 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 ---
 
+## useResizeBox
+
+**Назначение:** Измеряет фактические ширину и высоту DOM-элемента (`ResizeObserver`, content-box) и обновляет их на любой ресайз. Нужен «резиновым» графикам: d3 требует пиксельные числа, а не CSS `100%`, а для вписывания (`fill`) — обе оси сразу. См. [[containers#Как работает fill|`fill` контейнера Chart]].
+
+**Параметры:** `enabled: boolean` — `false` полностью отключает наблюдение (обычные, не-fill графики не измеряются и не вызывают лишних ре-рендеров)
+
+**Возвращает:** `[ref: RefObject<HTMLDivElement>, box: ResizeBox]`, где `ResizeBox` — `{ width?: number, height?: number }`; пустой объект, пока элемент не измерен (ссылка на пустой бокс стабильна)
+
+```ts
+const [chartRef, { width, height }] = useResizeBox(fill);
+
+return <ChartFillMeasure ref={chartRef}>{chartBody}</ChartFillMeasure>;
+```
+
+---
+
 ## useSavePrototypeBuilder
 
 **Назначение:** Билдер `TaskPrototypeDto` для запуска `beforeSave`/`afterSave` python-скрипта. Собирает параметры скрипта из контекста FeatureCard и Dashboard: подставляет фильтры/геометрию в `hook.parameters` через [[utils|утилиту]] `applyQueryFilters`, добавляет служебные `projectName`, `layerName`, `featureId`, объект `edit` (изменённые атрибуты + геометрия) и, при активном геометрическом фильтре карты, `selectionGeometry`. Используется внутри **useFeatureSaveHooks**.
@@ -601,6 +617,29 @@ const { dataSources, filters, attributes } = useWidgetContext(type);
 
 ```ts
 const { pageIndex, currentPage } = useWidgetPage(type);
+```
+
+---
+
+## useWrapperSize
+
+**Назначение:** Собирает пропсы корневой обёртки контейнера: идентификаторы для внешних селекторов, авторский `style` из конфига и css-объект размеров из `options.width` / `options.height` / `options.overflow` (см. [[containers#Размерная модель обёртки ContainerBoxOptions|размерную модель]]). Вызывается почти всеми контейнерами вместо ручной сборки стилей.
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `elementConfig` | `ConfigContainerChild?` — узел конфига контейнера |
+| `defaults` | `CSSObject?` — внутренние дефолты обёртки (отступы, собственная высота). Ссылка должна быть стабильной — константа или `useMemo` |
+
+**Возвращает:** `WrapperRootProps` — `{ id, "data-templatename", style, $sizeCss }`
+
+Размеры уходят styled-пропом `$sizeCss` (класс), а не inline-стилем, поэтому перебиваются снаружи обычной специфичностью (`#id`, `[data-templatename]`) — без `!important`. Авторский `style` остаётся inline: у него приоритет по замыслу автора конфига. Ширина по умолчанию — `FILL_SIZE` (`"100%"`), поэтому контейнер занимает всю ширину ячейки, пока `options.width` не задан явно. Вычисление делегируется [[utils|утилите]] `getWrapperSizeStyle`.
+
+```ts
+const root = useWrapperSize({ elementConfig });
+
+return <ChartContainerWrapper {...root}>...</ChartContainerWrapper>;
 ```
 
 ---

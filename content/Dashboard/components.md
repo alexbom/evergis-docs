@@ -39,7 +39,9 @@
 | `type` | `WidgetType` |
 | `renderElement` | `RenderElementFunction` |
 
-**Зависимости:** `useChartData`, `useChartChange`, `useWidgetFilters`, `useWidgetContext`, `useGlobalContext`
+**Зависимости:** `useChartData`, `useChartChange`, `useWidgetFilters`, `useWidgetContext`, `useGlobalContext`, `useResizeBox` (только в fill-режиме)
+
+**Режим `fill`:** читается из контекста `FillContext`, который выставляет `ChartContainer` (опции контейнера до элемента `chart` не доходят). При `fill` тело графика оборачивается в измеряемый `ChartFillMeasure`, а размеры берутся из `useResizeBox`, а не из `options.width`/`options.height`. Подробно — [[containers#Как работает fill|ChartContainer]].
 
 **Типы чартов** (через `options.chartType`):
 - `bar` (default) — StyledBarChart из `@evergis/charts`

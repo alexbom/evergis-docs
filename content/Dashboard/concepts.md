@@ -51,17 +51,41 @@
 }
 ```
 
-Результат загрузки — `WidgetDataSource`: `{ name, features, layerName, attributeDefinition }`.
+Результат загрузки — `WidgetDataSource`: `{ name, features, layerName?, attributes? }`, где `attributes` — описание атрибутов из ответа (`AttributesConfigurationDc["attributes"]`) для источников без слоя (EQL, python).
 
 **Умная инвалидация:** при изменении значения фильтра система вычисляет список изменившихся фильтров → `getUpdatingDataSources()` возвращает только те источники, в `condition` или `parameters` которых есть ссылка `%filterName` → перезагружаются только они. Остальные источники не тронуты.
 
 Хук: [[hooks|хук]] `useDataSources`. Имя источника типизируется branded-типом [[types#Branded types|DataSourceName]] (`asDataSourceName`).
 
+### Настройка атрибутов источника — секция `attributes`
+
+Иногда атрибуты приходят «сырыми»: у EQL- и python-источника слоя нет вообще, а у слоя формат может не совпадать с тем, как значение нужно показать в конкретном дашборде. Для этого у источника есть секция `attributes` (`ConfigDataSourceAttribute[]`) — она **накладывается поверх** атрибутов слоя или ответа запроса.
+
+```json
+{
+  "name": "deals_ds",
+  "query": "SELECT district, amount FROM deals",
+  "ds": "analytics",
+  "attributes": [
+    { "attributeName": "amount", "alias": "Сумма сделок", "stringFormat": { "unitsLabel": "млн ₽", "decimals": 1 } }
+  ]
+}
+```
+
+Правила наложения ([[utils|`mergeAttributeConfigurations`]] внутри [[utils|`getDataSourceLayerInfo`]]):
+
+- **`stringFormat` мержится по полям** — в конфиге задаётся только переопределяемое, остальное (в том числе критичный для форматирования `type`) наследуется от базы. Если формата нет ни у одной из сторон, поле остаётся `undefined`, а не пустым объектом: `{}` прошёл бы гейты `attribute?.stringFormat` и прогнал значение через форматирование чисел.
+- **Атрибут, которого нет ни у слоя, ни в ответе, добавляется** с `isDisplayed: true` — иначе его отфильтрует `getFeatureAttributes`.
+- Для источника **без слоя** база берётся из `attributes` ответа, и собирается «синтетический» `layerInfo`. Ему намеренно не задаётся `name`: по имени слоя ищут скрытые атрибуты проекта и рендерят элемент `layerName` — имя источника дало бы там ложные срабатывания.
+- Если накладывать нечего, возвращается исходный объект слоя — идентичность сохраняется ради мемоизации.
+
+> Не путать с `options.attributes` (`string[]`) у `OneColumn`/`TwoColumn` — там это список **имён** атрибутов для отображения, а здесь — их метаданные и формат. См. [[types#Типы источника данных|Типы]].
+
 ### Рендеринг записей источника — `innerTemplateName`
 
 Контейнеры `DataSource` и `DataSourceProgress` (см. [[containers|Контейнеры]]) не рендерят детей напрямую: они проходят по **каждой записи** (`feature`) источника и рендерят её через **внутренний шаблон**, заданный `options.innerTemplateName`. Пайплайн рендера ([[utils|`getRenderElement`]] → [[utils|`getContainerComponent`]]) конвертирует это имя в проп `innerComponent`, который `DataSourceInnerContainer` применяет к каждой записи, подставляя её атрибуты.
 
-- **`innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → `innerComponent` не передан → `DataSourceInnerContainer` возвращает `null` → записи не рендерятся, контейнер визуально пуст. Опция живёт в `ConfigMiscOptions` (см. [[options|Опции]]), а не в опциях самих контейнеров, поэтому обязательность **типами не ловится**.
+- **`innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → `innerComponent` не передан → `DataSourceInnerContainer` возвращает `null` → записи не рендерятся, контейнер визуально пуст. Опция объявлена в `ConfigMiscOptions` (см. [[options|Опции]]) и остаётся необязательной по типу, поэтому обязательность **типами не ловится**.
 - **`children` DataSource-хоста — это slot-id выбранного внутреннего шаблона** (`RoundedBackground`/`Progress` → `icon`/`alias`/`value`/`units`; `OneColumn`/`TwoColumn` → `alias`/`value`/`units`), а не собственные слоты хоста.
 
 ```json
@@ -434,15 +458,18 @@ interface SaveHookInput {
 
 **Registry** — механизм, связывающий строковое имя типа из JSON-конфига с React-компонентом. Это позволяет декларативно описывать UI через JSON-конфиг, не упоминая компоненты напрямую.
 
-**Регистрация контейнеров** в `containers/registry.ts`:
+**Регистрация контейнеров** в `containers/registry.ts` — объект собирается лениво и кэшируется (иначе циклический импорт `containers → utils → registry` даёт TDZ):
 ```ts
-export const containerComponents = {
-  [ContainerTemplate.Chart]: ChartContainer,
-  [ContainerTemplate.DataSource]: DataSourceContainer,
-  [ContainerTemplate.Filters]: FiltersContainer,
-  // ... 34 контейнера
-  default: ContainersGroupContainer, // если templateName не найден
-} as const satisfies ContainerComponentRegistry;
+const createContainerComponents = () =>
+  ({
+    [ContainerTemplate.Chart]: ChartContainer,
+    [ContainerTemplate.DataSource]: DataSourceContainer,
+    [ContainerTemplate.Filters]: FiltersContainer,
+    // ... 34 контейнера
+    default: ContainersGroupContainer, // если templateName не найден
+  }) as const satisfies ContainerComponentRegistry;
+
+export const getContainerComponents = () => { /* кэш + createContainerComponents() */ };
 ```
 
 **Регистрация элементов** в `elements/registry.ts`:

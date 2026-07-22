@@ -38,14 +38,18 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `width` | `number` | Ширина в px |
-| `height` | `number` | Высота в px |
+| `width` | `CssSize` | Ширина корневой обёртки. Число — px, строка — любое CSS-значение; `"100%"` включает fill-режим (контейнер занимает ячейку целиком) |
+| `height` | `CssSize` | Высота корневой обёртки. `"100%"` — заполнить ячейку родителя |
+| `overflow` | `"visible" \| "hidden" \| "scroll" \| "auto"` | CSS `overflow` корневой обёртки. Не задана — браузерный `visible`: контент крупнее бокса вытекает на соседние слоты. Значения кроме `visible` обрезают и абсолютных потомков — у `FiltersContainer` это открытый список фильтра |
 | `padding` | `number` | Внутренние отступы |
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик) |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
+| `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
 | `align` | `"left" \| "center" \| "right"` | Выравнивание текста/блоков |
+| `alignItems` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | Выравнивание детей по поперечной оси. В ряду по умолчанию `center` |
+| `fit` | `"cover" \| "contain" \| "fill" \| "none" \| "scale-down"` | CSS `object-fit` изображения элемента `image` |
 | `center` | `boolean` | Центрирование контента |
 | `innerTemplateStyle` | `CSSProperties` | Кастомные CSS-стили внутреннего шаблона (`OneColumn`, `TwoColumn`, `Progress`, `RoundedBackground`) |
 | `withPadding` | `boolean` | Дополнительный внутренний padding (шапки FeatureCard) |
@@ -76,8 +80,9 @@ interface ConfigOptions
 | `colors` | `string[]` | Массив цветов (Progress, multi-series Chart) |
 | `colorAttribute` | `string` | Имя атрибута, из которого брать цвет |
 | `statusColors` | `Record<RemoteTaskStatus, string>` | Цвета по статусам задачи |
+| `typography` | `MarkdownTypography` | Пер-тег типографика markdown-виджета: `{ h1..h6, p, li, code }` → `{ fontSize, lineHeight, fontWeight, marginTop, marginBottom }`. Отсутствующий тег или свойство — дефолт `MarkdownWrapper`. См. [[types#Типографика markdown\|Типографика markdown]] |
 
-**Используется в:** `ElementChart`, `ElementChips`, `ElementIcon`, `ElementLegend`, `ElementSvg`, `DividerContainer`, `FiltersContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementChart`, `ElementChips`, `ElementIcon`, `ElementLegend`, `ElementMarkdown` (`typography`), `ElementSvg`, `DividerContainer`, `FiltersContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader`.
 
 ---
 
@@ -265,7 +270,7 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `innerTemplateName` | `ContainerTemplate` | **Обязателен для `DataSource`/`DataSourceProgress`.** Шаблон рендеринга каждой записи источника — читается пайплайном ([[containers\|`getRenderElement`]]) и конвертируется в проп `innerComponent` через `getContainerComponent`. Без него записи не рендерятся |
+| `innerTemplateName` | `ContainerTemplate` | **Обязателен для `DataSource`/`DataSourceProgress`** (входит в их `<Name>Options`, но как необязательное поле — типы пропуск не ловят). Шаблон рендеринга каждой записи источника: читается пайплайном ([[containers\|`getRenderElement`]]) и конвертируется в проп `innerComponent` через `getContainerComponent`. Без него записи не рендерятся |
 | `themeName` | `"light" \| "dark"` | Принудительная тема для шапки |
 | `url` | `string` | URL (для DashboardDefaultHeader) |
 | `inlineUnits` | `boolean` | Показывать единицы измерения inline |
@@ -278,10 +283,10 @@ interface ConfigOptions
 | `modalId`, `tabId`, `downloadById`, `parentResourceId` | `string` | Дубликаты entity-ref для удобства Pick |
 | `useNotifications` | `boolean` | Показывать прогресс-уведомления о выполнении задачи (`TaskContainer`) |
 
-**Используется в:** `DataSourceContainer`, `DataSourceProgressContainer` (`innerTemplateName` — через пайплайн рендера, не через Pick), `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`).
+**Используется в:** `DataSourceContainer`, `DataSourceProgressContainer` (`innerTemplateName` — значение потребляет пайплайн рендера, а не пропсы контейнера), `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`).
 
-> [!note] Опции, потребляемые пайплайном рендера (не через Pick)
-> Часть полей `ConfigMiscOptions` читается пайплайном рендера напрямую из `options`, а не через `<Name>Options`-Pick конкретного компонента — их «Используется в» определяется по фактическому чтению в коде, а не по Pick. Ключевой пример — **`innerTemplateName`**: его читает [[containers|`getRenderElement`]] и конвертирует в `innerComponent` (`getContainerComponent`) для `DataSourceContainer`/`DataSourceProgressContainer`. Такие поля не значатся ни в одном `<Name>Options`, но обязательны — не считай их неиспользуемыми.
+> [!note] Опции, потребляемые пайплайном рендера
+> Часть полей читается **пайплайном рендера** напрямую из `options`, а не пропсами компонента — их «Используется в» определяется по фактическому чтению в коде, а не по тому, чей `<Name>Options` их Pick'ает. Ключевой пример — **`innerTemplateName`**: его читает [[containers|`getRenderElement`]] и конвертирует в `innerComponent` (`getContainerComponent`) для `DataSourceContainer`/`DataSourceProgressContainer`; сам контейнер этой опции в пропсах не видит, хотя она и перечислена в его `<Name>Options`. Не считай такие поля неиспользуемыми только потому, что компонент к ним не обращается.
 
 ---
 

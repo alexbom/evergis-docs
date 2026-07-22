@@ -166,7 +166,7 @@ BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $
 }
 ```
 
-> ⚠️ `bgImage` — это `type: "image"`, URL лежит в **корневом** `value` (или `attributeName`), а не в `options.value`. В `options` для image допустим только `width` (см. [[elements#ElementImage]]).
+> ⚠️ `bgImage` — это `type: "image"`, URL лежит в **корневом** `value` (или `attributeName`), а не в `options.value`. В `options` для image допустимы только `width`, `height` и `fit` (см. [[elements#ElementImage]]).
 
 ---
 

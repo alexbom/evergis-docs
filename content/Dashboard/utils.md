@@ -20,11 +20,19 @@ const attr = getAttributeByName("name", attributes);
 
 ---
 
+### getAttributeConfigurationByName
+
+`(attributes?: AttributesConfigurationDc["attributes"], name?: string) => AttributeConfigurationDc | undefined`
+
+Находит конфигурацию атрибута по имени. `AttributesConfigurationDc["attributes"]` объявлен массивом, но часть источников отдаёт атрибуты объектом-мапой (нормализация в `useDataSources`), поэтому поддерживаются **обе формы** — массив ищется `find`, мапа читается по ключу.
+
+---
+
 ### getAttributesConfiguration
 
-`(layer: QueryLayerServiceInfoDc) => AttributesConfigurationDc`
+`(layer?: QueryLayerServiceInfoDc) => AttributesConfigurationDc`
 
-Извлекает `attributesConfiguration` из конфига слоя с fallback на значения по умолчанию (`idAttribute`, `geometryAttribute`).
+Извлекает `attributesConfiguration` из конфига слоя с fallback на значения по умолчанию (`idAttribute`, `geometryAttribute`). Источники без слоя (EQL, python) резолвятся в `layerInfo` без поля `name` и не проходят `isLayerService`, поэтому дополнительно принимается любой объект с готовой конфигурацией атрибутов.
 
 ---
 
@@ -72,7 +80,7 @@ const attr = getAttributeByName("name", attributes);
 
 `(innerTemplateName: string) => FC<ContainerProps> | null`
 
-Resolves контейнер из registry. Если не найден — возвращает `default` (ContainersGroupContainer). Если `innerTemplateName` пустой — `null`. Так `options.innerTemplateName` [[containers|контейнеров]] `DataSource`/`DataSourceProgress` превращается в проп `innerComponent` (шаблон рендеринга каждой записи источника); пустое значение → `null` → записи не рендерятся.
+Resolves контейнер из реестра — через `getContainerComponents()` (реестр строится лениво, см. [[types#Типизированные реестры|Типы]]). Если ключ не найден — возвращает `default` (ContainersGroupContainer). Если `innerTemplateName` пустой — `null`. Так `options.innerTemplateName` [[containers|контейнеров]] `DataSource`/`DataSourceProgress` превращается в проп `innerComponent` (шаблон рендеринга каждой записи источника); пустое значение → `null` → записи не рендерятся.
 
 ---
 
@@ -121,6 +129,24 @@ Resolves контейнер из registry. Если не найден — воз
 `({ filterName, filterProp, attributeAlias, dataSource, selectedFilters }) => SelectedFilter["value"]`
 
 Получает значение поля `filterProp` из feature датасорса, соответствующего текущему значению фильтра.
+
+---
+
+### getDataSourceLayerInfo
+
+`({ layerInfos, configDataSource, fetchedDataSource }) => QueryLayerServiceInfoDc | null`
+
+Резолвит `layerInfo` источника данных и накладывает поверх атрибуты из его конфига (см. [[concepts#Настройка атрибутов источника — секция attributes|секцию `attributes`]]). База — реальный слой по `layerName`, а если слоя нет (EQL, python) — атрибуты из ответа; наложение делегируется **mergeAttributeConfigurations**.
+
+Возвращает `null`, когда атрибутов нет вообще: потребители отличают по этому «источник без описания атрибутов» от загруженного, и non-null сломал бы их loading/empty-state. Синтетическому `layerInfo` намеренно **не задаётся `name`** — по нему ищут скрытые атрибуты слоя и рендерят элемент `layerName`, имя источника дало бы ложные срабатывания. Если накладывать нечего, возвращается исходный объект слоя (идентичность сохраняется ради мемоизации).
+
+---
+
+### mergeAttributeConfigurations
+
+`(base?: AttributesConfigurationDc["attributes"], overlay?: ConfigDataSourceAttribute[]) => AttributesConfigurationDc["attributes"]`
+
+Накладывает атрибуты из конфига источника поверх атрибутов слоя или ответа EQL. `stringFormat` мержится **по полям** — в конфиге задают только переопределяемое, остальное (в т.ч. критичный для форматирования `type`) наследуется от базы. Если формата нет ни у одной из сторон — возвращается `undefined`, а не `{}`: пустой объект truthy и прошёл бы гейты `attribute?.stringFormat`, прогнав значение через форматирование чисел. Атрибут, которого нет ни у слоя, ни в ответе, добавляется с `isDisplayed: true` — иначе его отфильтрует `getFeatureAttributes`.
 
 ---
 
@@ -193,6 +219,14 @@ Resolves контейнер из registry. Если не найден — воз
 `(layer?: QueryLayerServiceInfoDc) => QueryLayerServiceInfoDc`
 
 Нормализует объект `QueryLayerServiceInfoDc`: заполняет `configuration`, `layerDefinition`, `idAttribute`, `geometryAttribute`, `proxy` и т.д.
+
+---
+
+### getLayerInfoAttribute
+
+`(layerInfo?: QueryLayerServiceInfoDc, name?: string) => AttributeConfigurationDc | undefined`
+
+Достаёт конфигурацию атрибута по имени прямо из `layerInfo`, снимая повторяющийся каст конфигурации. Тонкая обёртка над **getAttributeConfigurationByName**.
 
 ---
 
@@ -381,6 +415,30 @@ Resolves контейнер из registry. Если не найден — воз
 `(pages: ConfigContainerChild[]) => number`
 
 Вычисляет следующий свободный ID страницы (max существующего + 1).
+
+---
+
+## Размеры и стили
+
+### getWrapperSizeStyle
+
+`({ style, width, height, overflow, defaults, defaultWidth }) => CSSObject | undefined`
+
+Собирает CSS-объект корневой обёртки контейнера: внутренние дефолты плюс размеры из `options` (см. [[containers#Размерная модель обёртки ContainerBoxOptions|размерную модель]]). Результат уходит в styled-проп, а не в inline-style, поэтому перебивается снаружи обычной специфичностью — без `!important`. Опции перекрывают одноимённые поля авторского `style`.
+
+Размер `"100%"` включает **fill-режим**: контейнер занимает ячейку целиком, для чего снимаются конфликтующие внутренние дефолты обёртки (`width`/`minWidth`/`maxWidth`/`marginLeft`/`marginRight` по горизонтали, `height`/`minHeight`/`maxHeight`/`marginTop`/`marginBottom` по вертикали), а контент лишается возможности её распирать (`min-width`/`min-height: 0`). Для fill-высоты добавляется `flex: 1 1 auto` — в колонке контейнер забирает остаток ячейки под заголовком, а не переполняет её на его высоту. `overflow` уходит в CSS как есть и ничем не подменяется.
+
+Рядом экспортируются константа `FILL_SIZE` (`"100%"`) и предикат `isFillSize(size)`. Парный хук — [[hooks|`useWrapperSize`]] (он передаёт `defaultWidth: FILL_SIZE`, поэтому контейнеры по умолчанию занимают всю ширину ячейки, а элементы — нет).
+
+---
+
+### toCssSize
+
+`(size?: CssSize) => string | undefined`
+
+Приводит размер из конфига к CSS-значению: число → пиксели (`"12px"`), строка → как есть. Нужен там, где значение подставляется в CSS-строку (`width: ${...}`) — в отличие от inline-style и css-объекта styled-components, которые добавляют `px` к числам сами.
+
+Рядом — `toPxNumber(size)`: пиксельное число для API, которым нужен именно `number` (геометрия графиков). Относительные значения (`"100%"`, `"10rem"`) числом не выражаются и дают `undefined`, чтобы вызывающий код взял свой дефолт.
 
 ---
 

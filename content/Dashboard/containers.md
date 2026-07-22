@@ -11,6 +11,20 @@
 
 **Каждый контейнер обязан иметь поле `id`** — уникальное имя в keyspace `ConfigContainer.id` (типы `ContainerId` / `ChartId` / `ModalId` / `TabId`). Через него работают навигация, связи (`tabId`, `modalId`, `chartId`, `downloadById`), управление состоянием (`expandedContainers`, `selectedTabId`). Подробности и таблица slot-id для `children` — в [[concepts#ID контейнеров и элементов|разделе про id]]. В примерах ниже `id` контейнеров — иллюстративные доменные имена; в реальном конфиге они должны быть уникальны.
 
+## Размерная модель обёртки (`ContainerBoxOptions`)
+
+Три опции размера корневой обёртки общие для контейнеров и в таблицах ниже отдельно не повторяются — они подмешиваются в `<Name>Options` миксином `ContainerBoxOptions` (см. [[types#Общие миксины размеров|Типы]]):
+
+| Опция | Тип | Описание |
+|---|---|---|
+| `width` | `CssSize` | Ширина обёртки. Число — px, строка — любое CSS-значение. Не задана — контейнер занимает всю ширину ячейки (`100%` по умолчанию) |
+| `height` | `CssSize` | Высота обёртки. `"100%"` — заполнить ячейку родителя |
+| `overflow` | `"visible" \| "hidden" \| "scroll" \| "auto"` | Что делать с контентом, вылезающим за бокс. Не задана — браузерный `visible`: контент вытекает на соседние слоты. Значения кроме `visible` обрезают и абсолютно спозиционированных потомков — у `Filters` с заданной высотой обрежется открытый список фильтра |
+
+Поддерживают: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `Task`, `TwoColumn`, `Upload`. Значение `"100%"` включает **fill-режим**: обёртка занимает ячейку целиком, конфликтующие внутренние дефолты (собственные `width`/`height`/`margin`) снимаются, а для fill-высоты добавляется `flex: 1 1 auto`. Реализация — [[utils|`getWrapperSizeStyle`]] + [[hooks|`useWrapperSize`]]; размеры уходят styled-пропом, поэтому перебиваются снаружи обычной специфичностью, без `!important`.
+
+Остальные контейнеры (`AddFeature`, `DefaultAttributes`, `Divider`, `Edit*`, `ExportPdf`, `Icon`, `Progress`, `RoundedBackground`, `Tabs`, `Title`) своей размерной модели не имеют; у `Pages` из размеров есть только `width`.
+
 ---
 
 ## Список контейнеров
@@ -137,8 +151,32 @@
 |---|---|---|
 | `twoColumns` | `boolean` | Разместить легенду и график в две колонки |
 | `hideEmpty` | `boolean` | Скрыть контейнер при отсутствии данных |
+| `fill` | `boolean` | Вписать **тело графика** в контейнер (аналог `object-fit: contain`): по ширине — всегда, по высоте — только если задана `height` контейнера |
+
+Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`) — см. [[containers#Размерная модель обёртки ContainerBoxOptions|размерную модель]].
 
 При ошибке источника данных рендерит `<DataSourceError />`.
+
+#### Как работает `fill`
+
+Элемент `chart` рендерится через `renderElement({ id: "chart" })` и опций контейнера не видит, поэтому `ChartContainer` передаёт режим через контекст `FillContext` (`{ fill, fitHeight }`, где `fitHeight = fill && height != null`), а компонент `Chart` читает его через `useContext`.
+
+- **По ширине** обёртка растягивается на `100%`, а телу графика отдаётся реально измеренная ширина ячейки: d3-графики требуют пиксельное число, а не CSS `100%`. Измерение — [[hooks|хук]] `useResizeBox` (ResizeObserver) на внешней обёртке `ChartFillMeasure`; без `fill` наблюдение отключено и лишних ре-рендеров нет.
+- **По высоте** фит включается только при заданной `height` контейнера. Тогда `chartHeight` означает не «высоту тела», а **всю доступную высоту ячейки**, из которой вычитается обвес: подписи оси X и внешний отступ у BarChart, строка итога у StackBar (её высота не прибавляется, а забирается флексом). Круглый график (`pie`) вписывается по короткой стороне и центрируется.
+- Без `fill` поведение прежнее: `options.width`/`options.height` элемента `chart` задают фиксированную геометрию.
+
+```tsx
+{
+  id: "floors_chart",
+  templateName: "Chart",
+  options: { fill: true, height: 240 },     // fill + height → фит по обеим осям
+  children: [
+    { id: "alias", value: "Этажность" },
+    { id: "chart", type: "chart", options: { chartType: "bar" } },
+    { id: "legend", type: "legend", options: { chartId: "chart" } }
+  ]
+}
+```
 
 ```tsx
 {
@@ -165,9 +203,12 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `column` | `boolean` | `true` — дочерние контейнеры в колонку, `false` — в строку |
+| `column` | `boolean` | `true` (default) — дочерние контейнеры в колонку, `false` — в строку |
 | `expandable` | `boolean` | Разрешить сворачивание группы |
 | `expanded` | `boolean` | Развёрнута ли группа по умолчанию |
+| `alignItems` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | Выравнивание детей по поперечной оси (CSS `align-items`). В ряду по умолчанию `center` |
+
+Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
 
 Рендерит дочерние элементы через `ContainerChildren`. Если `id` начинается с `"page_"` — рендерится как корневой контейнер страницы.
 
@@ -193,15 +234,17 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `relatedDataSource` | `string` | **Обязательный.** Имя источника данных из `dataSources` страницы |
-| `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи источника — конвертируется в проп `innerComponent`. Читается пайплайном рендера ([[utils\|`getRenderElement`]] → [[utils\|`getContainerComponent`]]), поэтому лежит в `ConfigMiscOptions` (см. [[options\|Опции]]), а не в `DataSourceContainerOptions`. Типовые значения: `RoundedBackground`, `Progress`, `OneColumn`, `TwoColumn`, `ContainersGroup` |
+| `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи источника — конвертируется в проп `innerComponent`. Значение потребляет пайплайн рендера ([[utils\|`getRenderElement`]] → [[utils\|`getContainerComponent`]]), сам контейнер его в пропсах не видит. Типовые значения: `RoundedBackground`, `Progress`, `OneColumn`, `TwoColumn`, `ContainersGroup` |
 | `column` | `boolean` | Располагать элементы в колонку (`true`, default) или строку (`false`) |
 | `expandable` | `boolean` | Разрешить сворачивание контейнера |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 
+Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
+
 При `!relatedDataSource` → `null`. При ошибке → `<DataSourceError />`. До загрузки → `<ContainerLoading />`.
 
 > [!warning] Без `innerTemplateName` контейнер визуально пуст
-> `getContainerComponent(undefined) === null` → `DataSourceInnerContainer` возвращает `null` → **ни одна запись не рендерится**. Типы это не ловят (`innerTemplateName` — в `ConfigMiscOptions`, а не в `DataSourceContainerOptions`). Неизвестное имя шаблона откатывается на `ContainersGroup` (реестровый `default`).
+> `getContainerComponent(undefined) === null` → `DataSourceInnerContainer` возвращает `null` → **ни одна запись не рендерится**. Типы это не ловят: поле объявлено в `ConfigMiscOptions` и, хотя и входит в `DataSourceContainerOptions`, остаётся **необязательным** — пропуск компилируется молча. Неизвестное имя шаблона откатывается на `ContainersGroup` (реестровый `default`).
 
 **`children` DataSource-хоста — это slot-id выбранного `innerTemplateName`** (например для `RoundedBackground`: `icon`, `alias`, `value`, `units`; для `OneColumn`/`TwoColumn`: `alias`, `value`, `units`), а не собственные слоты `DataSource` и не вложенный контейнер.
 
@@ -239,13 +282,15 @@
 | Опция | Тип | Описание |
 |---|---|---|
 | `relatedDataSource` | `string` | **Обязательный.** Имя источника данных |
-| `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи (обычно `Progress`) — конвертируется в `innerComponent`. Живёт в `ConfigMiscOptions` (см. [[options\|Опции]]), а не в `DataSourceProgressContainerOptions`. Без него записи не рендерятся |
+| `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи (обычно `Progress`) — конвертируется в `innerComponent`. Объявлен в `ConfigMiscOptions` (см. [[options\|Опции]]) и необязателен по типу, поэтому пропуск компилируется молча — без него записи не рендерятся |
 | `maxValue` | `number \| string` | Максимальное значение для расчёта ширины бара. Если строка — имя атрибута |
 | `showTotal` | `boolean` | Показывать итоговую сумму под списком |
 | `expandable` | `boolean` | Разрешить сворачивание |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 | `shownItems` | `number` | Элементов до кнопки «Показать ещё» |
 | `otherItems` | `number` | Максимум элементов с «Другое» |
+
+Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
 
 Использует [[hooks|хук]] `useShownOtherItems` для пагинации. Вычисляет `totalValue` и `currentMaxValue` из features. `children` — slot-id внутреннего шаблона (`Progress`: `icon`, `alias`, `value`, `units`).
 
@@ -402,6 +447,8 @@
 | `expandable` | `boolean` | Разрешить сворачивание панели фильтров |
 | `expanded` | `boolean` | Развёрнута ли панель по умолчанию |
 
+Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`) — учти, что `overflow` не `visible` при заданной высоте обрежет раскрытый список фильтра.
+
 Фильтрует дочерние элементы по наличию `options.filterName`.
 
 #### Типы фильтров (FilterType)
@@ -421,16 +468,34 @@
 
 Тип фильтра задаётся полем `type` дочернего элемента (один из **FilterType**), не через опции.
 
+Набор `FilterChildOptions` — объединение того, что реально читают все восемь реализаций фильтра: `dropdown` берёт `variants`/`noEmptyOption`, `text` — `searchFilterName` и `multiSelect`, `chips` — цвета и иконку, `rangeNumber` — `step` и границы, `rangeDate` — `withTime`.
+
 | Опция | Тип | Описание |
 |---|---|---|
 | `filterName` | `string` | **Обязательный.** Имя фильтра из `ConfigFilter.name` |
+| `searchFilterName` | `string` | Фильтр-источник автодополнения (`text`) |
 | `relatedDataSource` | `string` | Источник данных для вариантов фильтра |
 | `label` | `string` | Подпись фильтра |
 | `placeholder` | `string` | Placeholder |
 | `control` | `ConfigControl` | Одиночный маппинг поля источника |
 | `controls` | `ConfigControl[]` | Маппинг полей источника |
-| `minValue` | `number` | Минимум диапазона (для `rangeNumber`/`rangeDate`) |
-| `maxValue` | `number` | Максимум диапазона (для `rangeNumber`/`rangeDate`) |
+| `minValue` | `number \| Date` | Минимум диапазона (`rangeNumber`/`rangeDate`) |
+| `maxValue` | `number \| Date` | Максимум диапазона (`rangeNumber`/`rangeDate`) |
+| `step` | `number` | Шаг ползунка (`rangeNumber`) |
+| `withTime` | `boolean` | Включить выбор времени (`rangeDate`) |
+| `multiSelect` | `boolean` | Множественный выбор |
+| `variants` | `IOption[] \| ChipOption[]` | Статический список вариантов (`dropdown`, `chips`) |
+| `noEmptyOption` | `boolean` | Запретить пустой выбор (`dropdown`) |
+| `shownItems` | `number` | Сколько вариантов показывать сразу |
+| `width` | `CssSize` | Ширина контрола фильтра |
+| `height` | `CssSize` | Высота контрола фильтра |
+| `align` | `"left" \| "center" \| "right"` | Выравнивание содержимого |
+| `maxTextWidth` | `number` | Максимальная ширина текста в px |
+| `icon` | `IconTypesKeys` | Иконка (`chips`) |
+| `iconAttribute` | `string` | Атрибут, из которого брать иконку |
+| `colorAttribute` | `string` | Атрибут, определяющий цвет |
+| `fontColor` | `string` | Цвет текста |
+| `backgroundColor` | `string` | Цвет фона |
 
 ```tsx
 {
@@ -461,6 +526,8 @@
 **Назначение:** Блок с фоновым изображением, заголовком, текстом и кнопкой действия.
 
 **Props:** `ContainerProps` (дочерние по id: `alias`, `text`, `button`, `image`)
+
+**Опции:** собственных нет — только `ContainerBoxOptions` (`width`, `height`, `overflow`).
 
 ---
 
@@ -568,6 +635,7 @@
 | `inlineUnits` | `boolean` | Отображать единицы рядом со значением (а не под ним) |
 | `hideEmpty` | `boolean` | Скрыть блок при пустом значении |
 | `maxLength` | `number` | Максимальная длина текста (обрезка с многоточием) |
+| `wordBreak` | `"break-word" \| "break-all"` | Стратегия переноса длинного текста |
 
 ```tsx
 {
@@ -669,6 +737,7 @@
 |---|---|---|
 | `simple` | `boolean` | Простой заголовок без кнопок управления |
 | `downloadById` | `string` | ID элемента `ExportPdf` — добавляет кнопку скачивания рядом с заголовком |
+| `align` | `"left" \| "center" \| "right"` | Горизонтальное выравнивание содержимого заголовка |
 
 `fontColor` задаётся не опцией, а одноимённым prop контейнера (см. Props выше).
 

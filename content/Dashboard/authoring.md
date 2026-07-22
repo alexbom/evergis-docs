@@ -45,7 +45,7 @@
 
 Контейнеры `DataSource` и `DataSourceProgress` не рендерят детей напрямую — они проходят по **каждой записи** (`feature`) источника и рендерят её через **внутренний шаблон**, заданный `options.innerTemplateName` (пайплайн конвертирует имя в проп `innerComponent` через `getContainerComponent`). Поэтому:
 
-- **`options.innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → ни одна запись не рендерится, контейнер визуально пуст. Обязательность **типами не ловится** — `innerTemplateName` живёт в `ConfigMiscOptions`, а не в `DataSourceContainerOptions`/`DataSourceProgressContainerOptions`.
+- **`options.innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → ни одна запись не рендерится, контейнер визуально пуст. Обязательность **типами не ловится**: поле объявлено в `ConfigMiscOptions` и, хотя и входит в `DataSourceContainerOptions`/`DataSourceProgressContainerOptions`, остаётся необязательным.
 - **`children` хоста — это slot-id выбранного внутреннего шаблона**, а не собственные слоты `DataSource`.
 - Неизвестное имя шаблона откатывается на `ContainersGroup` (реестровый `default`).
 
