@@ -260,19 +260,26 @@
 
 ## TextTrim
 
-**Назначение:** Обрезает текст до `maxLength` символов с добавлением `...`. При `expandable` показывает кнопку «Подробнее»/«Свернуть», иначе полный текст в тултипе. Поддерживает перенос строк через `lineBreak` и режим переноса слов `wordBreak`.
+**Назначение:** Обрезает текст — по числу строк (`maxLines`) либо по числу символов (`maxLength`). При `expandable` показывает кнопку «Подробнее»/«Свернуть», иначе полный текст в тултипе. Поддерживает перенос строк через `lineBreak` и режим переноса слов `wordBreak`.
 
 **Props (`TextTrimProps`):**
 | Prop | Тип |
 |---|---|
 | `maxLength` | `number?` |
+| `maxLines` | `number?` |
 | `expandable` | `boolean?` |
 | `lineBreak` | `string?` |
 | `wordBreak` | `ConfigTextDisplayOptions["wordBreak"]?` |
 | `children` | `string \| number?` |
 
+**Два режима обрезки:**
+
+- `maxLines` **перебивает** `maxLength`: текст уходит во внутренний `TextTrimLineClamp` с CSS line-clamp. Тултип с полным текстом показывается **только при реальном переполнении** (`scrollHeight > clientHeight`), которое отслеживается `ResizeObserver` — у поместившегося текста тултипа нет.
+- `maxLength` (без `maxLines`) обрезает по символам с многоточием; полный текст уходит в тултип либо раскрывается кнопкой `LegendToggler` при `expandable`.
+
 ```tsx
 <TextTrim maxLength={20}>{longTitle}</TextTrim>
+<TextTrim maxLines={2} wordBreak="break-word">{description}</TextTrim>
 ```
 
 ---

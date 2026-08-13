@@ -170,6 +170,39 @@ const { data, loading } = useChartData({ element: chartElement, type });
 
 ---
 
+## useContainerRoot
+
+**Назначение:** Пропсы двух узлов контейнера с заголовком — корня (`ContainerRoot`) и тела. Надстройка над **useWrapperSize**: тот же расчёт размеров, но результат разложен на две части. Используется почти всеми контейнерами, у которых есть `ExpandableTitle`.
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `elementConfig` | `ConfigContainerChild?` — узел конфига контейнера |
+| `defaults` | `CSSObject?` — внутренние дефолты корневой обёртки. Ссылка должна быть стабильной (константа или `useMemo`) |
+
+**Возвращает:** `ContainerRootParts` — `{ root, body }`
+- `root` — `WrapperRootProps` из **useWrapperSize**: `id`, `data-templatename`, авторский `style`, `$sizeCss`
+- `body` — `{ [CONTAINER_BODY_ATTRIBUTE], $sizeCss }`: маркер `data-container-body` для поиска тела по DOM плюс `flex: 1 1 auto; min-height: 0` (`CONTAINER_BODY_FILL_STYLE`), если у корня получилась определённая высота
+
+> [!info] Почему один корневой узел
+> Контейнер обязан рендерить ОДИН корень: фрагмент из заголовка и тела в строке (`options.column: false`) становится **двумя** ячейками родительского flex-row, и доля из `options.width` достаётся только телу. Поэтому `id`, `data-templatename`, `style` и размеры живут на корне, а телу отдаётся лишь остаток высоты под заголовком.
+>
+> Гейт fill-высоты берётся по **результирующей** высоте (`root.$sizeCss.height`), а не по `options.height`: высоту задаёт ещё и авторский `style`, и внутренние `defaults` контейнера. Значение `auto` высотой не считается — делить нечего.
+
+```ts
+const { root, body } = useContainerRoot({ elementConfig });
+
+return (
+  <ContainerRoot {...root}>
+    <ExpandableTitle elementConfig={elementConfig} type={type} renderElement={renderElement} />
+    <Container {...body} isColumn>...</Container>
+  </ContainerRoot>
+);
+```
+
+---
+
 ## useDashboardHeader
 
 **Назначение:** Данные для шапки дашборда (заголовок, иконка, изображение, тема).
@@ -260,6 +293,33 @@ const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type,
 **Возвращает:** `{ filteredAttributes, filteredControls }`
 - `filteredAttributes` — `ClientFeatureAttribute[]` без `idAttribute` и скрытых
 - `filteredControls` — `ConfigControl[] | undefined` без контролов, чьи `targetAttributeName` входят в `hiddenAttributes`
+
+---
+
+## useEqualTileWidth
+
+**Назначение:** Уравнивает ширину плиток ряда [[containers#DataSourceContainer|`DataSourceContainer`]] по самой широкой и ограничивает её шириной ячейки grid. Результат контейнер отдаёт в CSS-переменную `--tile-width`, которую читает каждая плитка.
+
+**Параметры:** объект
+| Поле | Тип | Описание |
+|---|---|---|
+| `enabled` | `boolean` | Замер включён. `false` для «Растянуть», «В столбец» и конфигов без `columns` — тогда возвращается `undefined`, и ширину задаёт grid-ячейка |
+| `itemsCount` | `number` | Число записей источника: смена состава запускает перезамер |
+| `columns` | `number` | Плиток в ряду — делитель доступной ширины |
+| `gap` | `number` | Отступ между плитками, px |
+
+**Возвращает:** `[ref: RefObject<HTMLDivElement>, width: number | undefined]` — ref вешается на контейнер ряда.
+
+Натуральная ширина снимается временным inline `width: max-content` (снимает уже применённое ограничение, поэтому замер устойчив к динамике данных и не зацикливает `ResizeObserver`). Итог ограничен `(clientWidth − gap × (columns − 1)) / columns`: плитка задаёт ширину в px и в grid не сжимается вместе с треком, поэтому без ограничения плитки наезжали друг на друга — см. [[containers#DataSourceContainer|примечание про grid-режим]]. Перезамер идёт по `ResizeObserver` на контейнере.
+
+```ts
+const [tilesRef, tileWidth] = useEqualTileWidth({
+  enabled: !column && !!columns && !stretch,
+  itemsCount: dataSource?.features?.length ?? 0,
+  columns: columns ?? 1,
+  gap: gap ?? DEFAULT_TILE_GAP,
+});
+```
 
 ---
 
@@ -374,6 +434,25 @@ const layer = getConfigLayer("myLayer");
 
 ---
 
+## Хуки сетки (`grid/hooks`)
+
+Внутренние хуки [[containers#Режим сетки grid|сетки контейнеров]]. Наружу из пакета не экспортируются — используются только компонентами `grid/`.
+
+| Хук | Назначение |
+|---|---|
+| `useGridDraft({ node, type, onChange })` | Локальный черновик раскладки. Возвращает `draft`, `applyAction`, `commitResize`. Правки применяются сразу и уходят в `onChange`; конфиг, вернувшийся сверху, узнаётся по ссылке и не сбрасывает черновик |
+| `useGridSelection()` | Выделение ячеек: `selectedIds`, `selectCell(id, additive)`, `clearSelection`. Shift добавляет и убирает, повторный клик по единственной выделенной ячейке снимает выделение, `Escape` снимает всё |
+| `useGridResize({ axis, index, sizes, getGrid, onCommit })` | Перетаскивание границы пары треков. Во время жеста раскладка меняется инлайн-стилем без ре-рендера; `onCommit` вызывается один раз на отпускание мыши. Возвращает callback-ref `setHandle` и флаг `dragging` |
+| `useGridHeightResize({ sizes, getGrid, onCommit })` | Перетаскивание **нижней** границы сетки, за которой соседнего трека уже нет: последняя строка растёт вместе с самой сеткой. В `onCommit` уходит и новая `options.height` корня (в пикселях — исходную единицу автора при таком жесте не восстановить), и пересчитанные доли всех строк, иначе верхние строки разъехались бы пропорционально новой высоте. Тот же интерфейс `GridResize` (`setHandle`, `dragging`) |
+| `useGridCellSwap({ draft, applyAction })` | Перетаскивание ячейки на место другой. Один экземпляр на сессию: жест начинается в одной ячейке, а заканчивается в другой, возможно из другой строки или вложенной сетки. Источник и цель размечаются атрибутами прямо в DOM, без ре-рендера; правка уходит одна — на отпускание над валидной целью. Возвращает `beginDrag(cellId, event)` и `consumeDragClick()` |
+| `useGridMenuOptions()` | Пункты контекстного меню (`IOption[]`) с переводами и вычисленными `disabled` |
+
+Состояние сессии раздаёт контекст `GridEditContext` (`useGridEdit()`); его создаёт только внешний grid-узел с `options.editMode`.
+
+Пиксельные размеры треков читает `readTrackPixels(grid, axis)` — из computed `grid-template-*`, а не из прямоугольников ячеек: у отрисованного грида браузер отдаёт уже разрешённые used values в пикселях и без зазоров.
+
+---
+
 ## useGlobalContext
 
 **Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, themeName, language).
@@ -464,6 +543,8 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 **Возвращает:** функция `(elementConfig, attributeName?) => { id, value, hideEmpty, style, hasIcon, hasUnits, render }`
 
+Дочернему элементу со slot-id `icon` тип и значение подставляются из настроек атрибута в слое (`attributesConfiguration.attributes[].icon`) через [[utils|`getAttributeIconElement`]]: `Icon` → [[elements#ElementIcon|ElementIcon]] с `iconName`, `PNG` → [[elements#ElementImage|ElementImage]], `SVG` → [[elements#ElementSvg|ElementSvg]] с `resourceId || url`. Собственный `attributeName` у такого элемента сбрасывается.
+
 ---
 
 ## useRenderElement
@@ -473,6 +554,9 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 **Параметры:** `type?: WidgetType` (default `Dashboard`), `elementConfig: ConfigContainerChild`
 
 **Возвращает:** `RenderElementFunction`
+
+> [!info] Зачем нужен, если `renderElement` и так приходит пропом
+> Проп замкнут на тот узел, который был при его создании. Если компонент рендерит **изменённое** дерево — как сессия редактирования [[containers#Режим сетки grid|сетки]] со своим черновиком, — узлы, созданные split/merge/add, в старом замыкании не найдутся. Тогда `renderElement` пересоздают от актуального узла этим хуком; вся вложенность ниже подхватывается сама, потому что `getRenderElement` рекурсивно строит новый `renderElement` от каждого найденного узла.
 
 ---
 

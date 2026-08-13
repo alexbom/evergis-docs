@@ -3,7 +3,7 @@
 ## @evergis/react
 
 Хуки:
-`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useChartData`, `useChartChange`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useEditGroupAttributes`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`
+`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useChartData`, `useChartChange`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainer`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useContainerRoot`, `useEditGroupAttributes`, `useEqualTileWidth`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`
 
 Компоненты и провайдеры:
 `DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `GlobalProvider`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
@@ -12,7 +12,7 @@
 `DashboardChild`, `DashboardHeaderConfig`, `ContainerComponentRegistry`, `ElementComponentRegistry`, `Brand`, `ContainerId`, `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId`. Конструкторы: `asContainerId`, `asChartId`, `asModalId`, `asTabId`, `asFilterName`, `asLayerName`, `asAttributeName`, `asDataSourceName`, `asResourceId`.
 
 Утилиты:
-`formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `getContainerComponent`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `toCssSize`, `isVisibleContainer`, `checkEqualOrIncludes`
+`formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `fetchQueryDescription`, `getContainerComponent`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `toCssSize`, `toRenderableValue`, `isVisibleContainer`, `checkEqualOrIncludes`
 
 ## @evergis/api
 

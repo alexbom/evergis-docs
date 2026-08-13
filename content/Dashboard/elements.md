@@ -113,6 +113,8 @@
 | `angle` | `number` | Угол поворота подписей оси |
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `cornerRadius` | `number` | Закругление столбцов BarChart |
+| `shownItems` | `number` | Сколько категорий показать на графике |
+| `otherItems` | `number` | Лимит категорий, после которого остаток сворачивается в «Другое» (обрезка и группировка идут в `getDataFromAttributes` / `getDataFromRelatedFeatures` внутри [[hooks\|`useChartData`]]) |
 
 ```tsx
 {
@@ -220,24 +222,34 @@
 
 ## ElementImage
 
-**Назначение:** Изображение из ресурса или атрибута. Загружает с авторизацией через [[hooks|хук]] `useFetchImageWithAuth`.
+**Назначение:** Изображение из атрибута объекта, файлового ресурса, произвольного URL или вложения. Загружает с авторизацией через [[hooks|хук]] `useFetchImageWithAuth`.
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
 | Поле | Тип | Описание |
 |---|---|---|
 | `value` | `string` | Статический URL или путь ресурса |
-| `attributeName` | `string` | Имя атрибута, содержащего URL изображения |
+| `attributeName` | `string` | Имя атрибута, **значение** которого содержит URL изображения (или атрибут-вложение) |
 
 **Опции (`options`):**
 
 | Опция | Тип | Описание |
 |---|---|---|
+| `resourceId` | `string` | Id файлового ресурса — разворачивается в `/sp/resources/file/<id>` |
+| `url` | `string` | Адрес картинки; проходит через `getResourceUrl` — `http…` берётся как есть, остальное разворачивается в `/sp/resources/file/<url>` |
 | `width` | `CssSize` | Ширина изображения: число — px, строка — любое CSS-значение |
 | `height` | `CssSize` | Высота изображения |
 | `fit` | `"cover" \| "contain" \| "fill" \| "none" \| "scale-down"` | CSS `object-fit` — как изображение масштабируется внутри своего бокса |
 
-**Поведение:** `value` → `getResourceUrl(value)`; `attributeName` → первый элемент из значения атрибута (разделённый `;`). Если URL не получен — не рендерится. Размеры собираются через [[utils|`getWrapperSizeStyle`]] и уходят в CSS; в HTML-атрибут `width` попадает только числовое (пиксельное) значение.
+**Поведение:** адрес резолвится в [[utils|`getImageUrl`]] — первый непустой источник выигрывает:
+
+```
+options.resourceId → options.url → value → attributeName
+```
+
+Все источники проходят через `getResourceUrl` (как и у [[elements#ElementSvg|ElementSvg]]): `http…` берётся как есть, остальное разворачивается в `/sp/resources/file/<url>`. Из значения атрибута берётся первый адрес до разделителя `;`. Если атрибут имеет `subType === Attachments`, строковый канал даёт `null` и картинка грузится каналом вложений (`useAttachmentItems` + `useAttachmentPreviewImages`, берётся первое изображение). Настройки атрибута в слое (`attributesConfiguration.attributes[].icon`) элемент `image` **не читает** — это источник только для `attributeIcon` у [[elements#ElementSvg|ElementSvg]]. Если адреса нет — элемент не рендерится. Размеры собираются через [[utils|`getWrapperSizeStyle`]] и уходят в CSS; в HTML-атрибут `width` попадает только числовое (пиксельное) значение.
+
+SVG-ресурс отображается как обычная картинка (`<img>`), без перекраски — для inline-SVG с управлением цветом есть [[elements#ElementSvg|ElementSvg]].
 
 ```tsx
 // статический URL
@@ -245,6 +257,12 @@
 
 // из атрибута объекта, вписать в бокс без искажений
 { id: "image", type: "image", attributeName: "photoUrl", options: { width: "100%", height: 160, fit: "cover" } }
+
+// готовый адрес из конфига
+{ id: "image", type: "image", options: { url: "https://example.com/logo.png", width: 24, height: 24 } }
+
+// файловый ресурс по id
+{ id: "image", type: "image", options: { resourceId: "3f1c...", width: 48 } }
 ```
 
 ---
@@ -418,9 +436,9 @@ modals: [
 
 | Поле | Тип | Описание |
 |---|---|---|
+| `attributeIcon` | `string` | Имя атрибута, из **настроек** которого берётся иконка (`icon.resourceId \|\| icon.url` в `attributesConfiguration` слоя) |
+| `attributeName` | `string` | Имя атрибута, **значение** которого содержит URL SVG |
 | `value` | `string` | Статический путь к SVG-ресурсу |
-| `attributeName` | `string` | Имя атрибута с URL SVG |
-| `attributeIcon` | `string` | Имя атрибута для поиска иконки слоя |
 
 **Опции (`options`):**
 
@@ -430,7 +448,7 @@ modals: [
 | `height` | `number \| string` | Высота |
 | `fontColor` | `string` | Цвет заливки SVG (через CSS `color`) |
 
-**Поведение:** `getSvgUrl({ elementConfig, layerInfo, attributes })` → `getResourceUrl(url)` → `SvgImage`.
+**Поведение:** [[utils|`getSvgUrl`]]`({ elementConfig, layerInfo, attributes })` → `getResourceUrl(url)` → `SvgImage`. Порядок источников — первый непустой выигрывает: `attributeIcon` → `attributeName` → `value`. Разбор `attributeIcon` вынесен в утилиту [[utils|`getAttributeIconUrl`]] (читает `icon` из `attributesConfiguration` слоя).
 
 ```tsx
 { id: "icon", type: "svg", attributeName: "iconUrl", options: { width: 32, height: 32, fontColor: "#2980b9" } }

@@ -8,9 +8,19 @@
 
 ## Получение данных
 
+### fetchQueryDescription
+
+`(api: Api, { ds?, query?, parameters? }) => Promise<EqlDataSource["attributes"]>`
+
+Запрашивает описание атрибутов EQL-запроса (`api.eql.getQueryDescription`) — им закрывается отсутствие слоя у EQL- и python-источников (см. [[concepts#Настройка атрибутов источника — секция attributes|секцию `attributes`]]).
+
+Результат кэшируется по паре `ds` + `query` (без `parameters` — на состав атрибутов они не влияют) на `QUERY_DESCRIPTION_CACHE_TTL` = 60 000 мс: одна и та же страница обычно тянет описание для нескольких контейнеров разом. Кэшируется **промис**, поэтому параллельные вызовы делят один запрос; упавший запрос из кэша удаляется, чтобы следующий вызов попробовал снова.
+
+---
+
 ### getAttributeByName
 
-`(attributeName: string | string[], attributes: ClientFeatureAttribute[]) => ClientFeatureAttribute | null`
+`(attributeName: string | string[], attributes?: ClientFeatureAttribute[]) => ClientFeatureAttribute | null | undefined`
 
 Поиск атрибута по имени. Возвращает `null` для массива имён или пустого `attributeName`.
 
@@ -25,6 +35,22 @@ const attr = getAttributeByName("name", attributes);
 `(attributes?: AttributesConfigurationDc["attributes"], name?: string) => AttributeConfigurationDc | undefined`
 
 Находит конфигурацию атрибута по имени. `AttributesConfigurationDc["attributes"]` объявлен массивом, но часть источников отдаёт атрибуты объектом-мапой (нормализация в `useDataSources`), поэтому поддерживаются **обе формы** — массив ищется `find`, мапа читается по ключу.
+
+---
+
+### getAttributeIconElement
+
+`(icon?: AttributeIconDc) => Pick<ConfigContainerChild, "type" | "value">`
+
+Определяет, каким элементом рендерить иконку атрибута из настроек слоя: `Icon` → `icon` (значение — `iconName`, имя из библиотеки EverGIS), `PNG` → `image`, `SVG` → `svg` (значение — `resourceId || url`). Для `Unknown` и отсутствующего типа возвращает `type: undefined` — элемент не рендерится. Маппинг типов лежит в `constants.ts` (`ATTRIBUTE_ICON_ELEMENT_TYPES`). Используется в [[hooks#useRenderContainerItem|useRenderContainerItem]] для slot-id `icon`.
+
+---
+
+### getAttributeIconUrl
+
+`({ attributeName, layerInfo }) => string | null`
+
+Достаёт адрес картинки из **настроек** атрибута слоя: `attributesConfiguration.attributes[].icon` → `resourceId || url`. Обслуживает поле `attributeIcon` у [[elements#ElementSvg|ElementSvg]]; [[elements#ElementImage|ElementImage]] этот источник не использует. Форма `icon.iconName` (иконка из библиотеки EverGIS) не поддерживается — это не файл. Построена на `getAttributesConfiguration` + `getAttributeConfigurationByName`.
 
 ---
 
@@ -186,7 +212,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `(filterType: FilterType) => FC`
 
-Возвращает React-компонент фильтра: `checkbox` → `CheckboxFilter`, `rangeNumber` → `RangeNumberFilter`, `barChart` → `BarChartFilter`, `rangeDate` → `RangeDateFilter`, `text` → `TextFilter`, `chips` → `ChipsFilter`, `dropdown` → `DropdownFilter` (default).
+Возвращает React-компонент фильтра: `checkbox` → `CheckboxFilter`, `rangeNumber` → `RangeNumberFilter`, `barChart` → `BarChartFilter`, `rangeDate` → `RangeDateFilter`, `text` → `TextFilter`, `chips` → `ChipsFilter`, `tree` → `TreeFilter`, `dropdown` → `DropdownFilter` (default).
 
 ---
 
@@ -211,6 +237,14 @@ Resolves контейнер из реестра — через `getContainerComp
 `(t, data, attributes, config) => ClientFeatureAttribute[]`
 
 Добавляет к атрибутам «Другое» если `otherItems < data.length`.
+
+---
+
+### getImageUrl
+
+`({ elementConfig, attributes }) => string | null`
+
+Резолвит адрес картинки [[elements#ElementImage|ElementImage]] — первый непустой источник выигрывает: `options.resourceId` → `options.url` → `value` → `attributeName`. Читается **значение** атрибута объекта, настройки атрибута в слое не задействованы. Все источники проходят через `getResourceUrl`; из значения атрибута берётся первый адрес до `;`. Для атрибута с `subType === Attachments` возвращает `null` — вложения грузятся отдельным каналом в `useElementImage`.
 
 ---
 
@@ -306,7 +340,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `({ elementConfig, layerInfo, attributes }) => string | null`
 
-Получает URL SVG из `attributeIcon` → иконки слоя, или из `attributeName` → значения атрибута, или из `elementConfig.value`. Применяет `getResourceUrl`.
+Получает URL SVG — первый непустой источник выигрывает: `attributeIcon` (иконка из настроек атрибута слоя, через `getAttributeIconUrl`) → `attributeName` (значение атрибута, через `getAttributeByName`) → `value`. Применяет `getResourceUrl`.
 
 ---
 
@@ -621,7 +655,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `(value: number) => string | number`
 
-`>= 1 000 000` → `"1.0M"`, `>= 10 000` → `"10.0K"`, иначе число без изменений.
+`>= 1 000 000` → `"1.0M"`, `>= 10 000` → `"10.0K"`, иначе число без изменений. Лежит не в `Dashboard/utils/`, а в общем `packages/react/src/utils/` — используется компонентом [[components|`Chart`]] для итога в центре PieChart.
 
 ---
 

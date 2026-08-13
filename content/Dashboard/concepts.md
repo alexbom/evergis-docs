@@ -130,11 +130,13 @@
 type SelectedFilters = Record<string, SelectedFilter>;
 
 interface SelectedFilter {
-  value: string | number | string[] | number[] | Date | Date[];
+  value: string | number | string[] | number[] | Date | Date[] | TreeFilterValue;
   min?: string | number | Date;
   max?: string | number | Date;
 }
 ```
+
+Объектный вариант `TreeFilterValue` — только у иерархического фильтра «tree» (см. ниже); остальные фильтры хранят скалярное или массивное значение (`ScalarFilterValue`).
 
 **ConfigFilter** — описание фильтра в конфиге страницы: `name`, `defaultValue`, `valueType`, `relatedDataSource` (откуда брать список вариантов), `resetFilters` (сбрасываемые при изменении фильтры). Имя фильтра типизируется branded-типом [[types#Branded types|FilterName]] (`asFilterName`).
 
@@ -250,20 +252,37 @@ interface ConfigLayer {
 | Контейнер / шапка | Slot-id (обязательные и опциональные) |
 |---|---|
 | `ChartContainer` | `alias`, `chart`, `legend`, `title`, `titleIcon` |
-| `TwoColumnContainer`, `OneColumnContainer` | `alias`, `value`, `units` |
+| `TwoColumnContainer` | `alias`, `value`, `units`, `icon`, `tooltip`, `modal` |
+| `OneColumnContainer` | `alias`, `value`, `units`, `tooltip`, `modal` |
 | `CameraContainer` | `alias`, `value` |
 | `IconContainer` | `icon`, `alias`, `link`, `text` |
 | `ImageContainer` | `alias`, `text`, `button`, `image` |
-| `AttachmentContainer` (без `relatedDataSource`) | `value` |
-| `Edit*Container` | `alias` (label поля редактирования) |
+| `SlideshowContainer` | `slideshow`, `alias` (опционален) |
+| `UploadContainer` | `uploader` |
+| `AttachmentContainer` | `alias`; `value` — источник вложений, если не задан `relatedDataSource` |
+| `EditContainer` (базовый, `templateName: "Edit"`) | `alias`, `value` |
+| Подтипы `Edit*` (`EditString`, `EditNumber`, `EditBoolean`, `EditDropdown`, `EditChips`, `EditCheckbox`, `EditDate`) | `alias`, `tooltip` — контрол встроен в контейнер, слота `value` у них **нет** |
+| `EditAttachmentContainer` | `alias` |
+| `EditGroupContainer` | `alias`, `tooltip` (+ `units`, `icon` — их читает [[hooks\|`useRenderContainerItem`]]); дети клонируются в разрешённый по типу атрибута `Edit*`-шаблон |
+| `DataSourceContainer`, `DataSourceProgressContainer` | slot-id **внутреннего шаблона** `options.innerTemplateName`, а не собственные слоты хоста — см. раздел «[[concepts#Рендеринг записей источника — innerTemplateName\|Рендеринг записей источника]]» |
 | `AddFeatureContainer` | **дети — кнопки `AddFeatureButtonChild` с уникальным `id`** (перечисляемые сущности — см. подраздел выше) |
 | `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности) |
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
-| `DashboardDefaultHeader`, `FeatureCardDefaultHeader` | `title`, `description`, `icon` |
+| `DashboardDefaultHeader` | `title`, `icon`, `image` (логотип; при отсутствии — иконка `logo` и `options.title` страницы) |
+| `FeatureCardDefaultHeader` | — структура фиксирована, кастомные дети не рендерятся |
+
+Слоты `title`, `icon`, `titleIcon` на уровне контейнера уходят в заголовок (`TITLE_SLOT_IDS`): `ContainerChildren` исключает их из рендера тела, а сетка — из подсчёта треков. `title` и `titleIcon` допустимы у **любого** контейнера с заголовком (`ExpandableTitle`) — `Chart`, `Camera`, `Attachment`, `Slideshow`, `Upload`, `Edit`, `Filters`, `Layers`, `Task`, `DataSource`, `DataSourceProgress`, `ContainersGroup` — и поэтому в наборы слотов отдельных контейнеров не входят.
 
 Типизация slot-id — литеральные string'и в parent-specific child-типах (`ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, ...). См. [[types#Slot-id — НЕ branded|Slot-id]].
+
+> [!info] Что из таблицы проверяет клиентский валидатор
+> `CONTAINER_SLOT_MAP` (`client-new/src/components/Dashboard/utils/constants.ts`) — зеркало этой таблицы; мастер-источник — документация, при правке обновляй обе стороны.
+>
+> - Слоты заголовка (`title`, `titleIcon`) пропускаются у всех контейнеров.
+> - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
+> - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
 
 ### Сводный пример с двумя уровнями `id`
 
@@ -465,7 +484,7 @@ const createContainerComponents = () =>
     [ContainerTemplate.Chart]: ChartContainer,
     [ContainerTemplate.DataSource]: DataSourceContainer,
     [ContainerTemplate.Filters]: FiltersContainer,
-    // ... 34 контейнера
+    // ... всего 35 записей
     default: ContainersGroupContainer, // если templateName не найден
   }) as const satisfies ContainerComponentRegistry;
 

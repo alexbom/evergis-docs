@@ -75,7 +75,8 @@
 | `dataSources` | `WidgetDataSource[]` | Загруженные источники данных |
 | `geometryFilter` | `boolean` | Геометрический фильтр активен |
 | `loading` | `boolean` | Идёт загрузка данных |
-| `editMode` | `boolean` | Режим редактирования |
+| `editMode` | `boolean` | Режим редактирования **атрибутов объекта** (в контейнерах — `isEditing`). К раскладке отношения не имеет |
+| `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. раздел ниже |
 | `filters` | `SelectedFilters` | Активные фильтры |
 | `dashboardLayers` | `DashboardState["layers"]` | Состояние слоёв |
 | `setDashboardLayer` | `(payload) => void` | Установить параметры слоя |
@@ -91,6 +92,37 @@
 | `toggleLayersVisibility` | `VoidFunction` | Переключить видимость слоёв |
 | `selectAttachmentsFromCatalog` | `(onApply: (resources: CatalogResourceDc[]) => void) => void` | Выбор вложений из каталога ресурсов |
 | `components` | `{ LayerItem?, ProjectPanelMenu?, ProjectPagesMenu? }` | Кастомные компоненты |
+
+### Сохранение изменений раскладки
+
+`onContainerChange` — единственная точка, через которую контейнер сообщает наружу новую версию собственного конфига. Сейчас его вызывает только [[containers#Редактирование раскладки editMode|сетка в режиме редактирования]]: после перетаскивания границы или операции над ячейками.
+
+Внутрь дашборда колбэк уходит по цепочке «контекст → `useWidgetContext` → `PagesContainer` → `getRenderElement({ onChange })` → проп `onChange` контейнера». Тот же проп есть у `FeatureCardProvider`.
+
+Приходит **весь узел целиком** и уже с новым содержимым; его `id` лежит внутри, поэтому применяется точечной заменой:
+
+```tsx
+import { replaceObject } from "find-and";
+
+<DashboardProvider
+  config={config}
+  onContainerChange={next => {
+    const newProjectInfo = JSON.parse(JSON.stringify(projectInfo));
+
+    newProjectInfo.content.dashboardConfiguration = replaceObject(
+      newProjectInfo.content.dashboardConfiguration,
+      { id: next.id },
+      next,
+    );
+
+    updateProject(newProjectInfo);
+  }}
+  ...
+/>
+```
+
+> [!info] Редактирование работает и без обработчика
+> Сетка держит собственный черновик раскладки, поэтому без `onContainerChange` правки видны, но не сохраняются. Если хост кладёт результат обратно в конфиг, зацикливания не будет: контейнер узнаёт по ссылке конфиг, который сам же и отдал.
 
 ---
 
@@ -110,7 +142,8 @@
 | `feature` | `SelectedFeature` | Выбранный объект |
 | `pageIndex` | `number` | Текущая страница |
 | `isRaster` | `boolean` | Карточка растрового объекта |
-| `editMode` | `boolean` | Режим редактирования |
+| `editMode` | `boolean` | Режим редактирования атрибутов объекта |
+| `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. [[setup#Сохранение изменений раскладки\|раздел выше]] |
 | `isFeatureEditable` | `boolean` | Можно ли редактировать объект |
 | `hasCopyRights` | `boolean` | Есть ли права на копирование |
 | `editOnly` | `boolean` | Режим «только редактирование» |
@@ -160,11 +193,13 @@
 
 Файл: `src/components/Dashboard/index.tsx`
 
-Условный рендеринг на основе состояния Redux:
+Условный рендеринг по результату хука `useDashboardStatus()`:
 
 - `!isOpen` → `null` (дашборд закрыт)
-- `isEmpty` → `<DashboardSoon />` (нет конфигурации)
-- Иначе → `<DashboardWrapper>` с `<FiltersUpdatingOverlay />` (если `filtersUpdating`) + `<DashboardBase />`
+- `isEmpty` → `<DashboardSoon />` (у текущей страницы нет конфигурации)
+- Иначе → `<DashboardWrapper>` с `<FiltersUpdatingOverlay />` (если `filtersUpdating` из слайса `dashboard`) + `<DashboardBase />` из `@evergis/react`
+
+`useDashboardStatus` не только считает флаги (`useDashboardsOpen` + `isEmpty(currentPage)`), но и запускает загрузку: внутри он вызывает `useReferenceLayerInfos()` (метаданные слоёв страницы) и `useProjectDataSources()` (источники данных страницы, вместе с подписками `autoSyncLayer` через `useDataSourceSubscriptions` — см. [[concepts#Real-time обновления|Real-time обновления]]).
 
 ---
 

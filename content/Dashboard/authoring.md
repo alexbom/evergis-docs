@@ -22,16 +22,25 @@
 | Контейнер / шапка | Допустимые slot-id |
 |---|---|
 | `Chart` | `alias`, `chart`, `legend`, `title`, `titleIcon` |
-| `TwoColumn`, `OneColumn` | `alias`, `value`, `units` |
+| `TwoColumn` | `alias`, `value`, `units`, `icon`, `tooltip`, `modal` |
+| `OneColumn` | `alias`, `value`, `units`, `tooltip`, `modal` |
 | `Camera` | `alias`, `value` |
 | `Icon` | `icon`, `alias`, `link`, `text` |
 | `Image` | `alias`, `text`, `button`, `image` |
-| `Attachment` (без `relatedDataSource`) | `value` |
-| `Edit*` | `alias` |
+| `Slideshow` | `slideshow`, `alias` (опционален) |
+| `Upload` | `uploader` |
+| `Attachment` | `alias`; `value` — если не задан `relatedDataSource` |
+| `Edit` (базовый) | `alias`, `value` |
+| `EditString`, `EditNumber`, `EditBoolean`, `EditDropdown`, `EditChips`, `EditCheckbox`, `EditDate` | `alias`, `tooltip` (контрол встроен — слота `value` нет) |
+| `EditAttachment` | `alias` |
+| `EditGroup` | `alias`, `tooltip`, `units`, `icon` |
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
-| `DashboardDefaultHeader`, `FeatureCardDefaultHeader` | `title`, `description`, `icon` |
+| `DashboardDefaultHeader` | `title`, `icon`, `image` |
+| `FeatureCardDefaultHeader` | — кастомных детей нет, структура фиксирована |
+
+Слоты `title` / `icon` / `titleIcon` на уровне контейнера уходят в заголовок и в теле не рендерятся. `title` и `titleIcon` допустимы у любого контейнера с заголовком, поэтому в наборы выше не включены.
 
 **Перечисляемые контейнеры** — дети имеют произвольный уникальный `id` (не slot из фикс. набора):
 
@@ -40,6 +49,36 @@
 | `Tabs` | табы с уникальным `id` (тип `TabId`) | — |
 | `AddFeature` | кнопки с уникальным `id` | — |
 | `Filters` | фильтры с уникальным `id` | у каждого обязателен `options.filterName` |
+| `ContainersGroup` с `options.grid` | строки `GridRow` с уникальным `id` | см. раздел про сетку ниже |
+| `GridRow` | ячейки `ContainersGroup` с уникальным `id` | у каждой — `options.width` в `fr` |
+
+## Сетка (`options.grid`)
+
+Строгая трёхуровневая структура — нарушение любого пункта ломает раскладку молча:
+
+1. **Сетка → строки → ячейки.** Дети сетки обязаны быть `templateName: "GridRow"`, дети строки — `templateName: "ContainersGroup"`. Промежуточных узлов быть не может, «ячейка сразу в сетке» не работает.
+2. **Доли только в `fr`.** У строки `options.height: "1fr"`, у ячейки `options.width: "2fr"`. Значения в px и процентах сетка не поддерживает — они считаются за `1fr`.
+3. **У внешней сетки обязательна `options.height`** (или определённая высота у родителя). Иначе `1fr`-строки раскладываются по содержимому, а не пропорционально. Строкам и вложенным сеткам высоту задавать не нужно — они по умолчанию занимают выделенный им трек целиком.
+4. **Вложенность — через `grid` у ячейки.** Ячейка с `options.grid: true` сама становится сеткой, и её дети снова обязаны быть строками.
+5. **Слоты заголовка не занимают треки.** Дети с `id` из `title` / `icon` / `titleIcon` уходят в заголовок; треки считаются по остальным. У строки заголовка нет вовсе.
+6. **`id` уникальны глобально.** Правило №1 здесь особенно чувствительно: `returnFound` ищет вглубь, и на дубликате движок молча возьмёт первое совпадение. Автогенерируемые id имеют вид `gridRow_N` / `gridCell_N`.
+7. **`id` ячейки не должен начинаться с `page`** — по этому префиксу контейнер опознаётся как корневой блок страницы и оборачивается в карточку.
+
+По умолчанию сетка бесшовная: `gap` равен нулю, ячейки стыкуются вплотную и ничем себя не обозначают. Зазор задаётся явно — у сетки он разводит строки, у строки — ячейки.
+
+```tsx
+{
+  id: "main_grid",
+  templateName: "ContainersGroup",
+  options: { grid: true, height: "22rem" },
+  children: [
+    { id: "grid_row_1", templateName: "GridRow", options: { height: "1fr" }, children: [
+      { id: "grid_cell_a", templateName: "ContainersGroup", options: { width: "2fr" }, children: [chart] },
+      { id: "grid_cell_b", templateName: "ContainersGroup", options: { width: "1fr" }, children: [filters] }
+    ]}
+  ]
+}
+```
 
 ## DataSource-хосты и `innerTemplateName`
 
@@ -48,6 +87,7 @@
 - **`options.innerTemplateName` обязателен.** Без него `getContainerComponent(undefined) === null` → ни одна запись не рендерится, контейнер визуально пуст. Обязательность **типами не ловится**: поле объявлено в `ConfigMiscOptions` и, хотя и входит в `DataSourceContainerOptions`/`DataSourceProgressContainerOptions`, остаётся необязательным.
 - **`children` хоста — это slot-id выбранного внутреннего шаблона**, а не собственные слоты `DataSource`.
 - Неизвестное имя шаблона откатывается на `ContainersGroup` (реестровый `default`).
+- Оба правила проверяет рантайм-валидатор `validateDashboardConfig`: пропуск опции — ошибка `missing-inner-template`, чужой slot у ребёнка — `unexpected-slot` с перечнем слотов **внутреннего** шаблона.
 
 | Внутренний шаблон (`innerTemplateName`) | Его слоты (`children` хоста) |
 |---|---|

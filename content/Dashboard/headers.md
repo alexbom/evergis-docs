@@ -46,6 +46,18 @@ Shared-компоненты в `headers/components/`:
 
 Остальные данные (image, icon, tooltip, themeName) приходят из `useDashboardHeader`, который читает `projectInfo.content.dashboardConfiguration.header.options` напрямую и нормализует.
 
+**Дочерние элементы (по `id`):**
+
+| id | Описание |
+|---|---|
+| `title` | Заголовок страницы. Нет такого ребёнка — берётся `currentPage.options.title` |
+| `icon` | Логотип в левом верхнем углу. Нет — рисуется штатная иконка `logo` (`2rem`) |
+| `image` | Фоновое изображение шапки: значение прогоняется через `getResourceUrl` и грузится с авторизацией ([[hooks\|`useFetchImageWithAuth`]]). Нет — дефолтный градиент |
+
+Слот `description` эта шапка **не рендерит** — он есть только у `FeatureCard*`-шапок.
+
+**Фон шапки:** заданное `image` кадрируется по `cover` (пропорции фотографии сохраняются), а дефолтный градиент `header-gradient.png` растягивается на всю шапку (`background-size: 100% 100%`). Картинка нарисована ровно под ширину панели (360×134), и без растяжения на шапке пошире она легла бы пятном по центру.
+
 **Структура:**
 ```
 DefaultHeaderContainer (image, isDark)
@@ -77,7 +89,7 @@ DefaultHeaderContainer (image, isDark)
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `themeName` | `"light" \| "dark"` | Принудительная тема для шапки |
+| `themeName` | `"light" \| "dark"` | Принудительная тема для шапки. Не задана — берётся глобальная тема из [[setup\|GlobalContext]] (`themeName ?? pageThemeName`) |
 | `withPadding` | `boolean` | Внутренние отступы вокруг заголовка |
 | `column` | `boolean` | Вертикальная раскладка (иначе строкой) |
 | `height` | `number` | Высота шапки в px |
@@ -127,7 +139,7 @@ DefaultHeaderWrapper(withPadding, height)
 | `bigIcon` | `boolean` | Увеличенная иконка (занимает половину шапки) |
 | `withPadding` | `boolean` | Внутренние отступы |
 | `bottomBlur` | `boolean` | Эффект размытия снизу |
-| `themeName` | `"light" \| "dark"` | Принудительная тема |
+| `themeName` | `"light" \| "dark"` | Принудительная тема. Не задана — глобальная тема из [[setup\|GlobalContext]] |
 | `column` | `boolean` | Вертикальная раскладка |
 
 **Дочерние элементы (по `id`):**

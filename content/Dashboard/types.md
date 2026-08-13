@@ -68,7 +68,7 @@ Slot-id обязателен у каждого элемента — без не�
 
 ## Дискриминированный union `DashboardChild`
 
-`DashboardChild` — union из 48 ветвей: 15 `<Name>ElementConfig` и 33 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
+`DashboardChild` — union из 49 ветвей: 15 `<Name>ElementConfig` и 34 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
 
 - **элементы** — поле `type` (`"button"`, `"camera"`, `"chart"`, ...);
 - **контейнеры** — поле `templateName` (`"AddFeature"`, `"Attachment"`, `"Chart"`, ...).
@@ -104,6 +104,7 @@ Slot-id обязателен у каждого элемента — без не�
 | `CameraContainerConfig` | `ContainerTemplate.Camera` |
 | `ChartContainerConfig` | `ContainerTemplate.Chart` |
 | `ContainersGroupContainerConfig` | `ContainerTemplate.ContainersGroup` |
+| `GridRowContainerConfig` | `ContainerTemplate.GridRow` |
 | `DataSourceContainerConfig` | `ContainerTemplate.DataSource` |
 | `DataSourceProgressContainerConfig` | `ContainerTemplate.DataSourceProgress` |
 | `DefaultAttributesContainerConfig` | `ContainerTemplate.DefaultAttributes` |
@@ -189,11 +190,11 @@ const child: StrictConfigContainerChild = {
 |---|---|---|
 | `ElementButton` | `"button"` | — (Record<string, never>) |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
-| `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `width` |
+| `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
 | `ElementControl` | `"control"` | `relatedDataSource`, `label`, `width`, `control`, `placeholder` |
 | `ElementIcon` | `"icon"` | `fontSize`, `fontColor` |
-| `ElementImage` | `"image"` | `width`, `height`, `fit` |
+| `ElementImage` | `"image"` | `width`, `height`, `fit`, `resourceId`, `url` |
 | `ElementLegend` | `"legend"` | `twoColumns`, `chartId`, `relatedDataSources`, `fontSize`, `chartType` |
 | `ElementLink` | `"link"` | `simple`, `title` |
 | `ElementMarkdown` | `"markdown"` | `expandLength`, `noMargin`, `typography` |
@@ -211,8 +212,9 @@ const child: StrictConfigContainerChild = {
 | `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
 | `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `ChartContainer` | `Chart` | `twoColumns`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
-| `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems` + `ContainerBoxOptions` |
-| `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded` + `ContainerBoxOptions` |
+| `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems`, `grid`, `editMode`, `gap` + `ContainerBoxOptions` |
+| `GridRowContainer` | `GridRow` | `gap`, `alignItems` + `ContainerBoxOptions` |
+| `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `columns`, `gap`, `innerGap`, `align`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
 | `DataSourceInnerContainer` | — | `relatedDataSource`, `filterName`, `column` |
 | `DataSourceProgressContainer` | `DataSourceProgress` | `maxValue`, `showTotal`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
 | `DefaultAttributesContainer` | `DefaultAttributes` | — |
@@ -235,7 +237,7 @@ const child: StrictConfigContainerChild = {
 | `OneColumnContainer` | `OneColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
 | `PagesContainer` | `Pages` | `column`, `width` (+ `PageChild.options.tabId` связывает страницу с табом) |
 | `ProgressContainer` | `Progress` | `bgColor`, `innerTemplateStyle`, `maxValue`, `hideTitle`, `innerValue`, `colors`, `colorAttribute` |
-| `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `wordBreak`, `center`, `fontColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute` |
+| `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `maxLines`, `wordBreak`, `center`, `fontColor`, `bgColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute`, `align`, `columns`, `gap`, `innerGap` |
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
 | `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` |
@@ -263,7 +265,7 @@ export type ContainerTemplateToProps = {
   [ContainerTemplate.AddFeature]: AddFeatureContainerProps;
   [ContainerTemplate.Attachment]: AttachmentContainerProps;
   [ContainerTemplate.Chart]: ChartContainerProps;
-  // ... все 34 ключа
+  // ... все 35 ключей
 };
 
 export type ContainerComponentRegistry = {
@@ -350,6 +352,17 @@ const RoundedBackgroundContainerTyped =
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
 | `components/Chart/FillContext.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
 | `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `column`, `loading`) |
+| `grid/types.ts` | Типы сетки: `GridAxis` (`"row"` \| `"column"`), `GridEditAction` (union операций `delete`/`merge`/`split`/`swap`/`addRow`/`addCell`), `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue` — значение контекста сессии редактирования |
+
+---
+
+## Колбэк изменения конфига
+
+`ContainerProps` содержит опциональный `onChange?: (config: ConfigContainerChild) => void` — контейнер сообщает наружу новую версию собственного узла. Сейчас источник один: [[containers#Редактирование раскладки editMode|сетка в режиме редактирования]].
+
+Путь колбэка: проп `onContainerChange` у `DashboardProvider` / `FeatureCardProvider` → контекст → `useWidgetContext` → `PagesContainer` кладёт его в `getRenderElement({ onChange })` → движок передаёт каждому контейнеру пропом `onChange`. Поскольку `GetRenderElementProps extends Omit<ContainerProps, "renderElement">`, поле появилось в параметрах `getRenderElement` автоматически.
+
+Идентификатор узла лежит внутри payload (`next.id`), поэтому хосту достаточно `replaceObject(config, { id: next.id }, next)` из `find-and`.
 
 ---
 

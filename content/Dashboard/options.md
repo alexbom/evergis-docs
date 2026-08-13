@@ -38,16 +38,21 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `width` | `CssSize` | Ширина корневой обёртки. Число — px, строка — любое CSS-значение; `"100%"` включает fill-режим (контейнер занимает ячейку целиком) |
-| `height` | `CssSize` | Высота корневой обёртки. `"100%"` — заполнить ячейку родителя |
+| `width` | `CssSize` | Ширина корневой обёртки. Число — px, строка — любое CSS-значение; `"100%"` включает fill-режим (контейнер занимает ячейку целиком). Значение в `fr` (`"2fr"`) — доля трека сетки: её применяет родитель, самому узлу достаётся fill |
+| `height` | `CssSize` | Высота корневой обёртки. `"100%"` — заполнить ячейку родителя. Значение в `fr` — доля трека сетки, как у `width` |
 | `overflow` | `"visible" \| "hidden" \| "scroll" \| "auto"` | CSS `overflow` корневой обёртки. Не задана — браузерный `visible`: контент крупнее бокса вытекает на соседние слоты. Значения кроме `visible` обрезают и абсолютных потомков — у `FiltersContainer` это открытый список фильтра |
 | `padding` | `number` | Внутренние отступы |
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик) |
+| `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки grid\|Режим сетки]] |
+| `editMode` | `boolean` | Редактирование раскладки сетки мышью: ресайз границ, выделение, контекстное меню. Читается только у внешнего узла с `grid`. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
 | `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
-| `align` | `"left" \| "center" \| "right"` | Выравнивание текста/блоков |
+| `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце |
+| `columns` | `number` | Число плиток в строке ряда плиточного контейнера (включает grid-режим) |
+| `gap` | `number` | Отступ **между плитками**, px. Читает `DataSourceContainer`. Дефолт `8` (в ряду без `columns` — `0.5rem`). В сетке (`grid`) — зазор между треками: у сетки между строками, у `GridRow` между ячейками, дефолт `0` |
+| `innerGap` | `number` | Отступ **между элементами внутри плитки** (иконка ↔ значение ↔ подпись, значение ↔ единицы), px. Читает `RoundedBackgroundContainer`. Не задан — исторические значения (`0.25rem` над подписью и до единиц в строку, `0.5rem` в режиме `big` между блоком иконки и значением; под иконкой и под значением у единиц зазора нет) |
 | `alignItems` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | Выравнивание детей по поперечной оси. В ряду по умолчанию `center` |
 | `fit` | `"cover" \| "contain" \| "fill" \| "none" \| "scale-down"` | CSS `object-fit` изображения элемента `image` |
 | `center` | `boolean` | Центрирование контента |
@@ -72,7 +77,7 @@ interface ConfigOptions
 |---|---|---|
 | `fontSize` | `string` | CSS-длина (`"14px"`, `"0.875rem"`, `"larger"`) — см. `FontSizeToken` |
 | `fontColor` | `string` | Цвет текста (CSS) |
-| `bgColor` | `string` | Цвет фона |
+| `bgColor` | `string` | Цвет фона. В плитке (`RoundedBackground`) — сплошная заливка, перебивающая тонированный фон от цвета иконки/текста, см. [[containers#RoundedBackgroundContainer\|приоритет цвета фона плитки]] |
 | `backgroundColor` | `string` | Альтернативное имя для bgColor |
 | `primaryColor` | `string` | Основной акцентный цвет |
 | `defaultColor` | `string` | Цвет по умолчанию (PieChart-секторов и т.п.) |
@@ -148,13 +153,14 @@ interface ConfigOptions
 | `icon` | `IconTypesKeys` | Имя иконки из дизайн-системы |
 | `iconAttribute` | `string` | Имя атрибута, из которого брать иконку |
 | `image` | `string` | URL изображения |
+| `resourceId` | `string` | Id файлового ресурса с картинкой — разворачивается в `/sp/resources/file/<id>` |
 | `overlay` | `string` | Наложение поверх изображения (CSS gradient, цвет) |
 | `onlyIcon` | `boolean` | Показывать только иконку (без текста) |
-| `bigIcon` | `boolean` | Большой размер иконки |
+| `bigIcon` | `boolean` | Большой размер иконки. В плитке (`RoundedBackground`) — водяной знак `3rem` в правом верхнем углу, прозрачность `0.12` |
 | `big` | `boolean` | Большой размер компонента |
 | `tagView` | `boolean` | Отображать в виде «тэга» |
 
-**Используется в:** `ElementModal`, `ElementUploader`, `AddFeatureButton`, `ExportPdfContainer`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `AddFeatureButton`, `ExportPdfContainer`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 ---
 
@@ -170,6 +176,7 @@ interface ConfigOptions
 | `hideTitle` | `boolean` | Скрыть заголовок |
 | `simple` | `boolean` | Упрощённый вариант (Title/Link без обвязки) |
 | `maxLength` | `number` | Максимальная длина текста до обрезки |
+| `maxLines` | `number` | Обрезка по числу строк (CSS line-clamp) вместо обрезки по символам. Читает [[components\|`TextTrim`]]: при заданном `maxLines` он игнорирует `maxLength` и показывает тултип с полным текстом только при реальном переполнении. В плитке (`RoundedBackground`) применяется к подписи; дефолт для плиточного ряда с `columns` — `2` |
 | `wordBreak` | `"break-word" \| "break-all"` | Стратегия переноса длинного текста |
 | `separator` | `string` | Разделитель элементов (Chips) |
 | `lineBreak` | `string` | Кастомный перевод строки |
@@ -192,7 +199,7 @@ interface ConfigOptions
 | `hideEmpty` | `boolean` | Скрывать пустые элементы |
 | `limit` | `number` | Лимит на количество элементов |
 
-**Используется в:** `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceProgressContainer` (`shownItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TabsContainer` (`shownItems`), `TwoColumnContainer` (`hideEmpty`).
+**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TabsContainer` (`shownItems`), `TwoColumnContainer` (`hideEmpty`).
 
 ---
 
@@ -272,7 +279,7 @@ interface ConfigOptions
 |---|---|---|
 | `innerTemplateName` | `ContainerTemplate` | **Обязателен для `DataSource`/`DataSourceProgress`** (входит в их `<Name>Options`, но как необязательное поле — типы пропуск не ловят). Шаблон рендеринга каждой записи источника: читается пайплайном ([[containers\|`getRenderElement`]]) и конвертируется в проп `innerComponent` через `getContainerComponent`. Без него записи не рендерятся |
 | `themeName` | `"light" \| "dark"` | Принудительная тема для шапки |
-| `url` | `string` | URL (для DashboardDefaultHeader) |
+| `url` | `string` | URL: ссылка по клику на лого в `DashboardDefaultHeader`; адрес картинки в `ElementImage` (через `getResourceUrl`: `http…` как есть, остальное — `/sp/resources/file/<url>`) |
 | `inlineUnits` | `boolean` | Показывать единицы измерения inline |
 | `noUnits` | `boolean` | Не показывать единицы измерения |
 | `attributes` | `string[]` | Список атрибутов для отображения |
