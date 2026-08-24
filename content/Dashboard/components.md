@@ -95,7 +95,7 @@
 **Props:** `{ type?: WidgetType, noBorders?: boolean }`
 
 **Логика:**
-- `dataSourceLoading || isDiffPage` → `<DashboardLoading />`
+- `useDataSourceLoading(type) || isDiffPage` → `<DashboardLoading />`
 - Иначе → `<PagesContainer type={type} noBorders={noBorders} />`
 
 ```tsx
@@ -191,7 +191,7 @@
 
 ### DashboardLoading
 
-**Назначение:** Полноэкранный лоадер при смене страницы.
+**Назначение:** Полноэкранный лоадер при смене страницы и пока не пришёл ни один источник данных. Условие показа — [[hooks#useDataSourceLoading|`useDataSourceLoading`]]; используется корневым `Dashboard` и `ElementModal`.
 
 ---
 

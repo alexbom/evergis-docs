@@ -2,23 +2,23 @@
 
 ## DashboardProvider (client-new)
 
-Файл: `src/components/Dashboard/components/DashboardProvider.tsx`
+Файл: `src/providers/DashboardProvider/index.tsx`
 
-Клиентская обёртка над `BaseDashboardProvider`. Агрегирует Redux-состояние и результаты хуков, передаёт всё в базовый провайдер.
+Клиентская обёртка над `DashboardProvider` из `@evergis/react` (импортируется под алиасом `BaseDashboardProvider`). Агрегирует Redux-состояние и результаты хуков, передаёт всё в базовый провайдер. Принимает единственный собственный проп — `config?: ConfigContainer` (нужен превью редактора контейнеров, которое подставляет свой конфиг вместо страничного).
 
 ### Внутренние хуки
 
-| Хук | Что возвращает |
-|---|---|
-| `useProject()` | `projectInfo`, `updateProject` |
-| `useSelectedTab()` | `selectedTabId`, `setSelectedTabId` |
-| `useExpandableContainers()` | `expandedContainers`, `expandContainer` |
-| `useProjectDataSourceFilters()` | `filters`, `changeFilters` |
-| `useDashboardPages()` | `nextPage`, `prevPage`, `changePage` |
-| `useDashboardLayers()` | `dashboardLayers`, `setDashboardLayer` |
-| `useLayersListVisibility()` | `isVisible`, `toggleVisibility` |
-| `useDialog()` | `openDialog` — открытие диалога каталога ресурсов |
-| `useValidateDashboardConfig()` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки (см. [[authoring\|Правила генерации]]) |
+| Хук | Откуда | Что возвращает |
+|---|---|---|
+| `useProject()` | `src/hooks` | `projectInfo`, `updateProject` |
+| `useDialog()` | `src/hooks` | `openDialog` — открытие диалога каталога ресурсов |
+| `useExpandableContainers()` | `@evergis/react` | `expandedContainers`, `expandContainer` |
+| `useSelectedTab()` | `components/Dashboard/hooks/useSelectTab` | `selectedTabId`, `setSelectedTabId` |
+| `useProjectDataSourceFilters()` | `components/Dashboard/hooks` | `filters`, `changeFilters` |
+| `useDashboardPages()` | `components/Dashboard/hooks` | `nextPage`, `prevPage`, `changePage` |
+| `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
+| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки (см. [[authoring\|Правила генерации]]) |
+| `useLayersListVisibility()` | `components/MainPanel/hooks` | `isVisible`, `toggleVisibility` |
 
 Колбэк `selectAttachmentsFromCatalog` открывает диалог `DIALOGS.RESOURCE_CATALOG` (`ResourceCatalogOptions`) и передаёт выбранные `CatalogResourceDc[]` через `onApply`.
 

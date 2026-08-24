@@ -334,6 +334,16 @@ const RoundedBackgroundContainerTyped =
   RoundedBackgroundContainer as unknown as FC<RoundedBackgroundContainerProps>;
 ```
 
+### `ROOT_OWNING_TEMPLATES` — контейнеры со своим корнем
+
+Рядом с реестром лежит `ROOT_OWNING_TEMPLATES: ReadonlySet<string>` — перечень шаблонов, чей компонент держит `id`, `data-templatename`, авторский `style` и `$sizeCss` на **единственном** собственном корне (через [[hooks|`useContainerRoot`]] / [[hooks|`useWrapperSize`]]). Такому контейнеру внешняя обёртка `ElementValueWrapper` не нужна: она добавляла бы в DOM второй узел с теми же атрибутами и стилями.
+
+Читает набор [[utils#isRootOwningContainer|`isRootOwningContainer`]], а результат уходит флагом `hasOwnRoot` в [[utils#formatElementValue|`formatElementValue`]]. Неизвестный шаблон считается владельцем корня: он резолвится в реестровый `default` (= `ContainersGroupContainer`), а тот корнем владеет.
+
+Сейчас в наборе: `ContainersGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Task`, `Upload`.
+
+Остальных там нет намеренно: `DefaultAttributes`, `EditGroup` и `OneColumn`/`TwoColumn` в режиме `attributesToRender` возвращают **несколько** корней, а `Title`, `Icon`, `Divider`, `Tabs`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground` ставят `id`/`style` руками — для них обёртка остаётся единственным одиночным узлом. Переводишь очередной контейнер на `useContainerRoot` — добавь его в набор.
+
 ---
 
 ## Per-feature локальные типы
@@ -363,6 +373,55 @@ const RoundedBackgroundContainerTyped =
 Путь колбэка: проп `onContainerChange` у `DashboardProvider` / `FeatureCardProvider` → контекст → `useWidgetContext` → `PagesContainer` кладёт его в `getRenderElement({ onChange })` → движок передаёт каждому контейнеру пропом `onChange`. Поскольку `GetRenderElementProps extends Omit<ContainerProps, "renderElement">`, поле появилось в параметрах `getRenderElement` автоматически.
 
 Идентификатор узла лежит внутри payload (`next.id`), поэтому хосту достаточно `replaceObject(config, { id: next.id }, next)` из `find-and`.
+
+---
+
+## Публичная поверхность сетки
+
+Модуль `grid/` отдаётся наружу через `grid/index.ts` — только листовые модули: типы, константы, утилиты треков и дерева, фабрика id. Компоненты и сессия редактирования из пакета **не экспортируются**: вход в сетку один — [[containers#Режим сетки grid|`ContainersGroup` с `options.grid`]]. Баррель `utils` оттуда не тянут — иначе цикл `getRenderElement → registry → контейнеры → grid` уронил бы инициализацию в TDZ.
+
+### Хостовые пропсы `ContainerProps`
+
+Помимо `onChange` (см. раздел выше) сетка читает два пропа, предназначенных хосту с собственным реестром содержимого:
+
+| Проп | Тип |
+|---|---|
+| `createRenderElement` | `(node: ConfigContainerChild) => RenderElementFunction` — фабрика рендера по черновику сессии; без неё сессия строит рендер штатным реестром |
+| `onGridSelectionChange` | `(cellIds: string[]) => void` — зеркало выделения ячеек наружу |
+
+Подробности — [[containers#Интеграционный API для хостов|Контейнеры]].
+
+### Типы `grid/types.ts`
+
+| Тип | Значение |
+|---|---|
+| `GridAxis` | `"row" \| "column"` — ось раскладки треков. `"row"`: треками управляет grid-узел, треки — строки (`grid-template-rows`, доля в `options.height`). `"column"`: треками управляет строка, треки — ячейки (`grid-template-columns`, доля в `options.width`) |
+| `GridInsertSide` | `"before" \| "after"` — куда вставлять новый трек относительно опорного |
+| `GridSplitDirection` | `"vertical" \| "horizontal"` — как встанут половинки после деления ячейки (расположение результата, а не линия разреза) |
+| `GridEditAction` | Union операций: `{ type: "delete"; cellIds }`, `{ type: "merge"; cellIds }`, `{ type: "split"; cellId; direction }`, `{ type: "swap"; sourceId; targetId }`, `{ type: "addRow"; cellId; side }`, `{ type: "addCell"; cellId; side }` |
+| `GridMenuPosition` | `{ x, y }` — координаты курсора для контекстного меню |
+| `GridMenuState` | `{ canMerge, canSplit, canAdd }` — что доступно при текущем выделении |
+| `GridEditSessionValue` | Значение контекста сессии: `draft`, `selectedIds`, `selectCell`, `clearSelection`, `beginCellDrag`, `consumeDragClick`, `commitResize`, `commitHeight`, `applyAction`, `openMenu`, `menuState` |
+| `GridCellContext` | (`utils/gridTree`) окружение ячейки в дереве: её строка и позиция в ней |
+| `GridIdFactory` | (`utils/createGridNodeId`) `{ createRowId, createCellId }` — генератор id создаваемых узлов |
+
+### Константы `grid/constants.ts`
+
+| Константа | Значение | Назначение |
+|---|---|---|
+| `MIN_TRACK_PX` | `40` | Верхняя граница минимального размера трека при ресайзе |
+| `MIN_TRACK_RATIO` | `0.25` | Минимальная доля трека в тесной паре — чтобы граница не запиралась намертво |
+| `DEFAULT_GRID_GAP` | `0` | Зазор между треками по умолчанию: сетка бесшовная |
+| `HANDLE_BLEED_PX` | `3` | Насколько зона захвата ручки заходит на содержимое с каждой стороны |
+| `DRAG_THRESHOLD_PX` | `4` | Сдвиг курсора, после которого нажатие считается перетаскиванием ячейки |
+| `MAX_TRACKS` | `12` | Потолок на число треков у одного родителя — страховка от бесконечного `split` |
+| `DEFAULT_TRACK_FR` | `1` | Доля нового трека, если среднее посчитать не из чего |
+| `FR_PRECISION` | `1000` | Знаменатель округления долей — три знака после запятой |
+| `GRID_FILL_DEFAULTS` / `GRID_AUTO_FILL_DEFAULTS` | `height: 100%` / `min-height: 100%` | Дефолты корня сетки и строки; второй — для режима `autoHeight` |
+| `GRID_CELL_ATTR`, `GRID_HANDLE_ATTR`, `GRID_HANDLE_PROPS` | `data-grid-cell`, `data-grid-handle` | Маркеры ячейки и ручки в DOM |
+| `GRID_DRAG_SOURCE_ATTR`, `GRID_DROP_TARGET_ATTR`, `GRID_DRAGGING_ATTR` | `data-grid-*` | Разметка идущего жеста — атрибутами, а не пропсами: цель меняется десятки раз за жест |
+| `NO_CELL_DRAG_SELECTOR` | селектор | Что перетаскиванием ячейки не считается: ручка, `input`, `textarea`, `select`, `contenteditable` |
+| `GRID_ROW_ID_PREFIX`, `GRID_CELL_ID_PREFIX` | `gridRow_`, `gridCell_` | Префиксы id создаваемых узлов. Не начинаются с `"page"` — по `id.startsWith("page")` `ContainersGroupContainer` опознаёт корневой блок страницы |
 
 ---
 
@@ -396,10 +455,29 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 |---|---|---|
 | `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
 | `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
+| `ConfigAttributeDescription` | `attributeName`, `type?`, `alias?`, `description?`, `isEditable?`, `stringFormat?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета |
 | `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |
 | `FetchedDataSource` / `WidgetDataSource` | `name`, `features`, `layerName?`, `attributes?` | Загруженный источник в состоянии виджета |
 
 > Не путать `ConfigDataSource.attributes` (`ConfigDataSourceAttribute[]` — метаданные и формат атрибутов источника) с `options.attributes` (`string[]` — список имён атрибутов для отображения в `OneColumn`/`TwoColumn`).
+
+---
+
+## Типы фильтров
+
+| Тип | Содержимое | Назначение |
+|---|---|---|
+| `ConfigFilterValueType` | `"single" \| "range" \| "array" \| "tree" \| "features"` | Вид значения фильтра, объявленный в конфиге. Дискриминатор для type guard-ов |
+| `TreeFilterValue` | `Record<"l{N}", Array<string \| number>>` | Значение иерархического фильтра: «уровень → массив id». Плейсхолдеры `%name.lN` |
+| `FeaturesFilterValue` | `FeatureCollection<null, Record<string, FeatureAttributeValue>>` | Значение фильтра `"features"` — строки [[containers#StructuredDataContainer\|StructuredDataContainer]]. `geometry` всегда `null` |
+| `SelectedFilter` | `value`, `min?`, `max?` | Выбранное значение фильтра в состоянии виджета |
+| `ScalarFilterValue` | `SelectedFilter["value"]` без `TreeFilterValue` и `FeaturesFilterValue` | Значение скалярных/массивных фильтров |
+
+**Куда подставляется значение.** `single`/`range`/`array` — и в `condition` источника, и в `parameters`. `tree` — в `condition` через `applyTreeFilterToCondition` (`%name.lN`) и в `parameters`. `features` — **только** в `parameters` (питон-таска, url-источник); в `condition` не попадает никогда: там значение прошло бы через `formatConditionValue` и выродилось в `[object Object]`.
+
+**Как определяется вид значения.** По полю `valueType` конфига фильтра, а не по форме значения: `tree` и `features` оба объекты, и структурная догадка их не различает. Отсюда сигнатура `isTreeFilterValue(value, configFilter?)` — второй аргумент передают везде, где конфиг фильтра под рукой. Решают ровно два значения `valueType`: `"tree"` — это tree, `"features"` — точно не tree. Любое другое (`"array"`, не задано вовсе) уходит в структурный фолбэк: в существующих конфигах tree-фильтры объявлены как раз так, и трактовать их как не-tree значило бы их сломать. Фолбэк намеренно узкий: ключи вида `l{N}`, значения — массивы. `isFeaturesFilterValue(value)` конфига не требует: форма `FeatureCollection` самодостаточна.
+
+> Объявляя фильтр-приёмник для `StructuredData`, обязательно ставь `valueType: "features"` — без него значение уйдёт в структурный фолбэк, а `condition` источника не получит гейта по конфигу. Валидатор конфига (`validateDashboardConfig`) проверяет это отдельно.
 
 ---
 

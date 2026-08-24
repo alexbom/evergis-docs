@@ -110,6 +110,16 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ---
 
+### isRootOwningContainer
+
+`(templateName?: string) => boolean`
+
+Контейнер этого шаблона сам держит `id`, `data-templatename`, авторский `style` и `$sizeCss` на своём единственном корне — внешняя обёртка `ElementValueWrapper` ему не нужна (иначе в DOM появится второй узел-близнец с теми же атрибутами). Проверяет принадлежность к набору [[types#ROOT_OWNING_TEMPLATES — контейнеры со своим корнем|`ROOT_OWNING_TEMPLATES`]]; результат уходит флагом `hasOwnRoot` в **formatElementValue**.
+
+Неизвестный шаблон (`templateName` не найден в реестре) считается владельцем корня: он резолвится в реестровый `default` — `ContainersGroupContainer`, а тот корнем владеет. Пустой `templateName` — `false`. Живёт рядом с **getContainerComponent** ровно ради этого правила.
+
+---
+
 ### getControlTemplateName
 
 `(type?: ConfigControl["type"]) => ContainerTemplate`
@@ -456,13 +466,15 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### getWrapperSizeStyle
 
-`({ style, width, height, overflow, defaults, defaultWidth }) => CSSObject | undefined`
+`({ style, width, height, overflow, defaults, defaultWidth, heightAsMin }) => CSSObject | undefined`
 
 Собирает CSS-объект корневой обёртки контейнера: внутренние дефолты плюс размеры из `options` (см. [[containers#Размерная модель обёртки ContainerBoxOptions|размерную модель]]). Результат уходит в styled-проп, а не в inline-style, поэтому перебивается снаружи обычной специфичностью — без `!important`. Опции перекрывают одноимённые поля авторского `style`.
 
 Размер `"100%"` включает **fill-режим**: контейнер занимает ячейку целиком, для чего снимаются конфликтующие внутренние дефолты обёртки (`width`/`minWidth`/`maxWidth`/`marginLeft`/`marginRight` по горизонтали, `height`/`minHeight`/`maxHeight`/`marginTop`/`marginBottom` по вертикали), а контент лишается возможности её распирать (`min-width`/`min-height: 0`). Для fill-высоты добавляется `flex: 1 1 auto` — в колонке контейнер забирает остаток ячейки под заголовком, а не переполняет её на его высоту. `overflow` уходит в CSS как есть и ничем не подменяется.
 
-Рядом экспортируются константа `FILL_SIZE` (`"100%"`) и предикат `isFillSize(size)`. Парный хук — [[hooks|`useWrapperSize`]] (он передаёт `defaultWidth: FILL_SIZE`, поэтому контейнеры по умолчанию занимают всю ширину ячейки, а элементы — нет).
+`heightAsMin` (приходит из [[options#ConfigLayoutOptions|`options.autoHeight`]]) переводит высоту в `min-height`: узел не опускается ниже неё, но перерастает под содержимое. Парного `min-height: 0` в fill-режиме при этом нет — он немедленно погасил бы сам минимум, ради которого режим и включают.
+
+Рядом экспортируются константа `FILL_SIZE` (`"100%"`), предикат `isFillSize(size)` и предикат `isFrSize(size)` — распознаёт долю трека сетки (`"2fr"`, `"1.5fr"`). Доля на самом узле трактуется как fill: применяет её родитель, собирая `grid-template-*` (см. **buildGridTemplate**). Парный хук — [[hooks|`useWrapperSize`]] (он передаёт `defaultWidth: FILL_SIZE`, поэтому контейнеры по умолчанию занимают всю ширину ячейки, а элементы — нет).
 
 ---
 
@@ -630,6 +642,54 @@ Resolves контейнер из реестра — через `getContainerComp
 `(url: string) => string`
 
 Определяет MIME-тип по расширению файла в URL (с отбрасыванием query/hash). Возвращает пустую строку, если расширение неизвестно или отсутствует. Рядом экспортируется `getFileNameFromUrl(url)` — извлекает имя файла из URL (через `new URL`, с fallback на последний сегмент пути).
+
+---
+
+## Утилиты сетки (grid)
+
+Утилиты [[containers#Режим сетки grid|режима сетки]]. Часть отдаётся наружу через `grid/index.ts` — только листовые модули (`gridTracks`, `gridTree`, `createGridNodeId`): баррель `utils` оттуда не тянут, иначе цикл `getRenderElement → registry → контейнеры → grid` уронит инициализацию в TDZ. Операции раскладки (`gridOperations`) и DOM-чтение остаются внутренними. Типы и константы — [[types#Публичная поверхность сетки|Типы]].
+
+### Треки (`gridTracks`)
+
+| Функция | Сигнатура и назначение |
+|---|---|
+| `getLayoutChildren` | `(node?) => ConfigContainerChild[]` — дети, которые реально становятся треками: слоты заголовка (`TITLE_SLOT_IDS`) исключаются. `ContainerChildren` их не рендерит, и в `grid-template-*` их быть не должно — иначе треков окажется больше, чем ячеек, и раскладка съедет |
+| `getTrackSizeKey` | `(axis) => "height" \| "width"` — в какой опции лежит доля трека: у строки — высота, у ячейки — ширина |
+| `parseFrValue` | `(size?) => number` — доля числом. Значения не в `fr` (px, проценты, `auto`) сеткой не поддерживаются и считаются за `1fr`: смешение фиксированных и резиновых треков сломало бы инвариант ресайза «сумма долей пары неизменна» |
+| `getTrackSizes` | `(children, axis) => number[]` — доли всех треков одного родителя в порядке следования |
+| `roundFr` / `toFrSize` | `(value: number) => number` / `=> string` — округление до трёх знаков и сборка `"1.5fr"`. Без округления в конфиг попадают хвосты вида `1.0000000000000002fr` |
+| `buildTrackTemplate` | `(sizes: string[], autoMin?) => string` — значение `grid-template-*` из готовых размеров. `minmax(0, X)` вместо голого размера: у голого трека неявный минимум `auto`, и широкий контент (таблица, график) распирает его изнутри, ломая пропорции. `autoMin` возвращает этот минимум — ровно то, ради чего включают `autoHeight` |
+| `buildGridTemplate` | `(children, axis, autoHeight?) => string` — то же по долям детей. `autoHeight` отпускает минимум только у **строк**: ширину растить нечем, а `auto`-минимум колонки просто сломал бы пропорции |
+
+### Дерево (`gridTree`)
+
+| Функция | Сигнатура и назначение |
+|---|---|
+| `isGridNode` | `(node?) => boolean` — узел-сетка: `ContainersGroup` с `options.grid` |
+| `setLayoutChildren` | `(node, children) => ConfigContainerChild` — подменяет «раскладочных» детей, сохраняя слоты заголовка (кладутся первыми — их порядок относительно тела ни на что не влияет) |
+| `mapNodeById` | `(node, id, mapper) => ConfigContainerChild` — иммутабельно применяет `mapper` к узлу с заданным `id` где угодно в поддереве; `null` из маппера удаляет узел. Незатронутые ветки возвращаются по прежней ссылке, поэтому `memo`-контейнеры не перерисовываются. Пустой `id` — no-op: иначе `undefined === undefined` совпало бы с корнем и правка ушла бы не туда |
+| `containsNodeId` / `replaceNodesByIds` | Поиск id в поддереве и пакетная замена узлов |
+| `findCellContext` | `(grid, cellId) => GridCellContext \| null` — ищет ячейку по всему дереву сеток, включая вложенные; возвращает ближайший к ней контекст (`grid`, `row`, `rows`, `cells`, `rowIndex`, `cellIndex`) |
+| `getTrackSize` / `withTrackSize` | Прочитать и задать долю трека узла |
+| `getAverageTrackSize` | `(tracks, axis) => number` — средняя доля: база для вновь добавляемого трека, чтобы он не выбивался из масштаба |
+| `removeTracks` | `(tracks, indexes, axis) => ConfigContainerChild[]` — убирает треки, отдавая их доли соседу слева (у первого — соседу справа). Без передачи доли `fr` перенормируются сами, и вместе с удалённым треком визуально сместятся все остальные границы |
+| `createGridCell` / `createGridRow` | `(factory, ...) => ConfigContainerChild` — пустая ячейка (`ContainersGroup` с `width`) и строка (`GridRow` с `height`, по умолчанию с одной пустой ячейкой) |
+
+### Идентификаторы (`createGridNodeId`)
+
+| Функция | Сигнатура и назначение |
+|---|---|
+| `collectConfigIds` | `(source: unknown, acc?) => Set<string>` — все `id` в поддереве конфига. Обходит объект целиком, а не только `children`: узлы встречаются и в других коллекциях (`modals`, вложенные структуры), и `returnFound` из `find-and` ищет так же. Дубликат id заставил бы движок молча взять первое совпадение |
+| `createGridIdFactory` | `(usedIds: Set<string>) => GridIdFactory` — фабрика уникальных id со сквозной нумерацией (`gridRow_1`, `gridCell_1`). Счётчик общий на страницу: сеток на ней может быть несколько, и локальные счётчики выдали бы им одинаковые id |
+
+### Операции и DOM (внутренние)
+
+| Модуль | Содержимое |
+|---|---|
+| `gridOperations` | `normalizeGrid`, `deleteCells`, `canMergeCells` / `mergeCells`, `canSwapCells` / `swapCells`, `getGridMenuState`, `applyGridAction` — применение [[types#Публичная поверхность сетки\|`GridEditAction`]] к черновику. Семантика операций — [[containers#Редактирование раскладки editMode\|Редактирование раскладки]] |
+| `gridResizeOperations` | Пересчёт долей пары треков и высоты корня по итогу жеста |
+| `readTrackPixels` | `(grid, axis) => number[]` — пиксельные размеры треков из computed `grid-template-*`, а не из прямоугольников ячеек: у отрисованного грида браузер отдаёт уже разрешённые used values, без зазоров |
+| `readCellAtPoint` | Ячейка под курсором по маркеру `data-grid-cell` — цель перетаскивания |
 
 ---
 

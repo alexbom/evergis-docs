@@ -188,7 +188,9 @@ const { data, loading } = useChartData({ element: chartElement, type });
 > [!info] Почему один корневой узел
 > Контейнер обязан рендерить ОДИН корень: фрагмент из заголовка и тела в строке (`options.column: false`) становится **двумя** ячейками родительского flex-row, и доля из `options.width` достаётся только телу. Поэтому `id`, `data-templatename`, `style` и размеры живут на корне, а телу отдаётся лишь остаток высоты под заголовком.
 >
-> Гейт fill-высоты берётся по **результирующей** высоте (`root.$sizeCss.height`), а не по `options.height`: высоту задаёт ещё и авторский `style`, и внутренние `defaults` контейнера. Значение `auto` высотой не считается — делить нечего.
+> Гейт fill-высоты берётся по **результирующей** высоте (`root.$sizeCss.height`, а при её отсутствии — `minHeight`), а не по `options.height`: высоту задаёт ещё и авторский `style`, и внутренние `defaults` контейнера. Значение `auto` высотой не считается — делить нечего.
+>
+> `minHeight` учитывается наравне с `height` ради режима [[containers#Рост под содержимое autoHeight|`autoHeight`]]: там корень несёт только минимум, и без этого тело осталось бы без `flex: 1 1 auto` — схлопнулось бы по содержимому, а минимум корня до треков внутри не дошёл бы вовсе.
 
 ```ts
 const { root, body } = useContainerRoot({ elementConfig });
@@ -252,6 +254,18 @@ const { title, icon, onClickLogo } = useDashboardHeader();
 ```ts
 const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type, config: currentPage, filters });
 ```
+
+---
+
+## useDataSourceLoading
+
+**Назначение:** Признак «данных нет вообще» — единственное условие, при котором допустима полноэкранная заглушка `DashboardLoading`. Как только пришёл первый источник, страницу и модалку наполняют сами контейнеры, каждый со своим `ContainerLoading` / `ChartLoading`.
+
+**Параметры:** `type: WidgetType`
+
+**Возвращает:** `boolean` — `!!currentPage?.dataSources?.length && !dataSources?.length && !!isLoading`
+
+**Где используется:** корневой `Dashboard` и `ElementModal`. Опираться на «сырой» `isLoading` из `useWidgetContext` для гейта целого поддерева нельзя: этот флаг взводится на любой рефетч (смена фильтра, правка источника в редакторе, autoSync-уведомление) и гасит уже отрисованный контент.
 
 ---
 
@@ -440,16 +454,18 @@ const layer = getConfigLayer("myLayer");
 
 | Хук | Назначение |
 |---|---|
-| `useGridDraft({ node, type, onChange })` | Локальный черновик раскладки. Возвращает `draft`, `applyAction`, `commitResize`. Правки применяются сразу и уходят в `onChange`; конфиг, вернувшийся сверху, узнаётся по ссылке и не сбрасывает черновик |
+| `useGridDraft({ node, type, onChange })` | Локальный черновик раскладки. Возвращает `draft`, `applyAction`, `commitResize`, `commitHeight`. Правки применяются сразу и уходят в `onChange`; конфиг, вернувшийся сверху, узнаётся по ссылке и не сбрасывает черновик |
 | `useGridSelection()` | Выделение ячеек: `selectedIds`, `selectCell(id, additive)`, `clearSelection`. Shift добавляет и убирает, повторный клик по единственной выделенной ячейке снимает выделение, `Escape` снимает всё |
 | `useGridResize({ axis, index, sizes, getGrid, onCommit })` | Перетаскивание границы пары треков. Во время жеста раскладка меняется инлайн-стилем без ре-рендера; `onCommit` вызывается один раз на отпускание мыши. Возвращает callback-ref `setHandle` и флаг `dragging` |
 | `useGridHeightResize({ sizes, getGrid, onCommit })` | Перетаскивание **нижней** границы сетки, за которой соседнего трека уже нет: последняя строка растёт вместе с самой сеткой. В `onCommit` уходит и новая `options.height` корня (в пикселях — исходную единицу автора при таком жесте не восстановить), и пересчитанные доли всех строк, иначе верхние строки разъехались бы пропорционально новой высоте. Тот же интерфейс `GridResize` (`setHandle`, `dragging`) |
 | `useGridCellSwap({ draft, applyAction })` | Перетаскивание ячейки на место другой. Один экземпляр на сессию: жест начинается в одной ячейке, а заканчивается в другой, возможно из другой строки или вложенной сетки. Источник и цель размечаются атрибутами прямо в DOM, без ре-рендера; правка уходит одна — на отпускание над валидной целью. Возвращает `beginDrag(cellId, event)` и `consumeDragClick()` |
 | `useGridMenuOptions()` | Пункты контекстного меню (`IOption[]`) с переводами и вычисленными `disabled` |
 
-Состояние сессии раздаёт контекст `GridEditContext` (`useGridEdit()`); его создаёт только внешний grid-узел с `options.editMode`.
+Состояние сессии раздаёт контекст `GridEditContext` (`useGridEdit()`); его создаёт только внешний grid-узел с `options.editMode`. Значение контекста — `GridEditSessionValue` (см. [[types#Публичная поверхность сетки|Типы]]).
 
 Пиксельные размеры треков читает `readTrackPixels(grid, axis)` — из computed `grid-template-*`, а не из прямоугольников ячеек: у отрисованного грида браузер отдаёт уже разрешённые used values в пикселях и без зазоров.
+
+Рендер содержимого сессия строит сама — через **useRenderElement**, замкнутый на черновик: `renderElement` из пропсов для этого не годится, он замкнут на исходный узел и не найдёт ячейки, созданные `split`/`add`. Хост со своим реестром содержимого подменяет это фабрикой `createRenderElement` — см. [[containers#Интеграционный API для хостов|Интеграционный API для хостов]].
 
 ---
 

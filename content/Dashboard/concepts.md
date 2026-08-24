@@ -140,6 +140,9 @@ interface SelectedFilter {
 
 **ConfigFilter** — описание фильтра в конфиге страницы: `name`, `defaultValue`, `valueType`, `relatedDataSource` (откуда брать список вариантов), `resetFilters` (сбрасываемые при изменении фильтры). Имя фильтра типизируется branded-типом [[types#Branded types|FilterName]] (`asFilterName`).
 
+> [!warning] `defaultValue` не попадает в состояние фильтров
+> Состояние выбранных фильтров (`filters` виджет-контекста) стартует пустым и наполняется только выбором пользователя — заливки дефолтов из конфига в него нет. `defaultValue` живёт исключительно в конфиге страницы, поэтому фолбэк `filters[name]?.value ?? configFilter?.defaultValue` делает каждый потребитель фильтра сам: и компоненты фильтров, и подстановка в условия источников, и контейнеры, которые читают значение фильтра напрямую (например, [[containers#StructuredDataContainer|StructuredData]]).
+
 **Тип контрола** (`FilterType`) — каким UI-виджетом рисуется фильтр: `"checkbox"`, `"rangeNumber"`, `"rangeDate"`, `"text"`, `"dropdown"`, `"barChart"`, `"chips"`, `"tree"`.
 
 **Иерархический фильтр `"tree"`:** для справочников «уровень → подуровень» (регион → район → населённый пункт). В дополнение к базовым полям **ConfigFilter** задаёт атрибуты дерева:
@@ -258,6 +261,7 @@ interface ConfigLayer {
 | `IconContainer` | `icon`, `alias`, `link`, `text` |
 | `ImageContainer` | `alias`, `text`, `button`, `image` |
 | `SlideshowContainer` | `slideshow`, `alias` (опционален) |
+| `StructuredDataContainer` | `data` — представление `type: "table"` (обязателен), `alias` |
 | `UploadContainer` | `uploader` |
 | `AttachmentContainer` | `alias`; `value` — источник вложений, если не задан `relatedDataSource` |
 | `EditContainer` (базовый, `templateName: "Edit"`) | `alias`, `value` |
@@ -283,6 +287,7 @@ interface ConfigLayer {
 > - Слоты заголовка (`title`, `titleIcon`) пропускаются у всех контейнеров.
 > - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
 > - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
+> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`).
 
 ### Сводный пример с двумя уровнями `id`
 
@@ -378,9 +383,10 @@ interface ConfigLayer {
 
 Механизм:
 1. В конфиге источника данных указывается `"autoSyncLayer": true`
-2. При монтировании `useProjectDataSources` подписывается на WebSocket-событие: `addSubscription({ tag: "feature_layer_updated", resources: [layerName] })`
+2. Клиентский хук `useDataSourceSubscriptions` (вызывается из `useProjectDataSources`, см. [[setup|Подключение]]) подписывается на WebSocket-событие для каждого такого источника: `addSubscription({ tag: "feature_layer_updated", resources: [layerName] })`
 3. Когда другой пользователь изменяет объект слоя — бэкенд отправляет `ReceiveFeaturesUpdateNotification`
-4. Хук сбрасывает `features: null` для нужных источников и вызывает `fetchData(updatingDataSources)` для перезагрузки
+4. Хук убирает записи нужных источников из стора и вызывает `fetchData(updatingDataSources)` для перезагрузки — зависимые контейнеры показывают свой `ContainerLoading`, соседние не мигают. Ставить `features: null` нельзя: в семантике контейнеров это ошибка («Блок не загружен»), а не загрузка
+5. При смене проекта подписки снимаются (`unsubscribeById`) и оформляются заново — иначе остались бы висеть на слоях прежнего проекта. Снимаются они и на размонтировании
 
 ```json
 {

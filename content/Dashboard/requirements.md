@@ -3,28 +3,42 @@
 ## @evergis/react
 
 Хуки:
-`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useChartData`, `useChartChange`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainer`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useContainerRoot`, `useEditGroupAttributes`, `useEqualTileWidth`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`
+`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useDataSourceLoading`, `useChartData`, `useChartChange`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainer`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useContainerRoot`, `useEditGroupAttributes`, `useEqualTileWidth`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`
 
 Компоненты и провайдеры:
-`DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `GlobalProvider`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
+`Dashboard`, `DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `GlobalProvider`, `ContainerWrapper`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
+
+Константы и дефолты:
+`DEFAULT_DASHBOARD_CONFIG`, `DEFAULT_PAGES_CONFIG`, `CONFIG_PAGES_ID`, `CONFIG_PAGE_ID`, `TITLE_SLOT_IDS`, `ROOT_OWNING_TEMPLATES`, `BASE_CONTAINER_STYLE`, `CONTAINER_BODY_ATTRIBUTE`, `CONTAINERS_GROUP_DEFAULTS`
 
 Типы и branded keyspaces (см. [[types|Типы]]):
-`DashboardChild`, `DashboardHeaderConfig`, `ContainerComponentRegistry`, `ElementComponentRegistry`, `Brand`, `ContainerId`, `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId`. Конструкторы: `asContainerId`, `asChartId`, `asModalId`, `asTabId`, `asFilterName`, `asLayerName`, `asAttributeName`, `asDataSourceName`, `asResourceId`.
+`DashboardChild`, `StrictDashboardChild`, `StrictConfigContainerChild`, `DashboardHeaderConfig`, `ContainerComponentRegistry`, `ElementComponentRegistry`, `Brand`, `ContainerId`, `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId`. Конструкторы: `asContainerId`, `asChartId`, `asModalId`, `asTabId`, `asFilterName`, `asLayerName`, `asAttributeName`, `asDataSourceName`, `asResourceId`.
+
+Публичная поверхность сетки (`grid/index.ts`, см. [[types#Публичная поверхность сетки|Типы]]):
+типы `GridAxis`, `GridInsertSide`, `GridSplitDirection`, `GridEditAction`, `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue`, `GridCellContext`, `GridIdFactory`; константы `MIN_TRACK_PX`, `MAX_TRACKS`, `DEFAULT_GRID_GAP`, `GRID_CELL_ATTR`, `GRID_HANDLE_ATTR`, `GRID_ROW_ID_PREFIX`, `GRID_CELL_ID_PREFIX`, ...; утилиты `getLayoutChildren`, `getTrackSizes`, `buildGridTemplate`, `isGridNode`, `findCellContext`, `createGridCell`, `createGridRow`, `collectConfigIds`, `createGridIdFactory`.
 
 Утилиты:
-`formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `fetchQueryDescription`, `getContainerComponent`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `toCssSize`, `toRenderableValue`, `isVisibleContainer`, `checkEqualOrIncludes`
+`formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `fetchQueryDescription`, `getContainerComponent`, `isRootOwningContainer`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `isFillSize`, `isFrSize`, `toCssSize`, `toRenderableValue`, `isVisibleContainer`, `checkEqualOrIncludes`, `createConfigPage`, `createConfigLayer`
 
 ## @evergis/api
 
-`AttributeDefinitionDc`, `AttributeFormatDefinitionDc`, `AttributeType`, `CatalogResourceDc`, `EqlRequestDc`, `ExtendedProjectInfoDc`, `FeatureDc`, `LayerDefinitionDc`, `OgcGeometryType`, `PagedFeaturesListDc`, `PositionDc`, `ProjectContentItemDc`, `QueryLayerServiceConfigurationDc`, `QueryLayerServiceInfoDc`, `RemoteTaskStatus`, `StringSubType`
+`Api`, `ArchiveTimelineItemDc`, `AttributeConfigurationDc`, `AttributeConfigurationType`, `AttributeIconDc`, `AttributeIconType`, `AttributeType`, `AttributesConfigurationDc`, `CatalogResourceDc`, `EqlRequestDc`, `ExtendedProjectInfoDc`, `FeatureDc`, `OgcGeometryType`, `PagedFeaturesListDc`, `PositionDc`, `ProxyServiceInfoDc`, `QueryLayerServiceConfigurationDc`, `QueryLayerServiceInfoDc`, `RemoteTaskStatus`, `STORAGE_TOKEN_KEY`, `StringAttributeConfigurationDc`, `StringSubType`, `TaskPrototypeDto`
 
 ## @evergis/uilib-gl
 
-`Dropdown`, `Flex`, `FlexSpan`, `Icon`, `IconButton`, `IconToggle`, `IconTypesKeys`, `IOption`, `ITheme`, `LegendToggler`, `LinearProgress`, `Preview`, `Tooltip`, `Uploader`, `UploaderItemProps`, `Dialog`, `DialogContent`, `DialogTitle`
+Контролы и ввод: `AutoComplete`, `Checkbox`, `DatePicker`, `Dropdown`, `DropdownField`, `Input`, `NumberInput`, `NumberRangeSlider`, `RangeNumberInput`, `Slider`, `Switch`, `TreeDropdown`, `TreeId`, `TreeItemProps`, `MultiSelectContainer`, `ComplexOptionText`, `PartialLoadData`, `useAsyncAutocomplete`.
+
+Кнопки и действия: `ActionsGroup`, `FlatButton`, `IconButton`, `IconButtonButton`, `IconButtonInnerChild`, `IconToggle`, `IconToggleButton`, `RaisedButton`, `Menu`, `Popover`, `Popup`.
+
+Раскладка и типографика: `Blank`, `Chip`, `Description`, `Divider`, `Flex`, `FlexSpan`, `H2`, `Icon`, `IconTypesKeys`, `LegendToggler`, `Tooltip`, `Dialog`, `DialogActions`, `DialogContent`, `DialogTitle`.
+
+Загрузка и файлы: `CircularProgress`, `LinearProgress`, `Preview`, `IPreviewImage`, `Uploader`, `UploaderItemArea`, `UploaderItemProps`, `UploaderTitleWrapper`.
+
+Тема и утилиты: `ITheme`, `ThemeProvider`, `defaultTheme`, `darkTheme`, `shadows`, `transition`, `getLocale`, `dateFormat`, `IOption`, `IJSXOption`, `INotificationItem`, `DraggableTreeContainer`, `useDragAndDropEffect`.
 
 ## @evergis/charts
 
-`BarChartMarker`, `LineChart`, `PieChart`, `PieChartData`
+`BarChart`, `BarChartData`, `BarChartMarker`, `BarChartMarshalledGroup`, `BarChartMergedData`, `LineChart`, `LineChartProps`, `PieChart`, `PieChartData`, `barChartClassNames`, `lineChartClassNames`
 
 ## Redux
 
@@ -53,7 +67,9 @@
 | `d3` | `FEATURE_CARD_DEFAULT_COLORS` (`d3.schemeAccent`) для цветовой палитры карточки |
 | `maplibre-gl` | Типы `CircleLayerSpecification`, `FillLayerSpecification`, `LineLayerSpecification` для `CustomFeatureSelect` |
 | `@xterm/xterm`, `@xterm/addon-fit` | `LogTerminal` — вывод лога Python-задачи в `TaskContainer` |
-| `geojson` | Тип `Geometry` для `SaveHookInput.changedGeometry` (серверные хуки сохранения) |
+| `geojson` | Типы `Geometry`, `FeatureCollection` — `SaveHookInput.changedGeometry` и значение фильтра `valueType: "features"` |
+| `date-fns` | Форматирование дат: таймлайн `ElementCamera` (`useCameraAttribute`), имя PDF-файла в `useExportPdf` |
+| `uuid` | Генерация клиентских id строк таблицы `StructuredDataContainer` |
 
 Браузерные API: `ResizeObserver` — [[hooks\|`useResizeBox`]] (измерение ячейки для `fill`-режима графика).
 

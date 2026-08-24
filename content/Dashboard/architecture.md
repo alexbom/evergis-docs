@@ -60,6 +60,20 @@ GlobalProvider (contexts/GlobalContext)
 
 Для `FeatureCard` схема аналогична, но использует `FeatureCardContext` и `WidgetType.FeatureCard`.
 
+`ContainersGroupContainer` — диспетчер двух раскладок: обычной (`FlowGroup`) и сеточной (`GridGroup`, при `options.grid`). Собственных хуков у диспетчера нет намеренно — `options.grid` переключается на лету, и любой хук до ветвления менял бы их порядок между рендерами.
+
+```
+ContainersGroupContainer
+├── FlowGroup                                 ← обычная раскладка
+└── GridGroup (options.grid)                  ← модуль grid/
+    ├── GridEditSession (options.editMode у ВНЕШНЕГО узла)
+    │   └── GridEditContext → GridGroupView + GridContextMenu
+    └── GridGroupView                         ← вложенные сетки наследуют сессию
+        └── GridTracks → GridTrack → [содержимое ячейки]
+```
+
+Вход в сетку из конфига один — `ContainersGroup` с `options.grid`; наружу отдаётся только листовая часть модуля (типы, константы, утилиты) плюс два хостовых пропа, см. [[containers#Интеграционный API для хостов|Контейнеры]] и [[types#Публичная поверхность сетки|Типы]].
+
 ## Контексты
 
 ### DashboardContext

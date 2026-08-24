@@ -46,7 +46,9 @@ interface ConfigOptions
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик) |
 | `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки grid\|Режим сетки]] |
-| `editMode` | `boolean` | Редактирование раскладки сетки мышью: ресайз границ, выделение, контекстное меню. Читается только у внешнего узла с `grid`. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
+| `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
+| `autoHeight` | `boolean` | Сетка растёт под содержимое: `height` становится минимумом (`min-height`), треки — `minmax(auto, Nfr)`, внутренний скролл трека снимается. Читается у **каждого** узла (сетка, `GridRow`, вложенная сетка) и вверх не поднимается. См. [[containers#Рост под содержимое autoHeight\|Рост под содержимое]] |
+| `fixedHeight` | `boolean` | Высотой сетки распоряжается внешняя раскладка: у корневой строки не рендерится ручка нижней границы, и высоту нельзя утянуть мышью. Нужен сеткам, растянутым на бокс панели фиксированного экрана или дока. Читается только у **корневого** узла сетки в `editMode`; у вложенных ручки высоты нет и так |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
 | `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
 | `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце |
@@ -65,7 +67,7 @@ interface ConfigOptions
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `barHeight` | `number` | Высота StackBar |
 
-**Используется в:** `ElementChart`, `ElementImage`, `ElementSvg`, `ElementControl`, `ChartContainer`, `ContainersGroupContainer`, `DataSourceContainer`, `DataSourceInnerContainer`, `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementChart`, `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 ---
 
@@ -111,6 +113,7 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
+| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`; типы — от источника), без источника — единственная схема и обязательна |
 | `relatedDataSource` | `string` | ⚠️ entity-ref на `[[concepts#Источники данных\|ConfigDataSource]]` (см. `[[types#Branded types\|DataSourceName]]`) |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников с alias/axis для серий графика |
 | `relatedAttributes` | `ConfigRelatedAttribute[]` | Атрибуты из связанных слоёв (join) |
@@ -118,7 +121,7 @@ interface ConfigOptions
 | `responseFilters` | `Record<string, string>` | Фильтры ответа задачи |
 | `hideIfEmptyDataSource` | `string` | Скрыть контейнер, если указанный источник пуст |
 
-**Используется в:** `ElementChart`, `ElementControl`, `ElementLegend`, `ElementSlideshow`, `AttachmentContainer`, `DataSourceContainer`, `DataSourceInnerContainer`, `DataSourceProgressContainer`, `EditAttachmentContainer`, `TaskContainer`.
+**Используется в:** `ElementChart`, `ElementControl`, `ElementLegend`, `ElementSlideshow`, `AttachmentContainer`, `DataSourceContainer`, `DataSourceInnerContainer`, `DataSourceProgressContainer`, `EditAttachmentContainer`, `StructuredDataContainer` (`attributesDescription`, `relatedDataSource`), `TaskContainer`.
 
 ---
 
@@ -195,11 +198,12 @@ interface ConfigOptions
 | `otherItems` | `number` | Лимит «остальных» в развёрнутом списке |
 | `orderByValue` | `boolean` | Сортировать по значению |
 | `orderByTitle` | `boolean` | Сортировать по заголовку |
+| `sort` | `boolean` | Разрешить сортировку представления кликом по заголовку колонки. Сортировка локальная — только вид |
 | `viewMode` | `"grid" \| "list"` | Режим отображения коллекции |
 | `hideEmpty` | `boolean` | Скрывать пустые элементы |
 | `limit` | `number` | Лимит на количество элементов |
 
-**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TabsContainer` (`shownItems`), `TwoColumnContainer` (`hideEmpty`).
+**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TabsContainer` (`shownItems`), `TwoColumnContainer` (`hideEmpty`), `ElementTable` (`sort`).
 
 ---
 

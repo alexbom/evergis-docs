@@ -18,7 +18,7 @@
 | `HeaderTemplate.Background` | **FeatureCardBackgroundHeader** | `WidgetType.FeatureCard` |
 | `HeaderTemplate.Slideshow` | **FeatureCardSlideshowHeader** | `WidgetType.FeatureCard` |
 
-Union типов конфигов шапок: `DashboardHeaderConfig` (см. [[types#Union шапок DashboardHeaderConfig|типы]]). `HeaderTemplate.Default` сразу матчится двумя ветвями (Dashboard vs FeatureCard) — конкретная выбирается на уровне виджета.
+Union типов конфигов шапок: `DashboardHeaderConfig` (см. [[types#Union шапок: DashboardHeaderConfig|типы]]). `HeaderTemplate.Default` сразу матчится двумя ветвями (Dashboard vs FeatureCard) — конкретная выбирается на уровне виджета.
 
 Shared-компоненты в `headers/components/`:
 - **HeaderLayerIcon** — кликабельная иконка слоя с тултипом «приблизить к объекту»; используется во всех `FeatureCard*Header`.

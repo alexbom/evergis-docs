@@ -12,8 +12,10 @@ Dashboard — конфигурационный UI-компонент из пак
 - **Фильтрация** — параметрические фильтры (`SelectedFilters`) + геометрический фильтр (ewkt); умная инвалидация: при изменении фильтра обновляются только затронутые источники
 - **Управление слоями** — управление видимостью и параметрами карт-слоёв через `DashboardLayerPayload`
 - **Real-time через WebSocket** — `autoSyncLayer` на `ConfigDataSource` подписывается на `FeatureLayerUpdated` и автоматически обновляет данные
-- **Разнообразные контейнеры** — 30+ типов: Charts, Filters, DataSource, Edit, Tabs, Layers, Slideshow, Task, ExportPdf и др.
-- **Разнообразные элементы** — 15 типов: Chart, Chips, Control, Image, Link, Icon, Modal, Tooltip, Markdown, Slideshow, Svg, Legend, Camera, Button, Uploader
+- **Раскладка на CSS-сетке** — `ContainersGroup` с `options.grid` строит сетку «строки → ячейки» с долями в `fr` и неограниченной вложенностью; `options.editMode` включает правку раскладки мышью (ресайз границ, объединение, деление, перестановка ячеек), результат уходит хосту через `onContainerChange`
+- **Разнообразные контейнеры** — 36 шаблонов: Chart, Filters, DataSource, Edit*, Tabs, Layers, Slideshow, Task, ExportPdf, Attachment, StructuredData, GridRow и др.
+- **Разнообразные элементы** — 16 типов: Chart, Chips, Control, Image, Link, Icon, Modal, Tooltip, Markdown, Slideshow, Svg, Legend, Camera, Button, Uploader, Table
+- **Структурированные данные** — контейнер `StructuredData` даёт редактируемую таблицу со схемой прямо в конфиге; результат правки уходит потребителям `FeatureCollection`-фильтром
 - **Несколько типов шапок** — Dashboard Default и 3 типа FeatureCard (Default, Background, Slideshow)
 - **Экспорт в PDF** — через `useExportPdf`, использует `jsPDF` + `html2canvas`
 - **Карточка объекта (FeatureCard)** — отдельный виджет для отображения атрибутов выбранного объекта слоя, работает параллельно с Dashboard
