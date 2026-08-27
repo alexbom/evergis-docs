@@ -414,9 +414,11 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### formatDataSourceCondition
 
-`({ condition, configFilters, filters, attributes, geometry, layerParams?, eqlParameters? }) => string`
+`({ condition, configFilters, filters, attributes, geometry, extent?, zoomLevel?, layerParams?, eqlParameters? }) => string`
 
-Основная утилита подстановки фильтров в EQL-условие. Обрабатывает `$(params)` секции и основную часть условия через `applyVarsToCondition`. Заменяет `%filterName`, `%filterName.min`, `%filterName.max`, `%geometry`, `{attributeName}`.
+Основная утилита подстановки фильтров в EQL-условие. Обрабатывает `$(params)` секции и основную часть условия через `applyVarsToCondition`. Заменяет `%filterName`, `%filterName.min`, `%filterName.max`, `%geometry`, `%extent`, `%zoom`, `{attributeName}`.
+
+Системные фильтры карты (`%geometry`, `%extent`, `%zoom`, см. [[concepts#Системные фильтры карты|Основные понятия]]) подставляются **до** цикла по `configFilters` — одноимённый пользовательский фильтр их не перехватит. `%extent` уходит в кавычках, `%zoom` — числом без кавычек; составные формы (`%zoomLevel`, `%zoom.min`) системная замена не трогает.
 
 ---
 
@@ -426,7 +428,38 @@ Resolves контейнер из реестра — через `getContainerComp
 
 Подставляет в EQL-условие плейсхолдеры уровней иерархического фильтра «tree» — `%name.l{N}` — значениями id соответствующего уровня (формат `[id1,id2,...]` для оператора `IN`). Уровни, отсутствующие в значении (или пустые), не подставляются — плейсхолдер остаётся нетронутым. Форматирование значений уровня делегирует **formatConditionValue**.
 
-Рядом экспортируется type-guard `isTreeFilterValue(value)`, отличающий объектное значение tree-фильтра («уровень → массив id») от скалярных/массивных значений остальных фильтров. См. [[concepts|фильтр «tree»]].
+Type-guards самого значения живут в соседнем модуле — **filterValueKind** (см. ниже).
+
+---
+
+### filterValueKind
+
+Два type-guard'а для объектных значений фильтра. Угадывать вид значения по форме нельзя: `tree` и `features` оба объекты — поэтому дискриминатором служит `ConfigFilter.valueType` (см. [[concepts|Основные понятия]], «Фильтры»).
+
+| Функция | Сигнатура и назначение |
+|---|---|
+| `isFeaturesFilterValue` | `(value?) => value is FeaturesFilterValue` — значение `valueType: "features"` (строки контейнера [[containers\|`StructuredData`]]). Форма самодостаточна (`type: "FeatureCollection"` + массив `features`), поэтому конфиг для проверки не нужен |
+| `isTreeFilterValue` | `(value?, configFilter?) => value is TreeFilterValue` — объектное значение иерархического фильтра «уровень → массив id». Решают два значения `valueType`: `"tree"` → да, `"features"` → нет |
+
+Фолбэк `isTreeFilterValue` (когда `valueType` не задан) намеренно узкий — все ключи вида `l{N}`, все значения массивы. Он нужен существующим конфигам: у tree-фильтров там `valueType` либо отсутствует, либо объявлен как `"array"` (значение при этом всё равно объектное), и трактовать такой фильтр как не-tree значило бы сломать их. Пустой объект — это tree с пустым выбором, а не «неизвестное значение». `Date` отсекается явно.
+
+---
+
+### getMapViewDataSources
+
+`(dataSources?: ConfigDataSource[]) => ConfigDataSource[]`
+
+Источники, чей запрос зависит от текущего вида карты: в `parameters` или `condition` встречаются `%extent` / `%zoom`. При движении карты перезапрашивают только их — иначе каждый пан дёргал бы все запросы страницы. Граница имени та же, что при подстановке: `%zoomLevel` и `%extent_id` в выборку не попадают.
+
+Потребитель — клиентский [[hooks|хук]] `useMapViewRefetch` (client-new).
+
+---
+
+### toConditionsArray
+
+`(value?: string | string[]) => string[]`
+
+Приводит `condition` источника (строка либо массив строк) к массиву для единообразного обхода.
 
 ---
 
@@ -506,6 +539,16 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ---
 
+### hasContainerBgImage
+
+`(elementConfig?: Pick<ConfigContainerChild, "children">) => boolean`
+
+Есть ли у узла конфига слот фонового изображения — ребёнок с `id: "bgImage"` (`BG_IMAGE_SLOT_ID`).
+
+Слой фона рисуется **только** по этому признаку: без узла `bgImage` в конфиге пустой абсолютно позиционированный `div` в DOM не появляется вовсе. Тот же признак поднимает корень контейнера в хост слоя (`$hasBgImage` → `bgImageHostMixin`). Потребители — [[components|`ContainerBackground`]], [[hooks|`useWrapperSize`]] и [[hooks|`useBgImageHost`]]. Механика целиком — в [[concepts#Универсальные слоты и фон контейнера|Основных понятиях]].
+
+---
+
 ### isEmptyElementValue
 
 `(value?: unknown) => boolean`
@@ -564,11 +607,11 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### applyQueryFilters
 
-`({ parameters, filters, selectedFilters, geometry, attributes?, layerInfo?, dataSources, projectDataSources? }) => Record<string, any>`
+`({ parameters, filters, selectedFilters, geometry, extent?, zoomLevel?, attributes?, layerInfo?, dataSources, projectDataSources? }) => Record<string, any>`
 
 Резолвит значения `parameters` (EQL-параметров или параметров python-скрипта) из нескольких источников:
 
-- `%filterName` → значение фильтра; поддерживает `.min`, `.max`, `.property` и `%geometry`;
+- `%filterName` → значение фильтра; поддерживает `.min`, `.max`, `.property`, а также системные `%geometry`, `%extent` (строка EWKT) и `%zoom` (**число**);
 - `$card:layerName:fieldName` → значение атрибута текущего объекта FeatureCard (из `attributes`, если `layerInfo.name === layerName`);
 - `$left:layerName:fieldName` → значение из первого feature `projectDataSources` по имени слоя;
 - `{attributeName}` → подстановка/интерполяция значений атрибутов объекта.
@@ -653,7 +696,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 | Функция | Сигнатура и назначение |
 |---|---|
-| `getLayoutChildren` | `(node?) => ConfigContainerChild[]` — дети, которые реально становятся треками: слоты заголовка (`TITLE_SLOT_IDS`) исключаются. `ContainerChildren` их не рендерит, и в `grid-template-*` их быть не должно — иначе треков окажется больше, чем ячеек, и раскладка съедет |
+| `getLayoutChildren` | `(node?) => ConfigContainerChild[]` — дети, которые реально становятся треками: универсальные слоты (`NON_TRACK_SLOT_IDS` — `title`, `titleIcon`, `bgImage`) исключаются. `ContainerChildren` их не рендерит, и в `grid-template-*` их быть не должно — иначе треков окажется больше, чем ячеек, и раскладка съедет |
 | `getTrackSizeKey` | `(axis) => "height" \| "width"` — в какой опции лежит доля трека: у строки — высота, у ячейки — ширина |
 | `parseFrValue` | `(size?) => number` — доля числом. Значения не в `fr` (px, проценты, `auto`) сеткой не поддерживаются и считаются за `1fr`: смешение фиксированных и резиновых треков сломало бы инвариант ресайза «сумма долей пары неизменна» |
 | `getTrackSizes` | `(children, axis) => number[]` — доли всех треков одного родителя в порядке следования |
@@ -666,7 +709,7 @@ Resolves контейнер из реестра — через `getContainerComp
 | Функция | Сигнатура и назначение |
 |---|---|
 | `isGridNode` | `(node?) => boolean` — узел-сетка: `ContainersGroup` с `options.grid` |
-| `setLayoutChildren` | `(node, children) => ConfigContainerChild` — подменяет «раскладочных» детей, сохраняя слоты заголовка (кладутся первыми — их порядок относительно тела ни на что не влияет) |
+| `setLayoutChildren` | `(node, children) => ConfigContainerChild` — подменяет «раскладочных» детей, сохраняя универсальные слоты заголовка и фона (кладутся первыми — их порядок относительно тела ни на что не влияет: тело их отфильтровывает, а `ExpandableTitle` и `ContainerBackground` ищут по `id`) |
 | `mapNodeById` | `(node, id, mapper) => ConfigContainerChild` — иммутабельно применяет `mapper` к узлу с заданным `id` где угодно в поддереве; `null` из маппера удаляет узел. Незатронутые ветки возвращаются по прежней ссылке, поэтому `memo`-контейнеры не перерисовываются. Пустой `id` — no-op: иначе `undefined === undefined` совпало бы с корнем и правка ушла бы не туда |
 | `containsNodeId` / `replaceNodesByIds` | Поиск id в поддереве и пакетная замена узлов |
 | `findCellContext` | `(grid, cellId) => GridCellContext \| null` — ищет ячейку по всему дереву сеток, включая вложенные; возвращает ближайший к ней контекст (`grid`, `row`, `rows`, `cells`, `rowIndex`, `cellIndex`) |
@@ -713,9 +756,9 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### roundTotalSum
 
-`(value: number) => string | number`
+`(value: number, fractionDigits?: number) => string | number`
 
-`>= 1 000 000` → `"1.0M"`, `>= 10 000` → `"10.0K"`, иначе число без изменений. Лежит не в `Dashboard/utils/`, а в общем `packages/react/src/utils/` — используется компонентом [[components|`Chart`]] для итога в центре PieChart.
+`>= 1 000 000` → `"1.0M"`, `>= 10 000` → `"10.0K"`, иначе число без изменений; `0`/пустое значение → `""`. Число знаков после запятой — `fractionDigits`, по умолчанию `COMPACT_FRACTION_DIGITS` (`1`). Лежит не в `Dashboard/utils/`, а в общем `packages/react/src/utils/` — используется компонентом [[components|`Chart`]] для итога в центре PieChart и форматтером `formatAttributeValue` (там `fractionDigits` приходит из `stringFormat.rounding`).
 
 ---
 

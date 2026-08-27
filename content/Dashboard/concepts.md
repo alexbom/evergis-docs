@@ -57,6 +57,14 @@
 
 Хук: [[hooks|хук]] `useDataSources`. Имя источника типизируется branded-типом [[types#Branded types|DataSourceName]] (`asDataSourceName`).
 
+**Задержка запроса — `debounce`.** Необязательное поле источника (мс, по умолчанию `0` — запрос сразу). Дебаунсит **любой** перезапрос этого источника: смену фильтров, движение карты (`%extent`/`%zoom`), autoSync-уведомления, правку конфига и первичную загрузку. Серия быстрых событий схлопывается в один сетевой вызов — нужно тяжёлым источникам.
+
+```json
+{ "name": "heavy_stats", "layerName": "deals", "condition": "ST_Intersects(geom, %extent)", "debounce": 500 }
+```
+
+Во время задержки контейнер показывает прежние данные, а не спиннер: `setProjectDataSourcesAreLoading` взводится уже при отправке запроса. Источник, которого ещё нет в сторе, всё это время рисует свой `ContainerLoading`.
+
 ### Настройка атрибутов источника — секция `attributes`
 
 Иногда атрибуты приходят «сырыми»: у EQL- и python-источника слоя нет вообще, а у слоя формат может не совпадать с тем, как значение нужно показать в конкретном дашборде. Для этого у источника есть секция `attributes` (`ConfigDataSourceAttribute[]`) — она **накладывается поверх** атрибутов слоя или ответа запроса.
@@ -173,7 +181,34 @@ interface SelectedFilter {
 
 Подстановка tree-значения в условие — [[utils|утилита]] `applyTreeFilterToCondition`: заменяет плейсхолдеры уровней `%name.l{N}` на список id (`[id1,id2,...]` для оператора `IN`). Пустые/отсутствующие уровни не подставляются. Вызывается из `applyFiltersToCondition` (которую агрегирует `formatDataSourceCondition`) для значений, прошедших проверку `isTreeFilterValue`.
 
-**Геометрический фильтр:** специальный фильтр с именем `geometry`. Позволяет фильтровать объекты на карте по нарисованной области (polygon, bbox). Передаётся как `ewktGeometry` через [[setup|GlobalContext]]. При вставке в условие: `%geometry` → `'SRID=4326;POLYGON(...)'`. Пример: пользователь рисует прямоугольник на карте → все источники данных с `%geometry` в условии перезапрашиваются для выбранного района.
+### Системные фильтры карты
+
+Три имени зарезервированы: их значения приходят не из `SelectedFilters`, а из [[setup|GlobalContext]], и подставляются до пользовательских фильтров. Одноимённый фильтр в конфиге будет перехвачен системной подстановкой.
+
+| Плейсхолдер | Источник в GlobalContext | Что подставляется | Меняется |
+|---|---|---|---|
+| `%geometry` | `ewktGeometry` | `'SRID=3857;POLYGON(...)'` — область, **нарисованная пользователем** (polygon, bbox, зоны с буфером) | по завершении рисования |
+| `%extent` | `ewktExtent` | `'SRID=3857;POLYGON(...)'` — прямоугольник **видимой области карты** | по событию `idle` карты (пан, зум) |
+| `%zoom` | `zoomLevel` | целое число без кавычек, `Math.round(map.getZoom())` | там же |
+
+Работают и в `condition`, и в `parameters` (включая секции `$(param=...)`). В `parameters` `%zoom` уходит **числом**, а не строкой — единственная нестроковая системная подстановка.
+
+Граница имени: составные формы достаются пользовательским фильтрам — `%zoomLevel`, `%extent_id`, `%zoom.min` системная замена не трогает.
+
+```json
+{
+  "name": "visible_buildings",
+  "layerName": "buildings",
+  "condition": "ST_Intersects(geom, %extent) AND detail_level <= %zoom",
+  "debounce": 500
+}
+```
+
+**Перезапрос по движению карты.** Изменение вида карты перезапрашивает **только** источники, у которых `%extent`/`%zoom` реально встречаются в `condition` или `parameters` — их отбирает [[utils|утилита]] `getMapViewDataSources`. Стор при этом не сбрасывается, поэтому соседние контейнеры не мигают «Блок не загружен». Геометрический фильтр устроен иначе: смена `ewktGeometry` перезагружает страницу целиком со сбросом стора.
+
+**Слои карты.** Те же три плейсхолдера работают в `query` и `parameters` слоя (`ConfigLayer`) — их резолвят хуки client-new `useTempLayerConditions` и `useTempLayerParams`, читая значения из того же `GlobalContext`. Результат уходит в серверный фильтр слоя (`api.filters.create` / `update`), после чего тайлы перерисовываются. Отдельная опция `debounce` слою не нужна: создание фильтра уже дебаунсится на 150 мс в `useLayerFilterQuery`, а `idle` срабатывает только после остановки карты.
+
+Пример `%geometry`: пользователь рисует прямоугольник на карте → все источники данных с `%geometry` в условии перезапрашиваются для выбранного района.
 
 **Подстановка фильтров:** [[utils|утилита]] `formatDataSourceCondition` — заменяет все вхождения `%filterName`, `%filterName.min`, `%filterName.max`, `{attributeName}` в condition на текущие значения фильтров.
 
@@ -198,6 +233,8 @@ interface ConfigLayer {
   maxScale?: number;     // максимальный масштаб отображения
 }
 ```
+
+`query` и `parameters` слоя проходят ту же подстановку, что и условия источников данных: фильтры страницы (`%name`, `%name.min` / `.max`, `%name.lN`), атрибуты карточки (`{attributeName}`, `$card:<layer>:<field>`) и системные значения карты `%geometry` / `%extent` / `%zoom` (см. [[#Системные фильтры карты]]). В UI значение параметра переключается на подстановку кнопкой «%» в панели фильтров слоя — список предлагает фильтры текущей страницы плюс три системных плейсхолдера.
 
 **DashboardLayerPayload** — обновление состояния слоя в runtime: `{ name: string, isVisible?: boolean, condition?: string, ... }`. Вызывается через `setDashboardLayer` из контекста. Имя слоя типизируется branded-типом [[types#Branded types|LayerName]] (`asLayerName`).
 
@@ -279,12 +316,70 @@ interface ConfigLayer {
 
 Слоты `title`, `icon`, `titleIcon` на уровне контейнера уходят в заголовок (`TITLE_SLOT_IDS`): `ContainerChildren` исключает их из рендера тела, а сетка — из подсчёта треков. `title` и `titleIcon` допустимы у **любого** контейнера с заголовком (`ExpandableTitle`) — `Chart`, `Camera`, `Attachment`, `Slideshow`, `Upload`, `Edit`, `Filters`, `Layers`, `Task`, `DataSource`, `DataSourceProgress`, `ContainersGroup` — и поэтому в наборы слотов отдельных контейнеров не входят.
 
+#### Универсальные слоты и фон контейнера
+
+Помимо слотов заголовка у любого контейнера допустим ещё один универсальный slot-id — `bgImage`. Вместе они образуют `NON_TRACK_SLOT_IDS` (`= TITLE_SLOT_IDS + BG_IMAGE_SLOT_ID`): набор slot-id, которые контейнер читает по `id` сам и не отдаёт ни в общий рендер тела (`ContainerChildren`), ни в треки сетки (`gridTracks` / `gridTree`).
+
+| Slot-id | Кто рендерит | Где рисуется | Ограничение |
+|---|---|---|---|
+| `title`, `titleIcon` | [[components\|`ExpandableTitle`]] | заголовок контейнера | нужен контейнер с заголовком |
+| `bgImage` | [[components\|`ContainerBackground`]] | отдельный слой **под** содержимым | у любого контейнера, кроме `Divider` |
+
+**Как устроен фон.** Слот `bgImage` — обычный элемент `type: "image"` (URL берётся из корневого `value`, `attributeName` или `options.resourceId`). Компонент `ContainerBackground` ставится первым ребёнком корня контейнера и рендерит `renderElement({ id: "bgImage", wrap: false })` внутри абсолютного слоя `ContainerBackgroundLayer` (`inset: 0`, `z-index: -1`, `border-radius: inherit`, `pointer-events: none`). Картинка по умолчанию заполняет бокс через `object-fit: cover`; авторский `options.fit` у элемента перебивает дефолт.
+
+**Гейт по наличию слота.** Слой рисуется **только** если узел действительно несёт ребёнка с `id: "bgImage"` — это проверяет [[utils|утилита]] `hasContainerBgImage`. Без слота в DOM не появляется ничего: ни обёртки, ни пустого абсолютного `div`. Тот же признак включает и хост: корень контейнера получает `$hasBgImage` и вместе с ним `position: relative` + `isolation: isolate` (`bgImageHostMixin`). Изоляция принципиальна — отрицательный `z-index` слоя ложится под содержимое хоста только внутри его собственного stacking-контекста, иначе ушёл бы под фон ближайшего предка и пропал. Гейт по `$hasBgImage` тоже не декоративный: `position: relative` меняет containing block для абсолютно позиционированных потомков (контролы слайдшоу, подписи прогресса), поэтому включается лишь там, где автор конфига попросил фон.
+
+Признак попадает на корень двумя путями: контейнеры на [[hooks|`useContainerRoot`]] / `useWrapperSize` получают `$hasBgImage` готовым в пропсах корня, а те, что ставят `id`/`style` руками (`Title`, `Icon`, `Tabs`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground`, `OneColumn`, `TwoColumn`, `DefaultAttributes`, `PagesContainer`, подтипы `Edit*`), берут его хуком [[hooks|`useBgImageHost`]].
+
+**Две опции-компаньона фона.** Обе живут в [[options#ConfigLayoutOptions|`ConfigLayoutOptions`]] и, в отличие от остальных опций контейнера, **не входят ни в один `<Name>Options`** — их читают хук хоста и слой фона напрямую из `options`, поэтому они допустимы у любого контейнера:
+
+| Опция | Кто читает | Что делает |
+|---|---|---|
+| `innerPadding` | [[hooks\|`useBgImageHost`]] → проп `$innerPadding` на корне | Фиксированный внутренний отступ `1rem` (`CONTAINER_INNER_PADDING`) по всем краям корня — содержимое не липнет к краям картинки |
+| `outflow` | [[components\|`ContainerBackground`]] → проп `$outflow` на слое | Слой вытекает за края контейнера на `1.5rem` (`BG_IMAGE_OUTFLOW`) — по бокам и вверх |
+
+`innerPadding` — булев по замыслу: автор конфига включает «отступ от краёв фона», а не подбирает число (для произвольного отступа есть `options.padding`). Значение ставится под селектором `&&`, чтобы перебить `padding` из `$sizeCss` и внутренних `defaults` контейнера; авторский inline-`style` по-прежнему сильнее. Гейт у него **отдельный** от `$hasBgImage`: отступ содержимого нужен и без картинки, поэтому фоном он не обусловлен.
+
+`outflow` читает слой, а не хост: вылет за края — свойство картинки, раскладка контейнера от него не меняется (слой абсолютный, содержимое остаётся в своих границах). `1.5rem` — ровно `padding` карточки контейнера (`ContainerWrapper`), поэтому картинка дотягивается до краёв колонки дашборда. Вниз слой не вытекает никогда: там начинается следующий контейнер колонки. Без слота `bgImage` опция не делает ничего — вытекать нечему; и её обрезает любой предок с `overflow` кроме `visible`, включая собственный `options.overflow` контейнера.
+
+```tsx
+{
+  id: "hero_card",
+  templateName: "ContainersGroup",
+  options: { column: true, height: 240, innerPadding: true, outflow: true },
+  children: [
+    { id: "bgImage", type: "image", options: { resourceId: "1f2e..." } },
+    { id: "title", type: "text", value: "Сводка по округу" }
+  ]
+}
+```
+
+**Исключение — `Divider`.** У разделителя нет ни бокса, ни собственного содержимого: одна линия. Слой фона там молча потерялся бы, поэтому слот у него не поддерживается — клиентский валидатор отдаёт `unexpected-slot`.
+
+**DataSource-хосты.** У `DataSource` / `DataSourceProgress` дети — слоты **внутреннего шаблона**, поэтому `bgImage` достался бы и хосту, и каждой записи: одна картинка нарисовалась бы N+1 раз. `DataSourceInnerContainer` вырезает слот из конфига записи — фон остаётся за хостом, он и есть контейнер.
+
+**Шапки FeatureCard.** `FeatureCardBackgroundHeader` и `FeatureCardSlideshowHeader` рисуют свой `bgImage` тем же компонентом `ContainerBackground` — прежний локальный `ImageContainerBg` убран, а маска `bottomBlur` теперь целится в `ContainerBackgroundLayer`.
+
+```tsx
+{
+  id: "stats_card",
+  templateName: "ContainersGroup",
+  options: { column: true, height: 240 },
+  children: [
+    { id: "bgImage", type: "image", options: { resourceId: "1f2e...", fit: "cover" } },
+    { id: "total", templateName: "OneColumn", children: [{ id: "value", attributeName: "total" }] }
+  ]
+}
+```
+
 Типизация slot-id — литеральные string'и в parent-specific child-типах (`ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, ...). См. [[types#Slot-id — НЕ branded|Slot-id]].
 
 > [!info] Что из таблицы проверяет клиентский валидатор
 > `CONTAINER_SLOT_MAP` (`client-new/src/components/Dashboard/utils/constants.ts`) — зеркало этой таблицы; мастер-источник — документация, при правке обновляй обе стороны.
 >
-> - Слоты заголовка (`title`, `titleIcon`) пропускаются у всех контейнеров.
+> - Универсальные слоты (`title`, `titleIcon`, `bgImage` — `UNIVERSAL_SLOT_IDS`) пропускаются у всех контейнеров: ни в набор слотов, ни в требование `filterName` они не входят.
+> - Слот `bgImage` у `Divider` — ошибка `unexpected-slot`: единственный контейнер, который фон не поддерживает (`NO_BG_IMAGE_TEMPLATE`).
+> - `options.outflow` без слота `bgImage` — ошибка `orphan-option`: вытекать нечему, опция молча не работает. `options.innerPadding` так не проверяется — это обычный отступ, осмысленный и без картинки.
 > - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
 > - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
 > - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`).
@@ -367,7 +462,7 @@ interface ConfigLayer {
 
 - **API** (`api`) — все методы API для запросов к бэкенду
 - **Локализация** (`t`) — функция перевода `i18next`
-- **Карта** (`ewktGeometry`) — геометрический фильтр из карты
+- **Карта** (`ewktGeometry`, `ewktExtent`, `zoomLevel`) — геометрический фильтр, экстент видимой области и уровень зума
 - **Тема** (`themeName`) — `"light"` | `"dark"`
 - **Язык** (`language`) — текущий язык интерфейса
 

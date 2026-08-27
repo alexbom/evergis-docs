@@ -42,6 +42,8 @@ interface ConfigOptions
 | `height` | `CssSize` | Высота корневой обёртки. `"100%"` — заполнить ячейку родителя. Значение в `fr` — доля трека сетки, как у `width` |
 | `overflow` | `"visible" \| "hidden" \| "scroll" \| "auto"` | CSS `overflow` корневой обёртки. Не задана — браузерный `visible`: контент крупнее бокса вытекает на соседние слоты. Значения кроме `visible` обрезают и абсолютных потомков — у `FiltersContainer` это открытый список фильтра |
 | `padding` | `number` | Внутренние отступы |
+| `innerPadding` | `boolean` | Фиксированный внутренний отступ `1rem` по всем краям корня контейнера (`CONTAINER_INNER_PADDING`). Пара к слоту `bgImage`: без отступа содержимое прилипает к краям картинки. От `padding` отличается тем, что не требует числа и не участвует в расчёте размеров обёртки (`getWrapperSizeStyle`). Гейт **не** привязан к наличию фона — отступ работает и без него. Читается [[hooks\|`useBgImageHost`]] / [[hooks\|`useWrapperSize`]] напрямую из `options` |
+| `outflow` | `boolean` | Слой фонового изображения (`bgImage`) вытекает за края контейнера на `1.5rem` (`BG_IMAGE_OUTFLOW`) — по бокам и **вверх**, вниз никогда: там начинается следующий контейнер колонки. Раскладку не меняет — слой абсолютный, содержимое остаётся в своих границах. Без слота `bgImage` не делает ничего; обрезается любым предком с `overflow` кроме `visible`, включая собственный `options.overflow`. Читает сам слой ([[components\|`ContainerBackground`]]), а не хост |
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик) |
@@ -68,6 +70,8 @@ interface ConfigOptions
 | `barHeight` | `number` | Высота StackBar |
 
 **Используется в:** `ElementChart`, `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+
+`innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
 ---
 
@@ -249,8 +253,9 @@ interface ConfigOptions
 | `maxValue` | `number \| Date` | Максимум диапазона |
 | `noEmptyOption` | `boolean` | Запретить пустой выбор |
 | `fileExtensions` | `string` | Допустимые расширения файлов (например, `".pdf,.png"`) |
+| `editOnly` | `boolean` | Оставить таблице ([[elements#ElementTable\|`table`]]) только правку существующих строк: кнопки «Добавить» и колонки удаления не будет. Поверх `editMode` контейнера. Опция объявлена у представления, а читает её [[containers#StructuredDataContainer\|контейнер]] — кнопка добавления его |
 
-**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild`, `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`).
+**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild`, `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`).
 
 ---
 
@@ -298,6 +303,8 @@ interface ConfigOptions
 
 > [!note] Опции, потребляемые пайплайном рендера
 > Часть полей читается **пайплайном рендера** напрямую из `options`, а не пропсами компонента — их «Используется в» определяется по фактическому чтению в коде, а не по тому, чей `<Name>Options` их Pick'ает. Ключевой пример — **`innerTemplateName`**: его читает [[containers|`getRenderElement`]] и конвертирует в `innerComponent` (`getContainerComponent`) для `DataSourceContainer`/`DataSourceProgressContainer`; сам контейнер этой опции в пропсах не видит, хотя она и перечислена в его `<Name>Options`. Не считай такие поля неиспользуемыми только потому, что компонент к ним не обращается.
+>
+> Тем же путём идут **`innerPadding`** и **`outflow`** из [[options#ConfigLayoutOptions|ConfigLayoutOptions]] — с той разницей, что их не Pick'ает **ни один** `<Name>Options`: `innerPadding` читает [[hooks|`useBgImageHost`]] (через него — `useWrapperSize`/`useContainerRoot`) и кладёт на корень пропом `$innerPadding`, `outflow` читает сам слой [[components|`ContainerBackground`]] пропом `$outflow`. Поэтому обе опции допустимы у любого контейнера, а не у перечисленного списка.
 
 ---
 

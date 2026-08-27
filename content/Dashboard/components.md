@@ -6,6 +6,20 @@
 
 ---
 
+## AddButton
+
+**Назначение:** Общая на весь дашборд кнопка «добавить»: серая скруглённая, со значком и подписью. Экспортируется одним styled-компонентом `AddButtonRow` (обёртка над `IconButton` из `@evergis/uilib-gl`) — вложения ([[containers|`AttachmentContainer`]]) и таблица структурированных данных ([[containers|`StructuredDataContainer`]]) добавляют одинаковой кнопкой, разница только в значке.
+
+**Props:** собственных нет — принимает пропсы `IconButton` (`icon`, `onClick`, `children` как подпись).
+
+Размеры сняты с макета: высота 24, поля 10, просвет между значком и подписью 6, значок и подпись по 14. Значок приглушён цветом иконки, подпись остаётся `textPrimary`.
+
+```tsx
+<AddButtonRow icon="plus" onClick={onAdd}>{t("addRow")}</AddButtonRow>
+```
+
+---
+
 ## AddFeatureButton
 
 **Назначение:** Кнопка добавления нового объекта на карту-слой.
@@ -71,9 +85,39 @@
 
 ---
 
+## ContainerBackground
+
+**Назначение:** Фоновое изображение контейнера — универсальный слот `bgImage`. Рендерит ребёнка со слотом `bgImage` внутри абсолютного слоя `ContainerBackgroundLayer`, который лежит **под** содержимым контейнера. Слота нет в конфиге — в DOM не появляется ничего: ни обёртки, ни пустого слоя.
+
+**Props (`ContainerBackgroundProps` = `Pick<ContainerProps, "elementConfig" | "renderElement">`):**
+| Prop | Тип | Описание |
+|---|---|---|
+| `elementConfig` | `ConfigContainerChild?` | конфиг контейнера — в нём ищется ребёнок с `id: "bgImage"` |
+| `renderElement` | `RenderElementFunction?` | рендер слота; вызывается как `renderElement({ id: "bgImage", wrap: false })` |
+
+**Требование к хосту.** Ставится **первым** ребёнком корня контейнера, и корень обязан быть хостом слоя: `bgImageHostMixin` + проп `$hasBgImage`. У контейнеров на [[hooks|`useContainerRoot`]] / `useWrapperSize` признак приходит готовым в пропсах корня; те, что ставят `id`/`style` руками, берут его хуком [[hooks|`useBgImageHost`]].
+
+**Как устроен слой (`ContainerBackgroundLayer`, пропсы `BgImageLayerProps`):** `position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none`, вложенная `img` — `object-fit: cover`. Отрицательный `z-index` ложится под содержимое хоста, но поверх его фона, только внутри собственного stacking-контекста (`isolation: isolate` в миксине) — без изоляции слой ушёл бы под фон ближайшего предка-контекста и пропал.
+
+**`options.outflow` читает слой, а не хост.** Флаг приходит пропом `$outflow` и меняет `inset` на `-1.5rem -1.5rem 0` (`BG_IMAGE_OUTFLOW`): картинка вытекает по бокам и вверх, вниз — никогда, иначе она наползала бы на следующий контейнер колонки. Раскладка хоста при этом не меняется: слой абсолютный, содержимое остаётся в своих границах. `1.5rem` — ровно `padding` карточки контейнера (`ContainerWrapper`), поэтому картинка дотягивается до краёв колонки дашборда.
+
+Парная опция `options.innerPadding` живёт на хосте, а не на слое: она приходит пропом `$innerPadding` и даёт корню `padding: 1rem` (`CONTAINER_INNER_PADDING`) — см. [[hooks|`useBgImageHost`]].
+
+Наличие слота определяет [[utils|утилита]] `hasContainerBgImage`. Полное описание механики — в [[concepts#Универсальные слоты и фон контейнера|Основных понятиях]].
+
+```tsx
+<ContainerRoot {...root}>
+  <ContainerBackground elementConfig={elementConfig} renderElement={renderElement} />
+  <ExpandableTitle ... />
+  <ContainerChildren ... />
+</ContainerRoot>
+```
+
+---
+
 ## ContainerChildren
 
-**Назначение:** Рендерит список дочерних элементов контейнера. Исключает служебные (`title`, `icon`, `titleIcon`), проверяет `hideIfEmptyDataSource`.
+**Назначение:** Рендерит список дочерних элементов контейнера. Исключает универсальные слоты, которые контейнер читает по `id` сам (`NON_TRACK_SLOT_IDS` — `title`, `titleIcon`, `bgImage`), проверяет `hideIfEmptyDataSource`.
 
 **Props (`ContainerChildrenProps`):**
 | Prop | Описание |

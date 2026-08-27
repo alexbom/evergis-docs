@@ -17,7 +17,7 @@
 | `useProjectDataSourceFilters()` | `components/Dashboard/hooks` | `filters`, `changeFilters` |
 | `useDashboardPages()` | `components/Dashboard/hooks` | `nextPage`, `prevPage`, `changePage` |
 | `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
-| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки (см. [[authoring\|Правила генерации]]) |
+| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider` и `options.outflow` без этого слота (`orphan-option`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
 | `useLayersListVisibility()` | `components/MainPanel/hooks` | `isVisible`, `toggleVisibility` |
 
 Колбэк `selectAttachmentsFromCatalog` открывает диалог `DIALOGS.RESOURCE_CATALOG` (`ResourceCatalogOptions`) и передаёт выбранные `CatalogResourceDc[]` через `onApply`.
@@ -174,18 +174,35 @@ import { replaceObject } from "find-and";
 |---|---|---|
 | `t` | `i18n["t"]` | Функция перевода |
 | `language` | `string` | Язык интерфейса |
-| `ewktGeometry` | `string` | EWKT-геометрия для геофильтра |
+| `ewktGeometry` | `string` | EWKT-геометрия геофильтра — область, нарисованная пользователем (`SRID=3857`) |
+| `ewktExtent` | `string` | EWKT-экстент видимой области карты (`SRID=3857`) — плейсхолдер `%extent` |
+| `zoomLevel` | `number` | Целый уровень зума карты — плейсхолдер `%zoom` |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
-| `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`). Нужен для прогресс-уведомлений серверных [[hooks|хуков]] `beforeSave`/`afterSave` |
+| `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`). Нужен для прогресс-уведомлений серверных [[hooks\|хуков]] `beforeSave`/`afterSave` |
 
 ```tsx
-<GlobalProvider api={api} t={t} ewktGeometry={geometry} themeName="Light">
+<GlobalProvider api={api} t={t} ewktGeometry={geometry} ewktExtent={extent} zoomLevel={zoom} themeName="Light">
   <DashboardProvider config={config} ...>
     ...
   </DashboardProvider>
 </GlobalProvider>
 ```
+
+### Кто заполняет свойства карты (client-new)
+
+Файл: `src/providers/GlobalProvider/index.tsx` — обёртка отрендерена внутри `MapProvider`, поэтому обоим хукам доступен `useMapContext()`.
+
+| Проп | Хук | Что делает |
+|---|---|---|
+| `ewktGeometry` | `useEwktGeometry()` (`src/hooks/map`) | EWKT нарисованного выделения с буфером |
+| `ewktExtent`, `zoomLevel` | `useMapView()` (`src/hooks/map`) | Снимок вида карты по событию `idle`; `getMapView` (`src/evergis/map`) клампит bounds по границам меркатора и конвертирует через `geometryToEwkt` |
+
+Подписка идёт на `idle`, а не на `moveend`: последний ловит и синтетические события от `stop()` во время программного `flyTo` и отдавал бы промежуточные координаты интерполяции.
+
+Перезапрос источников при смене вида карты делает `useMapViewRefetch` (`components/Dashboard/hooks`), отбирая источники через [[utils|`getMapViewDataSources`]]; пер-источниковую задержку `debounce` применяет `useDataSourceDebounce` — общая обёртка над загрузчиком, через которую проходят все триггеры перезапроса.
+
+Слои карты берут `ewktExtent` и `zoomLevel` из этого же контекста — `useTempLayerConditions` и `useTempLayerParams` (`src/hooks/project`) вызывают `useGlobalContext()`, поэтому подписка на `idle` в приложении ровно одна.
 
 ---
 
@@ -200,6 +217,19 @@ import { replaceObject } from "find-and";
 - Иначе → `<DashboardWrapper>` с `<FiltersUpdatingOverlay />` (если `filtersUpdating` из слайса `dashboard`) + `<DashboardBase />` из `@evergis/react`
 
 `useDashboardStatus` не только считает флаги (`useDashboardsOpen` + `isEmpty(currentPage)`), но и запускает загрузку: внутри он вызывает `useReferenceLayerInfos()` (метаданные слоёв страницы) и `useProjectDataSources()` (источники данных страницы, вместе с подписками `autoSyncLayer` через `useDataSourceSubscriptions` — см. [[concepts#Real-time обновления|Real-time обновления]]).
+
+Какие именно источники уйдут в запрос, решает утилита `getUnloadedDataSources` (`components/Dashboard/utils`): источник считается загруженным, только если в сторе под его именем лежит **массив** `features` и сигнатура запроса совпадает с текущей. Сигнатура собирается из `DATA_SOURCE_REQUEST_FIELDS` (`ds`, `query`, `parameters`, `condition`, `layerName`, `limit`, `url`, `resourceId`, `fileName`, `methodName`). После ошибки в сторе остаётся `null` — такой источник запрашивается снова. Отдельный вход `outdatedNames` добивает случай, когда сигнатура та же, а значения фильтров уже другие.
+
+---
+
+## Наполнение текущей страницы (client-new)
+
+Два хука дописывают сущности в конфиг текущей страницы из панелей каталога — оба ходят через `updateConfigPage` из [[hooks|`useWidgetPage`]] и подсвечивают счётчик новинок соответствующей панели (`useNewItemsUpdate`):
+
+| Хук | Что добавляет | Особенности |
+|---|---|---|
+| `useAddCurrentPageDataSources()` | `(sourcesToAdd: ConfigDataSource[]) => void` — источники в `currentPage.dataSources` | дедупликации нет: вызывающая сторона отдаёт уже отобранное; счётчик панели `Data` |
+| `useAddCurrentPageTasks()` | `(resources: CatalogResourceDc[]) => void` — задачи в `currentPage.tasks` | ресурсы каталога конвертируются `catalogResourceToConfigTask`; дубли отсекаются по `systemName` / `resourceId` уже добавленных задач, задачи без `name` отбрасываются; счётчик панели `Tools`. Пустой результат — выход без записи в конфиг |
 
 ---
 

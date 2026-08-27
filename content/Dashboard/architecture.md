@@ -53,10 +53,14 @@ GlobalProvider (contexts/GlobalContext)
             └── ContainerChildren (components/ContainerChildren)
                 └── [ContainerComponent по registry]
                     │   (ContainersGroupContainer, ChartContainer, ...)
+                    ├── ContainerBackground → слот bgImage (слой под содержимым)
+                    ├── ExpandableTitle    → слоты title / titleIcon
                     └── renderElement({ id })
                         └── [ElementComponent по registry]
                             (ElementChart, ElementImage, ...)
 ```
+
+Три slot-id универсальны: контейнер читает их по `id` сам и не отдаёт ни в общий рендер тела, ни в треки сетки (`NON_TRACK_SLOT_IDS`). `title` / `titleIcon` уходят в `ExpandableTitle`, `bgImage` — в `ContainerBackground`. Детали — [[containers#Универсальные слоты|Контейнеры]].
 
 Для `FeatureCard` схема аналогична, но использует `FeatureCardContext` и `WidgetType.FeatureCard`.
 
@@ -83,7 +87,7 @@ ContainersGroupContainer
 Хранит атрибуты и конфиг карточки объекта, layerInfo, controls, edit-состояние. Читается через `useWidgetContext(WidgetType.FeatureCard)`.
 
 ### GlobalContext
-Глобальные настройки: `api`, `t`, `ewktGeometry`, `themeName`, `language`. Читается через `useGlobalContext()`.
+Глобальные настройки: `api`, `t`, `ewktGeometry`, `ewktExtent`, `zoomLevel`, `themeName`, `language`. Читается через `useGlobalContext()`.
 
 Подробнее о контекстах — в [[concepts|Основных понятиях]].
 

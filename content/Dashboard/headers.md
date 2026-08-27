@@ -7,7 +7,7 @@
 
 Шапки рендерятся через [[utils|утилиты]] `getDashboardHeader` / `getFeatureCardHeader` по `templateName` из конфига. Точка входа — [[components|компонент]] `DashboardHeader` (для Dashboard) и `FeatureCardHeader` (для FeatureCard).
 
-Дочерние элементы шапки **обязательно** идентифицируются по slot-`id` из фиксированного набора (`title`, `description`, `bgImage`, `icon`, `slideshow`) — конкретный набор зависит от типа шапки. Подробности и таблица slot-id — в [[concepts#ID контейнеров и элементов|разделе про id]].
+Дочерние элементы шапки **обязательно** идентифицируются по slot-`id` из фиксированного набора (`title`, `description`, `bgImage`, `icon`, `slideshow`) — конкретный набор зависит от типа шапки. Подробности и таблица slot-id — в [[concepts#ID контейнеров и элементов|разделе про id]]. Слот `bgImage` у шапок — тот же универсальный слот фона, что и у контейнеров: рендерится общим [[components|`ContainerBackground`]].
 
 `HeaderTemplate` enum (см. [[types|Типы]]):
 
@@ -148,7 +148,7 @@ DefaultHeaderWrapper(withPadding, height)
 |---|---|
 | `title` | Заголовок (рендерится через `renderElement({ id: "title", wrap: false })`) |
 | `description` | Подзаголовок / краткое описание |
-| `bgImage` | Фоновое изображение (в `ImageContainerBg`) |
+| `bgImage` | Фоновое изображение — универсальный слот, рендерится общим [[components\|`ContainerBackground`]] в слое `ContainerBackgroundLayer` |
 | `icon` | Иконка объекта (в `HeaderIcon`) — обычно `type: "svg"` или `type: "icon"` |
 
 **Структура:**
@@ -159,7 +159,7 @@ BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $
           ├── HeaderFrontView
           │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
           │   └── FeatureCardButtons
-          ├── ImageContainerBg → renderElement(id="bgImage")
+          ├── ContainerBackground → ContainerBackgroundLayer → renderElement(id="bgImage")
           └── HeaderIcon → renderElement(id="icon")
 ```
 
@@ -178,7 +178,12 @@ BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $
 }
 ```
 
-> ⚠️ `bgImage` — это `type: "image"`, URL лежит в **корневом** `value` (или `attributeName`), а не в `options.value`. В `options` для image допустимы только `width`, `height` и `fit` (см. [[elements#ElementImage]]).
+> ⚠️ `bgImage` — это `type: "image"`, URL лежит в **корневом** `value` (или `attributeName`, или `options.resourceId`), а не в `options.value`. В `options` для image допустимы только `width`, `height` и `fit` (см. [[elements#ElementImage]]).
+
+> [!info] `bgImage` — общий слот, а не приватная деталь шапки
+> Фон шапки рисует тот же компонент [[components|`ContainerBackground`]], что и фон обычного контейнера: прежний локальный `ImageContainerBg` убран. Слот `bgImage` универсален — допустим у любого контейнера, кроме `Divider` (см. [[concepts|Основные понятия]], «Универсальные слоты и фон контейнера»). Маска `bottomBlur` у `FeatureCardBackgroundHeader` теперь целится в `ContainerBackgroundLayer`.
+>
+> По умолчанию картинка растягивается `object-fit: cover`; авторский `options.fit` у элемента перебивает дефолт слоя.
 
 ---
 
@@ -212,7 +217,7 @@ BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $
 |---|---|
 | `title` | Заголовок поверх изображений |
 | `description` | Подзаголовок |
-| `bgImage` | Статическое фоновое изображение (под слайдшоу) |
+| `bgImage` | Статическое фоновое изображение (под слайдшоу) — общий [[components\|`ContainerBackground`]] |
 | `slideshow` | Источник изображений (`type: "slideshow"`) — `attributeName` со списком URL или `relatedDataSource` |
 
 **Структура:**
@@ -223,7 +228,7 @@ SlideshowHeaderWrapper(fontColor, withPadding, height, big)
           ├── HeaderFrontView
           │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
           │   └── FeatureCardButtons
-          ├── ImageContainerBg → renderElement(id="bgImage")
+          ├── ContainerBackground → ContainerBackgroundLayer → renderElement(id="bgImage")
           └── HeaderSlideshow(height) → renderElement(id="slideshow")
 ```
 

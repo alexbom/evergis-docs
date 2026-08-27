@@ -64,11 +64,13 @@ Slot-id обязателен у каждого элемента — без не�
 
 Литеральные slot-id (`"alias"`, `"chart"`, `"legend"`, `"title"`, `"value"`, `"units"`, ...) — это не entity-id, а ключи фиксированного набора. Они сужаются через literal `id` в parent-specific child-типах (см. `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild` в `componentTypes.ts`).
 
+Три slot-id универсальны и в parent-specific child-типах не перечисляются — их наборы задаются константами: `TITLE_SLOT_IDS` (`title`, `titleIcon`), `BG_IMAGE_SLOT_ID` (`bgImage`) и их объединение `NON_TRACK_SLOT_IDS` — узлы, которые контейнер читает по `id` сам и не отдаёт ни в рендер тела, ни в треки сетки (см. [[containers#Универсальные слоты|Контейнеры]]).
+
 ---
 
 ## Дискриминированный union `DashboardChild`
 
-`DashboardChild` — union из 49 ветвей: 15 `<Name>ElementConfig` и 34 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
+`DashboardChild` — union из 51 ветви: 16 `<Name>ElementConfig` и 35 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
 
 - **элементы** — поле `type` (`"button"`, `"camera"`, `"chart"`, ...);
 - **контейнеры** — поле `templateName` (`"AddFeature"`, `"Attachment"`, `"Chart"`, ...).
@@ -92,6 +94,7 @@ Slot-id обязателен у каждого элемента — без не�
 | `ElementModalConfig` | `"modal"` |
 | `ElementSlideshowConfig` | `"slideshow"` |
 | `ElementSvgConfig` | `"svg"` |
+| `ElementTableConfig` | `"table"` |
 | `ElementTooltipConfig` | `"tooltip"` |
 | `ElementUploaderConfig` | `"uploader"` |
 
@@ -128,6 +131,7 @@ Slot-id обязателен у каждого элемента — без не�
 | `ProgressContainerConfig` | `ContainerTemplate.Progress` |
 | `RoundedBackgroundContainerConfig` | `ContainerTemplate.RoundedBackground` |
 | `SlideshowContainerConfig` | `ContainerTemplate.Slideshow` |
+| `StructuredDataContainerConfig` | `ContainerTemplate.StructuredData` |
 | `TabsContainerConfig` | `ContainerTemplate.Tabs` |
 | `TaskContainerConfig` | `ContainerTemplate.Task` |
 | `TitleContainerConfig` | `ContainerTemplate.Title` |
@@ -177,7 +181,7 @@ const child: StrictConfigContainerChild = {
 
 | Миксин | Поля | Кто подмешивает | Зачем |
 |---|---|---|---|
-| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `Task`, `TwoColumn`, `Upload` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
+| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Task`, `TwoColumn`, `Upload` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
 | `NumericSizeOptions` | `width?: number`, `height?: number` | `ElementChart`, `ElementSvg`, `ElementControl` (только `width`) | размеры, которые обязаны остаться **числом в пикселях**: значение уходит в вычисления геометрии графика или в HTML-атрибут, где `"100%"` не работает |
 
 `ContainerBoxOptions` даёт `CssSize` (число = px, строка = любое CSS-значение); `"100%"` включает fill-режим обёртки (см. [[utils|`getWrapperSizeStyle`]]). `NumericSizeOptions`, наоборот, сужает те же имена до `number` — поэтому у `ElementChart` в таблице ниже `width`/`height` числовые, а у `ChartContainer` — `CssSize`.
@@ -201,6 +205,7 @@ const child: StrictConfigContainerChild = {
 | `ElementModal` | `"modal"` | `modalId`, `icon` |
 | `ElementSlideshow` | `"slideshow"` | `expandable`, `expanded`, `relatedDataSource`, `controls` |
 | `ElementSvg` | `"svg"` | `width`, `height`, `fontColor` |
+| `ElementTable` | `"table"` | `sort`, `editOnly`, `width`, `height` |
 | `ElementTooltip` | `"tooltip"` | `icon` |
 | `ElementUploader` | `"uploader"` | `fileExtensions`, `multiSelect`, `parentResourceId`, `icon`, `title`, `filterName` |
 
@@ -212,8 +217,8 @@ const child: StrictConfigContainerChild = {
 | `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
 | `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `ChartContainer` | `Chart` | `twoColumns`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
-| `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems`, `grid`, `editMode`, `gap` + `ContainerBoxOptions` |
-| `GridRowContainer` | `GridRow` | `gap`, `alignItems` + `ContainerBoxOptions` |
+| `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems`, `grid`, `editMode`, `fixedHeight`, `autoHeight`, `gap` + `ContainerBoxOptions` |
+| `GridRowContainer` | `GridRow` | `gap`, `alignItems`, `autoHeight` + `ContainerBoxOptions` |
 | `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `columns`, `gap`, `innerGap`, `align`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
 | `DataSourceInnerContainer` | — | `relatedDataSource`, `filterName`, `column` |
 | `DataSourceProgressContainer` | `DataSourceProgress` | `maxValue`, `showTotal`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
@@ -239,6 +244,7 @@ const child: StrictConfigContainerChild = {
 | `ProgressContainer` | `Progress` | `bgColor`, `innerTemplateStyle`, `maxValue`, `hideTitle`, `innerValue`, `colors`, `colorAttribute` |
 | `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `maxLines`, `wordBreak`, `center`, `fontColor`, `bgColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute`, `align`, `columns`, `gap`, `innerGap` |
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
+| `StructuredDataContainer` | `StructuredData` | `attributesDescription`, `relatedDataSource`, `filterName`, `editMode`, `expandable`, `expanded` + `ContainerBoxOptions` (+ дети: `StructuredDataTableChild` (`id: "data"`, `type: "table"`, опции — `ElementTableOptions`), `StructuredDataAliasChild`, `StructuredDataTitleChild`, `StructuredDataTitleIconChild`) |
 | `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
 | `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` |
 | `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
@@ -265,7 +271,7 @@ export type ContainerTemplateToProps = {
   [ContainerTemplate.AddFeature]: AddFeatureContainerProps;
   [ContainerTemplate.Attachment]: AttachmentContainerProps;
   [ContainerTemplate.Chart]: ChartContainerProps;
-  // ... все 35 ключей
+  // ... все 36 ключей
 };
 
 export type ContainerComponentRegistry = {
@@ -346,6 +352,40 @@ const RoundedBackgroundContainerTyped =
 
 ---
 
+## Пропсы корня контейнера
+
+Корневая обёртка контейнера типизирована `ContainerRootProps` (`Dashboard/styled.ts`) — её собирают [[hooks|`useWrapperSize`]] и [[hooks|`useContainerRoot`]] (там тип называется `WrapperRootProps`).
+
+| Поле | Тип | Назначение |
+|---|---|---|
+| `id` / `data-id` | `string?` | идентификатор узла и его дубль для внешних селекторов |
+| `data-templatename` | `string?` | шаблон контейнера — точка зацепки для внешних стилей |
+| `style` | `CSSProperties?` | авторский `style` из конфига, остаётся inline |
+| `$sizeCss` | `CSSObject?` | размеры из `options` — уходят классом, а не inline, поэтому перебиваются без `!important` |
+| `$noMargin` | `boolean?` | снять базовый отступ обёртки |
+| `$hasBgImage` | `boolean?` | узел несёт слот `bgImage` — корень становится хостом фонового слоя |
+| `$innerPadding` | `boolean?` | `options.innerPadding` — фиксированный внутренний отступ `1rem` на корне, чтобы содержимое не липло к краям фона |
+
+Оба `$`-пропа приходят из отдельного мини-интерфейса `BgImageHostProps` (`components/ContainerBackground/styled.ts`), который `ContainerRootProps` расширяет:
+
+```ts
+interface BgImageHostProps {
+  $hasBgImage?: boolean;
+  $innerPadding?: boolean;
+}
+
+/** Пропсы самого слоя — в отличие от хоста, `options.outflow` читает только он. */
+interface BgImageLayerProps {
+  $outflow?: boolean;
+}
+```
+
+Вместе с ними идёт `bgImageHostMixin`. Гейты в нём **раздельные**: `$hasBgImage` включает `position: relative` + `isolation: isolate`, `$innerPadding` — `padding: 1rem` (`CONTAINER_INNER_PADDING`) под селектором `&&`, чтобы перебить `padding` из `$sizeCss` и внутренних `defaults` контейнера, оставив авторский inline-`style` сильнее. Отступ намеренно не привязан к наличию фона — он нужен и без картинки. Модуль намеренно листовой: его импортирует `Dashboard/styled.ts`, и обратная зависимость замкнула бы цикл, уронив миксин в TDZ на инициализации.
+
+Сам слой рендерит [[components|`ContainerBackground`]] с пропсами `ContainerBackgroundProps = Pick<ContainerProps, "elementConfig" | "renderElement">`, а styled-узел слоя (`ContainerBackgroundLayer`) типизирован `BgImageLayerProps`: `$outflow` растягивает его отрицательным `inset` на `1.5rem` (`BG_IMAGE_OUTFLOW`) по бокам и вверх. Признак наличия слота считает [[utils|`hasContainerBgImage`]]; корни, которые не берут пропсы из `useWrapperSize`, получают пропсы хоста хуком [[hooks|`useBgImageHost`]] (его вход — `BgImageHostConfig = Pick<ConfigContainerChild, "children" | "options">`).
+
+---
+
 ## Per-feature локальные типы
 
 Некоторые контейнеры и элементы имеют свои `types.ts` и `constants.ts` рядом с компонентом — для типов, специфичных только для них.
@@ -362,6 +402,8 @@ const RoundedBackgroundContainerTyped =
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
 | `components/Chart/FillContext.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
 | `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `column`, `loading`) |
+| `components/ContainerBackground/types.ts` | `ContainerBackgroundProps` — `Pick<ContainerProps, "elementConfig" \| "renderElement">` |
+| `components/ContainerBackground/styled.ts` | `BgImageHostProps` (`$hasBgImage`), слой `ContainerBackgroundLayer`, миксин `bgImageHostMixin` |
 | `grid/types.ts` | Типы сетки: `GridAxis` (`"row"` \| `"column"`), `GridEditAction` (union операций `delete`/`merge`/`split`/`swap`/`addRow`/`addCell`), `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue` — значение контекста сессии редактирования |
 
 ---
@@ -453,7 +495,7 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 
 | Тип | Содержимое | Назначение |
 |---|---|---|
-| `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
+| `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
 | `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
 | `ConfigAttributeDescription` | `attributeName`, `type?`, `alias?`, `description?`, `isEditable?`, `stringFormat?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета |
 | `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |

@@ -118,6 +118,40 @@ if (!(await runBeforeSave({ featureId, changedProperties }))) return; // save о
 
 ---
 
+## useBgImageHost
+
+**Назначение:** Пропсы хоста фонового слоя `bgImage` для корней, которые **не** берут пропсы из **useWrapperSize** — контейнеры, ставящие `id`/`style` руками (`Title`, `Icon`, `Tabs`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground`, `OneColumn`, `TwoColumn`, `DefaultAttributes`, `PagesContainer`, подтипы `Edit*`). Контейнеры на **useContainerRoot** / **useWrapperSize** этот хук не зовут напрямую: `useWrapperSize` вызывает его сам и кладёт результат в `root` — так признаки хоста считаются в одном месте.
+
+**Параметры:**
+
+| Параметр | Тип |
+|---|---|
+| `elementConfig` | `BgImageHostConfig?` = `Pick<ConfigContainerChild, "children" \| "options">` — узел конфига контейнера |
+
+**Возвращает:** `BgImageHostProps` — `{ $hasBgImage: boolean; $innerPadding: boolean }`
+
+| Проп | Источник | Что включает в `bgImageHostMixin` |
+|---|---|---|
+| `$hasBgImage` | среди `children` есть узел с `id: "bgImage"` ([[utils\|`hasContainerBgImage`]]) | `position: relative` + `isolation: isolate` |
+| `$innerPadding` | `options.innerPadding` | `padding: 1rem` (`CONTAINER_INNER_PADDING`) под селектором `&&` |
+
+Гейты **раздельные**. Для `$hasBgImage` это принципиально: `position: relative` меняет containing block для абсолютно позиционированных потомков (контролы слайдшоу, подписи прогресса), поэтому включается только там, где автор конфига действительно попросил фон. `$innerPadding` фоном не обусловлен — отступ содержимого нужен и без картинки; двойной селектор `&&` поднимает специфичность, чтобы перебить `padding` из `$sizeCss` и внутренних `defaults` контейнера, оставив авторский inline-`style` сильнее.
+
+Третья опция фона, `options.outflow`, сюда **не** входит: вылет за края — свойство самой картинки, его читает слой [[components|`ContainerBackground`]] пропом `$outflow`, а не хост. Механика целиком — в [[concepts#Универсальные слоты и фон контейнера|Основных понятиях]].
+
+```ts
+const bgImageHost = useBgImageHost(elementConfig);
+
+return (
+  <TitleWrapper id={id} style={style} {...bgImageHost}>
+    <ContainerBackground elementConfig={elementConfig} renderElement={renderElement} />
+    ...
+  </TitleWrapper>
+);
+```
+
+---
+
 ## useChartChange
 
 **Назначение:** Кастомизация визуального отображения чарта (цвета, ширина, маркеры). Использует `@evergis/charts` customize API.
@@ -182,7 +216,7 @@ const { data, loading } = useChartData({ element: chartElement, type });
 | `defaults` | `CSSObject?` — внутренние дефолты корневой обёртки. Ссылка должна быть стабильной (константа или `useMemo`) |
 
 **Возвращает:** `ContainerRootParts` — `{ root, body }`
-- `root` — `WrapperRootProps` из **useWrapperSize**: `id`, `data-templatename`, авторский `style`, `$sizeCss`
+- `root` — `WrapperRootProps` из **useWrapperSize**: `id`, `data-id`, `data-templatename`, авторский `style`, `$sizeCss`, `$noMargin` плюс пропсы хоста фона `$hasBgImage` / `$innerPadding` (см. **useBgImageHost**)
 - `body` — `{ [CONTAINER_BODY_ATTRIBUTE], $sizeCss }`: маркер `data-container-body` для поиска тела по DOM плюс `flex: 1 1 auto; min-height: 0` (`CONTAINER_BODY_FILL_STYLE`), если у корня получилась определённая высота
 
 > [!info] Почему один корневой узел
@@ -197,6 +231,7 @@ const { root, body } = useContainerRoot({ elementConfig });
 
 return (
   <ContainerRoot {...root}>
+    <ContainerBackground elementConfig={elementConfig} renderElement={renderElement} />
     <ExpandableTitle elementConfig={elementConfig} type={type} renderElement={renderElement} />
     <Container {...body} isColumn>...</Container>
   </ContainerRoot>
@@ -471,14 +506,14 @@ const layer = getConfigLayer("myLayer");
 
 ## useGlobalContext
 
-**Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, themeName, language).
+**Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, ewktExtent, zoomLevel, themeName, language).
 
 **Параметры:** нет
 
 **Возвращает:** `GlobalContextProps` (без `children`)
 
 ```ts
-const { api, t, ewktGeometry } = useGlobalContext();
+const { api, t, ewktGeometry, ewktExtent, zoomLevel } = useGlobalContext();
 ```
 
 ---
@@ -732,9 +767,15 @@ const { pageIndex, currentPage } = useWidgetPage(type);
 | `elementConfig` | `ConfigContainerChild?` — узел конфига контейнера |
 | `defaults` | `CSSObject?` — внутренние дефолты обёртки (отступы, собственная высота). Ссылка должна быть стабильной — константа или `useMemo` |
 
-**Возвращает:** `WrapperRootProps` — `{ id, "data-templatename", style, $sizeCss }`
+**Возвращает:** `WrapperRootProps` — `{ id, "data-id", "data-templatename", style, $sizeCss, $noMargin, $hasBgImage, $innerPadding }`
 
 Размеры уходят styled-пропом `$sizeCss` (класс), а не inline-стилем, поэтому перебиваются снаружи обычной специфичностью (`#id`, `[data-templatename]`) — без `!important`. Авторский `style` остаётся inline: у него приоритет по замыслу автора конфига. Ширина по умолчанию — `FILL_SIZE` (`"100%"`), поэтому контейнер занимает всю ширину ячейки, пока `options.width` не задан явно. Вычисление делегируется [[utils|утилите]] `getWrapperSizeStyle`.
+
+`data-id` и `$noMargin` раньше жили на внешней обёртке `ElementValueWrapper`; она вешала их на второй узел поверх этого корня, дублируя стили, и для контейнеров из `ROOT_OWNING_TEMPLATES` больше не создаётся.
+
+Пропсы хоста фонового слоя (`$hasBgImage`, `$innerPadding`) подмешиваются здесь вызовом **useBgImageHost**, а не в каждом контейнере: корень и так получает пропсы одним спредом, поэтому фон и внутренний отступ включаются без единой дополнительной строки на месте вызова. Корни, собираемые вручную, зовут **useBgImageHost** сами.
+
+`heightAsMin` приходит из `options.autoHeight` и переводит высоту в `min-height` — узел не опускается ниже неё, но перерастает под содержимое.
 
 ```ts
 const root = useWrapperSize({ elementConfig });
