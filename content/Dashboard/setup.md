@@ -166,7 +166,7 @@ import { replaceObject } from "find-and";
 
 Файл: `contexts/GlobalContext/index.tsx`
 
-Глобальный контекст с данными, необходимыми всем компонентам: i18n, API, геометрия, тема.
+Глобальный контекст с данными, необходимыми всем компонентам: i18n, API, геометрия, текущий проект, тема.
 
 ### Props (`GlobalContextProps`)
 
@@ -177,6 +177,8 @@ import { replaceObject } from "find-and";
 | `ewktGeometry` | `string` | EWKT-геометрия геофильтра — область, нарисованная пользователем (`SRID=3857`) |
 | `ewktExtent` | `string` | EWKT-экстент видимой области карты (`SRID=3857`) — плейсхолдер `%extent` |
 | `zoomLevel` | `number` | Целый уровень зума карты — плейсхолдер `%zoom` |
+| `projectName` | `string` | Системное имя открытого проекта — плейсхолдеры `%project` и `%project.name` |
+| `projectAlias` | `string` | Алиас открытого проекта — плейсхолдер `%project.alias`, при пустом значении используется `projectName` |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
 | `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`). Нужен для прогресс-уведомлений серверных [[hooks\|хуков]] `beforeSave`/`afterSave` |

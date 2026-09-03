@@ -2,7 +2,7 @@
 
 ## Обзор
 
-`ConfigOptions` — общий словарь конфигурационных опций для всех контейнеров, элементов и шапок Dashboard. Исторически это был один плоский интерфейс с 100+ полями. После рефакторинга типизации интерфейс разбит на **12 доменных миксинов**:
+`ConfigOptions` — общий словарь конфигурационных опций для всех контейнеров, элементов и шапок Dashboard. Исторически это был один плоский интерфейс с 100+ полями. После рефакторинга типизации интерфейс разбит на **13 доменных миксинов**:
 
 ```ts
 interface ConfigOptions
@@ -17,10 +17,11 @@ interface ConfigOptions
     ConfigCollectionOptions,
     ConfigMapLayerOptions,
     ConfigEditOptions,
+    ConfigVoteOptions,
     ConfigMiscOptions {}
 ```
 
-> `ConfigEntityRefOptions` — двенадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
+> `ConfigEntityRefOptions` — тринадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
 
 Каждый компонент использует только часть полей. В `componentTypes.ts` для каждого компонента определён `<Name>Options = Pick<ConfigOptions, ...>` — список фактически читаемых полей. Это даёт:
 
@@ -256,6 +257,26 @@ interface ConfigOptions
 | `editOnly` | `boolean` | Оставить таблице ([[elements#ElementTable\|`table`]]) только правку существующих строк: кнопки «Добавить» и колонки удаления не будет. Поверх `editMode` контейнера. Опция объявлена у представления, а читает её [[containers#StructuredDataContainer\|контейнер]] — кнопка добавления его |
 
 **Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild`, `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`).
+
+---
+
+## ConfigVoteOptions
+
+Слои-таблицы контейнера [[containers#VoteContainer|Vote]]. Все четыре обязательны — без любой из них контейнер отдаёт ошибку блока.
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `categoryDataSource` | `string` | Слой-справочник категорий: `id`, `name` |
+| `questionDataSource` | `string` | Слой голосований: `id`, `text`, `category_id`, `user_name`, `multi_select`. На запись |
+| `variantDataSource` | `string` | Слой вариантов ответа: `id`, `question_id`, `text`. На запись |
+| `answerDataSource` | `string` | Слой ответов: `id`, `question_id`, `user_name`, `variant_id`. На запись |
+
+> [!warning] Это имена СЛОЁВ, а не источников данных страницы
+> Несмотря на суффикс `DataSource`, контейнер обращается к ним через `api.layers.*` напрямую, мимо механики [[concepts#Источники данных|источников данных]]: имя из `dataSources` страницы он не найдёт. Схема полей захардкожена в контейнере (`VOTE_FIELDS`) и конфигом не переопределяется.
+
+Имя атрибута объекта с `question_id` в этот миксин **не входит**: оно живёт свойством `attributeName` самого узла конфига, а не в `options`.
+
+**Используется в:** `VoteContainer`.
 
 ---
 

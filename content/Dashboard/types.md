@@ -137,6 +137,7 @@ Slot-id обязателен у каждого элемента — без не�
 | `TitleContainerConfig` | `ContainerTemplate.Title` |
 | `TwoColumnContainerConfig` | `ContainerTemplate.TwoColumn` |
 | `UploadContainerConfig` | `ContainerTemplate.Upload` |
+| `VoteContainerConfig` | `ContainerTemplate.Vote` |
 
 ### Union шапок: `DashboardHeaderConfig`
 
@@ -181,7 +182,7 @@ const child: StrictConfigContainerChild = {
 
 | Миксин | Поля | Кто подмешивает | Зачем |
 |---|---|---|---|
-| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Task`, `TwoColumn`, `Upload` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
+| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Task`, `TwoColumn`, `Upload`, `Vote` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
 | `NumericSizeOptions` | `width?: number`, `height?: number` | `ElementChart`, `ElementSvg`, `ElementControl` (только `width`) | размеры, которые обязаны остаться **числом в пикселях**: значение уходит в вычисления геометрии графика или в HTML-атрибут, где `"100%"` не работает |
 
 `ContainerBoxOptions` даёт `CssSize` (число = px, строка = любое CSS-значение); `"100%"` включает fill-режим обёртки (см. [[utils|`getWrapperSizeStyle`]]). `NumericSizeOptions`, наоборот, сужает те же имена до `number` — поэтому у `ElementChart` в таблице ниже `width`/`height` числовые, а у `ChartContainer` — `CssSize`.
@@ -250,6 +251,7 @@ const child: StrictConfigContainerChild = {
 | `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
 | `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
 | `UploadContainer` | `Upload` | `expandable`, `expanded` + `ContainerBoxOptions` |
+| `VoteContainer` | `Vote` | `categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`, `expandable`, `expanded` + `ContainerBoxOptions` (+ на узле: `attributeName` — атрибут объекта с `question_id`) |
 
 ### Шапки
 
@@ -346,7 +348,7 @@ const RoundedBackgroundContainerTyped =
 
 Читает набор [[utils#isRootOwningContainer|`isRootOwningContainer`]], а результат уходит флагом `hasOwnRoot` в [[utils#formatElementValue|`formatElementValue`]]. Неизвестный шаблон считается владельцем корня: он резолвится в реестровый `default` (= `ContainersGroupContainer`), а тот корнем владеет.
 
-Сейчас в наборе: `ContainersGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Task`, `Upload`.
+Сейчас в наборе: `ContainersGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Task`, `Upload`, `Vote`.
 
 Остальных там нет намеренно: `DefaultAttributes`, `EditGroup` и `OneColumn`/`TwoColumn` в режиме `attributesToRender` возвращают **несколько** корней, а `Title`, `Icon`, `Divider`, `Tabs`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground` ставят `id`/`style` руками — для них обёртка остаётся единственным одиночным узлом. Переводишь очередной контейнер на `useContainerRoot` — добавь его в набор.
 

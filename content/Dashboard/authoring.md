@@ -36,6 +36,7 @@
 | `EditAttachment` | `alias` |
 | `EditGroup` | `alias`, `tooltip`, `units`, `icon` |
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
+| `Vote` | собственных слотов нет — только универсальные `title`/`titleIcon`/`bgImage`; на узле обязателен `attributeName` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` |
@@ -238,6 +239,7 @@
 - [ ] У **каждого** `DataSource` / `DataSourceProgress` задан `options.innerTemplateName`, а slot-id детей соответствуют этому внутреннему шаблону.
 - [ ] Слот `bgImage` (если он есть) стоит у контейнера, а не у `Divider`, и не продублирован внутрь записей DataSource-хоста.
 - [ ] `options.outflow` задан только там, где у контейнера есть слот `bgImage` (иначе валидатор отдаёт `orphan-option` — вытекать нечему).
+- [ ] У `Vote` заданы свойство узла `attributeName` и все четыре слоя (`categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`) — это **имена слоёв**, а не источников данных страницы (иначе валидатор отдаёт `missing-vote-binding` / `missing-vote-source`).
 - [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 

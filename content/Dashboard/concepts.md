@@ -210,6 +210,30 @@ interface SelectedFilter {
 
 Пример `%geometry`: пользователь рисует прямоугольник на карте → все источники данных с `%geometry` в условии перезапрашиваются для выбранного района.
 
+### Текущий проект
+
+Ещё одно зарезервированное имя — `project`. Значения приходят из [[setup|GlobalContext]] (`projectName`, `projectAlias` — из описания открытого проекта) и подставляются так же, как системные значения карты: до цикла по пользовательским фильтрам, поэтому одноимённый фильтр конфига будет перехвачен.
+
+| Плейсхолдер | Источник в GlobalContext | Что подставляется |
+|---|---|---|
+| `%project` | `projectName` | системное имя открытого проекта |
+| `%project.name` | `projectName` | то же самое, полная форма |
+| `%project.alias` | `projectAlias` | алиас проекта; при пустом алиасе — системное имя |
+
+Работают и в `condition`, и в `parameters` (включая секции `$(param=...)`), а также в `query` и `parameters` слоя карты. Значение строковое — в условии уходит в кавычках, как `%geometry`.
+
+Граница имени та же, что у значений карты: `%project_id` и `%projects` достаются пользовательским фильтрам. Чужое свойство (`%project.foo`) не резолвится вовсе.
+
+Когда значения нет — проект ещё не загружен или свойство чужое — подстановка ведёт себя как у незаполненного фильтра: ключ параметра выпадает из запроса, а плейсхолдер в условии остаётся на месте. Перезапрос по смене значения не нужен: проект меняется только вместе с перезагрузкой страницы.
+
+```json
+{
+  "name": "project_docs",
+  "layerName": "documents",
+  "condition": "project_name = %project AND title = %project.alias"
+}
+```
+
 **Подстановка фильтров:** [[utils|утилита]] `formatDataSourceCondition` — заменяет все вхождения `%filterName`, `%filterName.min`, `%filterName.max`, `{attributeName}` в condition на текущие значения фильтров.
 
 ---
@@ -234,7 +258,7 @@ interface ConfigLayer {
 }
 ```
 
-`query` и `parameters` слоя проходят ту же подстановку, что и условия источников данных: фильтры страницы (`%name`, `%name.min` / `.max`, `%name.lN`), атрибуты карточки (`{attributeName}`, `$card:<layer>:<field>`) и системные значения карты `%geometry` / `%extent` / `%zoom` (см. [[#Системные фильтры карты]]). В UI значение параметра переключается на подстановку кнопкой «%» в панели фильтров слоя — список предлагает фильтры текущей страницы плюс три системных плейсхолдера.
+`query` и `parameters` слоя проходят ту же подстановку, что и условия источников данных: фильтры страницы (`%name`, `%name.min` / `.max`, `%name.lN`), атрибуты карточки (`{attributeName}`, `$card:<layer>:<field>`), системные значения карты `%geometry` / `%extent` / `%zoom` (см. [[#Системные фильтры карты]]) и значения проекта `%project` / `%project.name` / `%project.alias` (см. [[#Текущий проект]]). В UI значение параметра переключается на подстановку кнопкой «%» в панели фильтров слоя — список предлагает фильтры текущей страницы плюс шесть системных плейсхолдеров.
 
 **DashboardLayerPayload** — обновление состояния слоя в runtime: `{ name: string, isVisible?: boolean, condition?: string, ... }`. Вызывается через `setDashboardLayer` из контекста. Имя слоя типизируется branded-типом [[types#Branded types|LayerName]] (`asLayerName`).
 
@@ -309,12 +333,13 @@ interface ConfigLayer {
 | `AddFeatureContainer` | **дети — кнопки `AddFeatureButtonChild` с уникальным `id`** (перечисляемые сущности — см. подраздел выше) |
 | `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности) |
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
+| `VoteContainer` | собственных слотов **нет** — экран рисует сам контейнер; допустимы только универсальные `title`/`titleIcon`/`bgImage`. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` (логотип; при отсутствии — иконка `logo` и `options.title` страницы) |
 | `FeatureCardDefaultHeader` | — структура фиксирована, кастомные дети не рендерятся |
 
-Слоты `title`, `icon`, `titleIcon` на уровне контейнера уходят в заголовок (`TITLE_SLOT_IDS`): `ContainerChildren` исключает их из рендера тела, а сетка — из подсчёта треков. `title` и `titleIcon` допустимы у **любого** контейнера с заголовком (`ExpandableTitle`) — `Chart`, `Camera`, `Attachment`, `Slideshow`, `Upload`, `Edit`, `Filters`, `Layers`, `Task`, `DataSource`, `DataSourceProgress`, `ContainersGroup` — и поэтому в наборы слотов отдельных контейнеров не входят.
+Слоты `title`, `icon`, `titleIcon` на уровне контейнера уходят в заголовок (`TITLE_SLOT_IDS`): `ContainerChildren` исключает их из рендера тела, а сетка — из подсчёта треков. `title` и `titleIcon` допустимы у **любого** контейнера с заголовком (`ExpandableTitle`) — `Chart`, `Camera`, `Attachment`, `Slideshow`, `StructuredData`, `Upload`, `Edit`, `Filters`, `Layers`, `Task`, `Vote`, `DataSource`, `DataSourceProgress`, `ContainersGroup` — и поэтому в наборы слотов отдельных контейнеров не входят.
 
 #### Универсальные слоты и фон контейнера
 
@@ -494,6 +519,17 @@ interface ConfigLayer {
 Практический пример: диспетчерский дашборд — операторы видят новые инциденты в реальном времени без перезагрузки страницы.
 
 Использует `useServerNotificationsContext` из `@evergis/react`.
+
+### Real-time в карточке объекта
+
+`useDataSourceSubscriptions` обслуживает только страницу виджета Dashboard. У карточки объекта свой набор хуков (client-new, `components/FeatureCard/hooks`):
+
+- `useFeatureCardSync` — подписан на `feature_layer_updated` всех слоёв текущего выбора. Когда `updatedIds` нотификации содержит `currentId`, объект перезапрашивается через `layers.getFeatures1` и обновляется в сторе (`updateCurrentFeature`, только `properties` и `geometry` — `id` и `layer` менять нельзя, на них завязаны выбор и пагинация). Пока пользователь редактирует объект, обновление пропускается: объект из стора наполняет форму, и внешние данные затёрли бы несохранённый ввод
+- Удалённые объекты (`deletedIds`) уходят из выбора через `removeFeatures` (`hooks/map/useSelectFeatures`) — чистая функция `getSelectFeaturesAfterRemove` (`utils/selectFeatures`) убирает их из списка слоя, уменьшает `totalCounts` и переводит `currentId` на соседний объект (следующий, иначе предыдущий). Если в слое не осталось объектов, `currentId` обнуляется и карточка показывает `NoFeatureCard`. Удаление применяется и при открытой форме правки: объекта больше нет, сохранение в него всё равно не пройдёт
+- `useFeatureDataSourceSubscriptions` — аналог дашбордового хука для источников карточки: одна подписка на все слои источников с `autoSyncLayer`, при нотификации `fetchData(updatingDataSources)` из `useFeatureDataSources`
+- Отдельный эффект в `useFeatureDataSources` перезапрашивает источники, когда у того же объекта изменились значения атрибутов: они подставляются в параметры и условия запросов (`%attributeName`), а `feature.id` при внешнем обновлении не меняется и эффект первичной загрузки не срабатывает
+
+Оба хука держат payload подписки пустым, пока `connection` не поднят: карточка смонтирована с самого старта приложения, а `useServerNotification` оформляет подписку один раз на текущий payload.
 
 ---
 

@@ -298,6 +298,14 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ---
 
+### getProjectValue
+
+`({ prop?, projectName?, projectAlias? }) => string | undefined`
+
+Значение системной подстановки текущего проекта (см. [[concepts#Текущий проект|Основные понятия]]). Голый `%project` и `%project.name` дают системное имя, `%project.alias` — алиас с фолбэком на имя. Чужое свойство возвращает `undefined`, чтобы плейсхолдер остался нетронутым. Используется и в **applyQueryFilters**, и в **formatDataSourceCondition**, а в client-new — хуком `useTempLayerParams` для параметров слоя.
+
+---
+
 ### getRelatedAttribute
 
 `(layerInfo, sourceAttributeName, relatedLayerName) => ConfigRelatedAttribute | undefined`
@@ -414,11 +422,13 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### formatDataSourceCondition
 
-`({ condition, configFilters, filters, attributes, geometry, extent?, zoomLevel?, layerParams?, eqlParameters? }) => string`
+`({ condition, configFilters, filters, attributes, geometry, extent?, zoomLevel?, projectName?, projectAlias?, layerParams?, eqlParameters? }) => string`
 
-Основная утилита подстановки фильтров в EQL-условие. Обрабатывает `$(params)` секции и основную часть условия через `applyVarsToCondition`. Заменяет `%filterName`, `%filterName.min`, `%filterName.max`, `%geometry`, `%extent`, `%zoom`, `{attributeName}`.
+Основная утилита подстановки фильтров в EQL-условие. Обрабатывает `$(params)` секции и основную часть условия через `applyVarsToCondition`. Заменяет `%filterName`, `%filterName.min`, `%filterName.max`, `%geometry`, `%extent`, `%zoom`, `%project`, `{attributeName}`.
 
 Системные фильтры карты (`%geometry`, `%extent`, `%zoom`, см. [[concepts#Системные фильтры карты|Основные понятия]]) подставляются **до** цикла по `configFilters` — одноимённый пользовательский фильтр их не перехватит. `%extent` уходит в кавычках, `%zoom` — числом без кавычек; составные формы (`%zoomLevel`, `%zoom.min`) системная замена не трогает.
+
+Там же резолвится текущий проект (`%project`, `%project.name`, `%project.alias`, см. [[concepts#Текущий проект|Основные понятия]]) — значение строковое, поэтому уходит в кавычках. Свойства заменяются раньше голого плейсхолдера, значение берёт **getProjectValue**; `%project_id` и `%project.foo` замена не трогает.
 
 ---
 
@@ -549,6 +559,16 @@ Type-guards самого значения живут в соседнем мод�
 
 ---
 
+### isCrossOriginUrl
+
+`(url?: string | null) => boolean`
+
+Ведёт ли адрес на **чужой** origin — сервер, который ничего не знает ни про наш токен, ни про наши заголовки. Относительный адрес (`/sp/resources/file/<id>`) всегда свой; абсолютный сравнивается с `location.origin`, поэтому `https://<наш хост>/sp/...` тоже считается своим.
+
+Проверка не сводится к `^https?://`, как флаг `isExternal` у вложений: там достаточно отличить ссылку от файла каталога, а здесь решается, отправлять ли `Authorization`. Разобрать адрес не удалось — считаем его своим, пусть с ним разбирается обычный путь загрузки. Потребители — [[hooks|`useFetchWithAuth`]] и [[hooks|`useFetchImageWithAuth`]].
+
+---
+
 ### isEmptyElementValue
 
 `(value?: unknown) => boolean`
@@ -607,11 +627,12 @@ Type-guards самого значения живут в соседнем мод�
 
 ### applyQueryFilters
 
-`({ parameters, filters, selectedFilters, geometry, extent?, zoomLevel?, attributes?, layerInfo?, dataSources, projectDataSources? }) => Record<string, any>`
+`({ parameters, filters, selectedFilters, geometry, extent?, zoomLevel?, projectName?, projectAlias?, attributes?, layerInfo?, dataSources, projectDataSources? }) => Record<string, any>`
 
 Резолвит значения `parameters` (EQL-параметров или параметров python-скрипта) из нескольких источников:
 
 - `%filterName` → значение фильтра; поддерживает `.min`, `.max`, `.property`, а также системные `%geometry`, `%extent` (строка EWKT) и `%zoom` (**число**);
+- `%project`, `%project.name`, `%project.alias` → имя и алиас открытого проекта (см. [[concepts#Текущий проект|Основные понятия]]); значение берёт **getProjectValue**, при отсутствии значения ключ выпадает из результата;
 - `$card:layerName:fieldName` → значение атрибута текущего объекта FeatureCard (из `attributes`, если `layerInfo.name === layerName`);
 - `$left:layerName:fieldName` → значение из первого feature `projectDataSources` по имени слоя;
 - `{attributeName}` → подстановка/интерполяция значений атрибутов объекта.
@@ -685,6 +706,16 @@ Type-guards самого значения живут в соседнем мод�
 `(url: string) => string`
 
 Определяет MIME-тип по расширению файла в URL (с отбрасыванием query/hash). Возвращает пустую строку, если расширение неизвестно или отсутствует. Рядом экспортируется `getFileNameFromUrl(url)` — извлекает имя файла из URL (через `new URL`, с fallback на последний сегмент пути).
+
+---
+
+### saveBlobAsFile
+
+`(blob: Blob, fileName: string) => void`
+
+Отдаёт браузеру уже загруженный файл под именем `fileName`: создаёт object URL, кликает по скрытой ссылке с атрибутом `download` и убирает её из DOM. Нужна вложениям за авторизацией — их не отдать простой ссылкой, файл приходит через `api.catalog.getFile` (см. [[hooks|`useAttachmentDownload`]]).
+
+Адрес отзывается не сразу, а через секунду: часть браузеров дочитывает поток уже после клика, и мгновенный `revokeObjectURL` обрывает сохранение.
 
 ---
 

@@ -32,6 +32,26 @@ await runAfterSave({ featureId, changedProperties });
 
 ---
 
+## useAttachmentDownload
+
+**Назначение:** Скачивание вложения по требованию — файл запрашивается в момент клика, а не заранее. Отдаётся кнопке «Скачать» просмотрщика `Preview` в [[containers#AttachmentContainer|`AttachmentContainer`]] и `EditAttachmentContainer`.
+
+**Параметры:** `items: Attachment[]` — тот же список, что рисует контейнер (индекс приходит от `Preview`)
+
+**Возвращает:** `(index: number) => void`
+
+Свой файл лежит за авторизацией, поэтому ссылкой его не отдать: он тянется через `api.catalog.getFile` и сохраняется из памяти утилитой [[utils|`saveBlobAsFile`]]. Внешнее вложение (`isExternal`) просто открывается в новой вкладке — кросс-доменный атрибут `download` браузер всё равно игнорирует.
+
+Повторный клик по тому же файлу во время загрузки игнорируется (`inFlightRef` по `item.link`). Ошибка запроса уходит в уведомление из [[setup|GlobalContext]] (`notification.add`, длительность `DOWNLOAD_ERROR_DURATION`), а не в тишину.
+
+```ts
+const downloadByIndex = useAttachmentDownload(items);
+
+<Preview images={images} onDownload={(_image, index) => downloadByIndex(index)} ... />
+```
+
+---
+
 ## useAttachmentItems
 
 **Назначение:** Извлечение списка вложений (`Attachment[]`) из атрибута объекта или связанного источника данных. Используется в `AttachmentContainer` и `EditAttachmentContainer`.
@@ -437,11 +457,13 @@ const onSave = async (input: SaveHookInput) => {
 
 ## useFetchImageWithAuth
 
-**Назначение:** Загрузка изображения по URL с авторизацией (Bearer token из localStorage). Возвращает object URL.
+**Назначение:** Готовый `src` для картинки. Свой файл тянется fetch'ем с токеном и отдаётся blob-адресом, чужой возвращается как есть.
 
 **Параметры:** `url: string | null`
 
-**Возвращает:** `string | null` — blob URL или `null`
+**Возвращает:** `string | null` — blob-адрес для своего файла, исходный URL для чужого, `null` при неудаче
+
+Чужой адрес (проверка — [[utils|`isCrossOriginUrl`]]) намеренно не фетчится: тег `img` грузит кросс-доменную картинку без всякого CORS, а `fetch` — только если сторонний сервер отдал `Access-Control-Allow-Origin`. Заодно картинка остаётся в HTTP-кеше браузера, которого blob-адрес лишён. Так же поступает **useAttachmentPreviewImages**: внешней ссылке отдаёт `src: item.link`.
 
 ```ts
 const blobUrl = useFetchImageWithAuth(imageUrl);
@@ -461,6 +483,8 @@ const blobUrl = useFetchImageWithAuth(imageUrl);
 | `cleanup` | `(data: T) => void` |
 
 **Возвращает:** `T | null`
+
+Токен (`STORAGE_TOKEN_KEY` из localStorage) уходит **только на свой origin** — гейт [[utils|`isCrossOriginUrl`]]. Чужому серверу он не нужен и вреден: кастомный заголовок переводит кросс-доменный запрос в preflight-режим, а ответ на `OPTIONS` без `Access-Control-Allow-Headers` роняет весь fetch. Параллельные вызовы для одного URL отсекаются флагом загрузки; `cleanup` вызывается при смене значения и на размонтировании (для blob-адресов — `URL.revokeObjectURL`).
 
 ```ts
 const data = useFetchWithAuth<MyType>(url, resp => resp.json(), () => {});
