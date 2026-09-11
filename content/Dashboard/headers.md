@@ -101,9 +101,9 @@ DefaultHeaderContainer (image, isDark)
 
 **Структура:**
 ```
-DefaultHeaderWrapper(withPadding, height)
-  └── ThemeProvider(getThemeByName(themeName))
-      └── Header($overlay, $isRow=!column)
+ThemeProvider(getThemeByName(themeName ?? pageThemeName))
+  └── DefaultHeaderWrapper(withPadding, height, $noFeature)
+      └── Header($overlay, $isRow=!column, $noFeature)
           └── HeaderFrontView(isDefault=!column)
               ├── HeaderContainer: [HeaderLayerIcon, HeaderTitle(noFeature)]
               └── FeatureCardButtons (Edit, Save, Cancel, Close)
@@ -153,8 +153,8 @@ DefaultHeaderWrapper(withPadding, height)
 
 **Структура:**
 ```
-BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $bottomBlur)
-  └── ThemeProvider(getThemeByName(themeName))
+ThemeProvider(getThemeByName(themeName ?? pageThemeName))
+  └── BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $bottomBlur)
       └── Header($overlay, $isRow=!column)
           ├── HeaderFrontView
           │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
@@ -222,8 +222,8 @@ BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $
 
 **Структура:**
 ```
-SlideshowHeaderWrapper(fontColor, withPadding, height, big)
-  └── ThemeProvider(getThemeByName(themeName))
+ThemeProvider(getThemeByName(themeName))
+  └── SlideshowHeaderWrapper(fontColor, withPadding, height, big)
       └── Header($overlay, $isRow=!column)
           ├── HeaderFrontView
           │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]

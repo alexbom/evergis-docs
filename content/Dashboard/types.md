@@ -456,13 +456,12 @@ interface BgImageLayerProps {
 | `MIN_TRACK_PX` | `40` | Верхняя граница минимального размера трека при ресайзе |
 | `MIN_TRACK_RATIO` | `0.25` | Минимальная доля трека в тесной паре — чтобы граница не запиралась намертво |
 | `DEFAULT_GRID_GAP` | `0` | Зазор между треками по умолчанию: сетка бесшовная |
-| `HANDLE_BLEED_PX` | `3` | Насколько зона захвата ручки заходит на содержимое с каждой стороны |
 | `DRAG_THRESHOLD_PX` | `4` | Сдвиг курсора, после которого нажатие считается перетаскиванием ячейки |
 | `MAX_TRACKS` | `12` | Потолок на число треков у одного родителя — страховка от бесконечного `split` |
 | `DEFAULT_TRACK_FR` | `1` | Доля нового трека, если среднее посчитать не из чего |
 | `FR_PRECISION` | `1000` | Знаменатель округления долей — три знака после запятой |
 | `GRID_FILL_DEFAULTS` / `GRID_AUTO_FILL_DEFAULTS` | `height: 100%` / `min-height: 100%` | Дефолты корня сетки и строки; второй — для режима `autoHeight` |
-| `GRID_CELL_ATTR`, `GRID_HANDLE_ATTR`, `GRID_HANDLE_PROPS` | `data-grid-cell`, `data-grid-handle` | Маркеры ячейки и ручки в DOM |
+| `GRID_CELL_ATTR` | `data-grid-cell` | Маркер ячейки в DOM: по нему ищется цель перетаскивания под курсором. Маркер ручки (`RESIZE_HANDLE_ATTR`) и её заход на содержимое (`HANDLE_BLEED_PX`) живут у общего компонента ручки — см. [[components\|ResizeHandle]] |
 | `GRID_DRAG_SOURCE_ATTR`, `GRID_DROP_TARGET_ATTR`, `GRID_DRAGGING_ATTR` | `data-grid-*` | Разметка идущего жеста — атрибутами, а не пропсами: цель меняется десятки раз за жест |
 | `NO_CELL_DRAG_SELECTOR` | селектор | Что перетаскиванием ячейки не считается: ручка, `input`, `textarea`, `select`, `contenteditable` |
 | `GRID_ROW_ID_PREFIX`, `GRID_CELL_ID_PREFIX` | `gridRow_`, `gridCell_` | Префиксы id создаваемых узлов. Не начинаются с `"page"` — по `id.startsWith("page")` `ContainersGroupContainer` опознаёт корневой блок страницы |
@@ -497,9 +496,9 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 
 | Тип | Содержимое | Назначение |
 |---|---|---|
-| `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
+| `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `autoSyncLayers?`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
 | `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
-| `ConfigAttributeDescription` | `attributeName`, `type?`, `alias?`, `description?`, `isEditable?`, `stringFormat?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета |
+| `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки колонки, которых в серверном контракте нет |
 | `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |
 | `FetchedDataSource` / `WidgetDataSource` | `name`, `features`, `layerName?`, `attributes?` | Загруженный источник в состоянии виджета |
 

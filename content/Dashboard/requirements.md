@@ -15,7 +15,7 @@
 `DashboardChild`, `StrictDashboardChild`, `StrictConfigContainerChild`, `DashboardHeaderConfig`, `ContainerComponentRegistry`, `ElementComponentRegistry`, `Brand`, `ContainerId`, `ChartId`, `ModalId`, `TabId`, `FilterName`, `LayerName`, `AttributeName`, `DataSourceName`, `ResourceId`. Конструкторы: `asContainerId`, `asChartId`, `asModalId`, `asTabId`, `asFilterName`, `asLayerName`, `asAttributeName`, `asDataSourceName`, `asResourceId`.
 
 Публичная поверхность сетки (`grid/index.ts`, см. [[types#Публичная поверхность сетки|Типы]]):
-типы `GridAxis`, `GridInsertSide`, `GridSplitDirection`, `GridEditAction`, `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue`, `GridCellContext`, `GridIdFactory`; константы `MIN_TRACK_PX`, `MAX_TRACKS`, `DEFAULT_GRID_GAP`, `GRID_CELL_ATTR`, `GRID_HANDLE_ATTR`, `GRID_ROW_ID_PREFIX`, `GRID_CELL_ID_PREFIX`, ...; утилиты `getLayoutChildren`, `getTrackSizes`, `buildGridTemplate`, `isGridNode`, `findCellContext`, `createGridCell`, `createGridRow`, `collectConfigIds`, `createGridIdFactory`.
+типы `GridAxis`, `GridInsertSide`, `GridSplitDirection`, `GridEditAction`, `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue`, `GridCellContext`, `GridIdFactory`; константы `MIN_TRACK_PX`, `MAX_TRACKS`, `DEFAULT_GRID_GAP`, `GRID_CELL_ATTR`, `GRID_ROW_ID_PREFIX`, `GRID_CELL_ID_PREFIX`, ...; утилиты `getLayoutChildren`, `getTrackSizes`, `buildGridTemplate`, `isGridNode`, `findCellContext`, `createGridCell`, `createGridRow`, `collectConfigIds`, `createGridIdFactory`.
 
 Утилиты:
 `formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `fetchQueryDescription`, `getContainerComponent`, `isRootOwningContainer`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `hasContainerBgImage`, `isTreeFilterValue`, `isFeaturesFilterValue`, `isFillSize`, `isFrSize`, `toCssSize`, `toRenderableValue`, `isVisibleContainer`, `checkEqualOrIncludes`, `createConfigPage`, `createConfigLayer`
@@ -26,7 +26,7 @@
 
 ## @evergis/uilib-gl
 
-Контролы и ввод: `AutoComplete`, `Checkbox`, `DatePicker`, `Dropdown`, `DropdownField`, `Input`, `NumberInput`, `NumberRangeSlider`, `RangeNumberInput`, `Slider`, `Switch`, `TreeDropdown`, `TreeId`, `TreeItemProps`, `MultiSelectContainer`, `ComplexOptionText`, `PartialLoadData`, `useAsyncAutocomplete`.
+Контролы и ввод: `AutoComplete`, `Checkbox`, `ColorPicker`, `DatePicker`, `Dropdown`, `DropdownField`, `Input`, `NumberInput`, `NumberRangeSlider`, `RangeNumberInput`, `Slider`, `Switch`, `TreeDropdown`, `TreeId`, `TreeItemProps`, `MultiSelectContainer`, `ComplexOptionText`, `PartialLoadData`, `useAsyncAutocomplete`.
 
 Кнопки и действия: `ActionsGroup`, `FlatButton`, `IconButton`, `IconButtonButton`, `IconButtonInnerChild`, `IconToggle`, `IconToggleButton`, `RaisedButton`, `Menu`, `Popover`, `Popup`.
 
@@ -39,6 +39,10 @@
 ## @evergis/charts
 
 `BarChart`, `BarChartData`, `BarChartMarker`, `BarChartMarshalledGroup`, `BarChartMergedData`, `LineChart`, `LineChartProps`, `PieChart`, `PieChartData`, `barChartClassNames`, `lineChartClassNames`
+
+## @evergis/color
+
+`Color` — разбор строки цвета (`hex`, `rgb`, `rgba`) и проверка её валидности. Нужен колонке цвета таблицы [[containers|StructuredDataContainer]] (`colorPicker` у атрибута): значение остаётся обычной строкой, и что она значит цвет, говорит только схема. Оттуда же собран `colorToHex` (`utils/color`), которым выбранный палитрой цвет уходит в черновик — `#rrggbb`, а при неполной непрозрачности `#rrggbbaa`.
 
 ## Redux
 

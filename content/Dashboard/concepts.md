@@ -502,17 +502,33 @@ interface ConfigLayer {
 **Real-time** позволяет источнику данных автоматически обновляться при изменении объектов слоя в бэкенде — без перезагрузки страницы.
 
 Механизм:
-1. В конфиге источника данных указывается `"autoSyncLayer": true`
-2. Клиентский хук `useDataSourceSubscriptions` (вызывается из `useProjectDataSources`, см. [[setup|Подключение]]) подписывается на WebSocket-событие для каждого такого источника: `addSubscription({ tag: "feature_layer_updated", resources: [layerName] })`
+1. В конфиге источника данных указывается, за какими слоями он следит:
+   - `"autoSyncLayer": true` — источник со своим слоем (`layerName`) следит за ним;
+   - `"autoSyncLayers": ["layer_a", "layer_b"]` — источник query (`ds` + `query`), внешний (`url`) или python (`resourceId`) следит за перечисленными слоями. Своего слоя у такого источника нет, а считает он по чужим, поэтому связь задаётся именами слоёв явно.
+
+   Оба поля разбирает `getDataSourceAutoSyncLayers` (client-new, `utils/`) — единая точка правды для дашборда и карточки объекта. Если у источника задан `layerName`, `autoSyncLayers` игнорируется: два механизма на одном источнике дали бы конкурирующие подписки.
+2. Клиентский хук `useDataSourceSubscriptions` (вызывается из `useProjectDataSources`, см. [[setup|Подключение]]) подписывается на WebSocket-событие по одной подписке на слой: `addSubscription({ tag: "feature_layer_updated", resources: [layerName] })`. Подписка идёт на слой, а не на источник — один слой могут слушать несколько источников, и по подписке на источник id для отписки перезатирались бы
 3. Когда другой пользователь изменяет объект слоя — бэкенд отправляет `ReceiveFeaturesUpdateNotification`
 4. Хук убирает записи нужных источников из стора и вызывает `fetchData(updatingDataSources)` для перезагрузки — зависимые контейнеры показывают свой `ContainerLoading`, соседние не мигают. Ставить `features: null` нельзя: в семантике контейнеров это ошибка («Блок не загружен»), а не загрузка
 5. При смене проекта подписки снимаются (`unsubscribeById`) и оформляются заново — иначе остались бы висеть на слоях прежнего проекта. Снимаются они и на размонтировании
+6. При обрыве WebSocket подписки оформляются заново. Поресурсные подписки живут в рамках соединения: сервер их не восстанавливает, а SignalR по `onreconnected` переоформляет только `SubscribeNotifications`. Счётчик переподключений даёт `useServerNotificationsReconnect` (client-new, `hooks/`) — он служит зависимостью эффектов подписки в `useDataSourceSubscriptions` и в общем `useServerNotification`. Прежние id недействительны и снимать их не нужно: потребители забывают их в `useLayoutEffect`, который выполняется раньше обычных эффектов
 
 ```json
 {
   "name": "incidents",
   "layerName": "incidents_layer",
   "autoSyncLayer": true
+}
+```
+
+Источник-запрос своего слоя не имеет — слои перечисляются явно:
+
+```json
+{
+  "name": "incidents_by_district",
+  "ds": "incidents_layer",
+  "query": "SELECT district, count(*) AS cnt FROM incidents_layer GROUP BY district",
+  "autoSyncLayers": ["incidents_layer"]
 }
 ```
 
@@ -526,7 +542,7 @@ interface ConfigLayer {
 
 - `useFeatureCardSync` — подписан на `feature_layer_updated` всех слоёв текущего выбора. Когда `updatedIds` нотификации содержит `currentId`, объект перезапрашивается через `layers.getFeatures1` и обновляется в сторе (`updateCurrentFeature`, только `properties` и `geometry` — `id` и `layer` менять нельзя, на них завязаны выбор и пагинация). Пока пользователь редактирует объект, обновление пропускается: объект из стора наполняет форму, и внешние данные затёрли бы несохранённый ввод
 - Удалённые объекты (`deletedIds`) уходят из выбора через `removeFeatures` (`hooks/map/useSelectFeatures`) — чистая функция `getSelectFeaturesAfterRemove` (`utils/selectFeatures`) убирает их из списка слоя, уменьшает `totalCounts` и переводит `currentId` на соседний объект (следующий, иначе предыдущий). Если в слое не осталось объектов, `currentId` обнуляется и карточка показывает `NoFeatureCard`. Удаление применяется и при открытой форме правки: объекта больше нет, сохранение в него всё равно не пройдёт
-- `useFeatureDataSourceSubscriptions` — аналог дашбордового хука для источников карточки: одна подписка на все слои источников с `autoSyncLayer`, при нотификации `fetchData(updatingDataSources)` из `useFeatureDataSources`
+- `useFeatureDataSourceSubscriptions` — аналог дашбордового хука для источников карточки: одна подписка на все отслеживаемые слои (`autoSyncLayer` и `autoSyncLayers` через тот же `getDataSourceAutoSyncLayers`), при нотификации `fetchData(updatingDataSources)` из `useFeatureDataSources`
 - Отдельный эффект в `useFeatureDataSources` перезапрашивает источники, когда у того же объекта изменились значения атрибутов: они подставляются в параметры и условия запросов (`%attributeName`), а `feature.id` при внешнем обновлении не меняется и эффект первичной загрузки не срабатывает
 
 Оба хука держат payload подписки пустым, пока `connection` не поднят: карточка смонтирована с самого старта приложения, а `useServerNotification` оформляет подписку один раз на текущий payload.
@@ -621,7 +637,7 @@ const createContainerComponents = () =>
     [ContainerTemplate.Chart]: ChartContainer,
     [ContainerTemplate.DataSource]: DataSourceContainer,
     [ContainerTemplate.Filters]: FiltersContainer,
-    // ... всего 35 записей
+    // ... всего 37 записей
     default: ContainersGroupContainer, // если templateName не найден
   }) as const satisfies ContainerComponentRegistry;
 

@@ -118,7 +118,7 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`; типы — от источника), без источника — единственная схема и обязательна |
+| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`; типы — от источника), без источника — единственная схема и обязательна |
 | `relatedDataSource` | `string` | ⚠️ entity-ref на `[[concepts#Источники данных\|ConfigDataSource]]` (см. `[[types#Branded types\|DataSourceName]]`) |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников с alias/axis для серий графика |
 | `relatedAttributes` | `ConfigRelatedAttribute[]` | Атрибуты из связанных слоёв (join) |

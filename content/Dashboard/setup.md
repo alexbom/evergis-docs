@@ -218,7 +218,7 @@ import { replaceObject } from "find-and";
 - `isEmpty` → `<DashboardSoon />` (у текущей страницы нет конфигурации)
 - Иначе → `<DashboardWrapper>` с `<FiltersUpdatingOverlay />` (если `filtersUpdating` из слайса `dashboard`) + `<DashboardBase />` из `@evergis/react`
 
-`useDashboardStatus` не только считает флаги (`useDashboardsOpen` + `isEmpty(currentPage)`), но и запускает загрузку: внутри он вызывает `useReferenceLayerInfos()` (метаданные слоёв страницы) и `useProjectDataSources()` (источники данных страницы, вместе с подписками `autoSyncLayer` через `useDataSourceSubscriptions` — см. [[concepts#Real-time обновления|Real-time обновления]]).
+`useDashboardStatus` не только считает флаги (`useDashboardsOpen` + `isEmpty(currentPage)`), но и запускает загрузку: внутри он вызывает `useReferenceLayerInfos()` (метаданные слоёв страницы) и `useProjectDataSources()` (источники данных страницы, вместе с подписками `autoSyncLayer` / `autoSyncLayers` через `useDataSourceSubscriptions` — см. [[concepts#Real-time обновления|Real-time обновления]]).
 
 Какие именно источники уйдут в запрос, решает утилита `getUnloadedDataSources` (`components/Dashboard/utils`): источник считается загруженным, только если в сторе под его именем лежит **массив** `features` и сигнатура запроса совпадает с текущей. Сигнатура собирается из `DATA_SOURCE_REQUEST_FIELDS` (`ds`, `query`, `parameters`, `condition`, `layerName`, `limit`, `url`, `resourceId`, `fileName`, `methodName`). После ошибки в сторе остаётся `null` — такой источник запрашивается снова. Отдельный вход `outdatedNames` добивает случай, когда сигнатура та же, а значения фильтров уже другие.
 

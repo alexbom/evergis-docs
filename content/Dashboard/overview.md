@@ -11,7 +11,7 @@ Dashboard — конфигурационный UI-компонент из пак
 - **Источники данных** — поддержка EQL-запросов, layer features API, Python remote tasks (`resourceId`) и произвольных URL-эндпоинтов
 - **Фильтрация** — параметрические фильтры (`SelectedFilters`) + геометрический фильтр (ewkt); умная инвалидация: при изменении фильтра обновляются только затронутые источники
 - **Управление слоями** — управление видимостью и параметрами карт-слоёв через `DashboardLayerPayload`
-- **Real-time через WebSocket** — `autoSyncLayer` на `ConfigDataSource` подписывается на `FeatureLayerUpdated` и автоматически обновляет данные
+- **Real-time через WebSocket** — `autoSyncLayer` (свой слой источника) и `autoSyncLayers` (чужие слои источников query / python) на `ConfigDataSource` подписываются на `FeatureLayerUpdated` и автоматически обновляют данные
 - **Раскладка на CSS-сетке** — `ContainersGroup` с `options.grid` строит сетку «строки → ячейки» с долями в `fr` и неограниченной вложенностью; `options.editMode` включает правку раскладки мышью (ресайз границ, объединение, деление, перестановка ячеек), результат уходит хосту через `onContainerChange`
 - **Разнообразные контейнеры** — 36 шаблонов: Chart, Filters, DataSource, Edit*, Tabs, Layers, Slideshow, Task, ExportPdf, Attachment, StructuredData, GridRow и др.
 - **Разнообразные элементы** — 16 типов: Chart, Chips, Control, Image, Link, Icon, Modal, Tooltip, Markdown, Slideshow, Svg, Legend, Camera, Button, Uploader, Table

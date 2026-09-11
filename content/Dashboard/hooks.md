@@ -291,7 +291,7 @@ const { title, icon, onClickLogo } = useDashboardHeader();
 **Параметры:**
 | Параметр | Тип |
 |---|---|
-| `type` | `WidgetType` |
+| `type` | `WidgetType?` — виджет, чей контекст читается (по умолчанию Dashboard) |
 | `config` | `ConfigContainerChild` — конфиг страницы |
 | `attributes` | `ClientFeatureAttribute[]?` |
 | `filters` | `SelectedFilters` |
@@ -304,7 +304,8 @@ const { title, icon, onClickLogo } = useDashboardHeader();
 | `getDataSourcePromises(ds, newFilters?, offset?)` | Загрузить один источник данных |
 | `getUpdatingDataSources()` | Вернуть источники, затронутые изменившимися фильтрами |
 | `getUpdatedDataSources(responses, current, other)` | Смерджить ответы в массив `FetchedDataSource` |
-| `zoomToLayersExtent(layers)` | Zoom to экстент слоёв |
+
+Одинаковые запросы, оказавшиеся в полёте одновременно, схлопываются в один: сигнатура собирается из уже подставленных фильтрами параметров запроса, и второй вызов получает тот же промис вместо нового обращения к серверу. Это дедуп конкурентных дублей, а не кэш — как только промис завершился, запись снимается.
 
 ```ts
 const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type, config: currentPage, filters });
@@ -515,8 +516,8 @@ const layer = getConfigLayer("myLayer");
 |---|---|
 | `useGridDraft({ node, type, onChange })` | Локальный черновик раскладки. Возвращает `draft`, `applyAction`, `commitResize`, `commitHeight`. Правки применяются сразу и уходят в `onChange`; конфиг, вернувшийся сверху, узнаётся по ссылке и не сбрасывает черновик |
 | `useGridSelection()` | Выделение ячеек: `selectedIds`, `selectCell(id, additive)`, `clearSelection`. Shift добавляет и убирает, повторный клик по единственной выделенной ячейке снимает выделение, `Escape` снимает всё |
-| `useGridResize({ axis, index, sizes, getGrid, onCommit })` | Перетаскивание границы пары треков. Во время жеста раскладка меняется инлайн-стилем без ре-рендера; `onCommit` вызывается один раз на отпускание мыши. Возвращает callback-ref `setHandle` и флаг `dragging` |
-| `useGridHeightResize({ sizes, getGrid, onCommit })` | Перетаскивание **нижней** границы сетки, за которой соседнего трека уже нет: последняя строка растёт вместе с самой сеткой. В `onCommit` уходит и новая `options.height` корня (в пикселях — исходную единицу автора при таком жесте не восстановить), и пересчитанные доли всех строк, иначе верхние строки разъехались бы пропорционально новой высоте. Тот же интерфейс `GridResize` (`setHandle`, `dragging`) |
+| `useGridResize({ axis, index, sizes, getGrid, onCommit })` | Перетаскивание границы пары треков. Во время жеста раскладка меняется инлайн-стилем без ре-рендера; `onCommit` вызывается один раз на отпускание мыши. Сам жест — общий **useResizeDrag**, поэтому возвращается его `ResizeDrag`: callback-ref `setHandle` и флаг `dragging` |
+| `useGridHeightResize({ sizes, autoHeight, getGrid, onCommit })` | Перетаскивание **нижней** границы сетки, за которой соседнего трека уже нет: последняя строка растёт вместе с самой сеткой. В `onCommit` уходит и новая `options.height` корня (в пикселях — исходную единицу автора при таком жесте не восстановить), и пересчитанные доли всех строк, иначе верхние строки разъехались бы пропорционально новой высоте. С `autoHeight` результат означает минимум: корню пишется `min-height`, трекам — `minmax(auto, Npx)`, иначе под курсором сетка садилась бы на заданные пиксели и снова раздувалась содержимым после отпускания. Тот же `ResizeDrag` (`setHandle`, `dragging`) |
 | `useGridCellSwap({ draft, applyAction })` | Перетаскивание ячейки на место другой. Один экземпляр на сессию: жест начинается в одной ячейке, а заканчивается в другой, возможно из другой строки или вложенной сетки. Источник и цель размечаются атрибутами прямо в DOM, без ре-рендера; правка уходит одна — на отпускание над валидной целью. Возвращает `beginDrag(cellId, event)` и `consumeDragClick()` |
 | `useGridMenuOptions()` | Пункты контекстного меню (`IOption[]`) с переводами и вычисленными `disabled` |
 
@@ -647,6 +648,33 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 const [chartRef, { width, height }] = useResizeBox(fill);
 
 return <ChartFillMeasure ref={chartRef}>{chartBody}</ChartFillMeasure>;
+```
+
+---
+
+## useResizeDrag
+
+**Назначение:** Общий жест перетаскивания границы: подписка на ручку, снимок на нажатии, предпросмотр прямо в DOM на движении, запись результата на отпускании. Один и тот же для границ ячеек [[containers#Режим сетки grid|сетки]] и для ширины колонок таблицы [[elements|ElementTable]] — различаются они только тем, что меряют и куда пишут. Клик, которым закончился жест, хук съедает: мышь отпускают уже за пределами ручки, и без этого перетаскивание границы заканчивалось бы сортировкой колонки или сменой выделения в сетке.
+
+**Параметры:** объект
+| Параметр | Тип | Описание |
+|---|---|---|
+| `onStart` | `(event: MouseEvent) => TState \| null` | Снимок на нажатии: всё, от чего считается жест. `null` — жест не начинается (тянуть нечего). Снимок берётся один раз именно здесь: пересчёт на каждом шаге уже по применённым размерам копит округление и уводит границу от курсора |
+| `onMove` | `(state: TState, event: MouseEvent) => void` | Шаг жеста. Рисует предпросмотр прямо в DOM — состояние на каждое движение не трогается, ре-рендера нет |
+| `onEnd` | `(state: TState, event: MouseEvent) => void` | Конец жеста: снять предпросмотр и записать результат один раз |
+
+**Возвращает:** `ResizeDrag`
+| Поле | Описание |
+|---|---|
+| `setHandle` | Callback-ref для ручки: `useDragAndDropEffect` из `@evergis/uilib-gl` принимает элемент, а не ref |
+| `dragging` | Жест идёт. Ручка отдаёт флаг в `data-dragging`, по которому подсвечивается ползунок |
+
+Мышь ведут по документу, а не по самой ручке, поэтому отпускание за пределами окна тоже завершает жест. Ручка — styled-компонент [[components|ResizeHandle]]; на хуке построены **useGridResize**, **useGridHeightResize** (см. «Хуки сетки») и `useColumnResize` таблицы.
+
+```ts
+const { setHandle, dragging } = useResizeDrag<DragState>({ onStart, onMove, onEnd });
+
+return <ResizeHandle ref={setHandle} $axis="column" data-dragging={dragging} />;
 ```
 
 ---
