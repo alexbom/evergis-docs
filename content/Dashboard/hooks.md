@@ -91,6 +91,23 @@ const { items } = useAttachmentItems({ type, elementConfig });
 
 ---
 
+## useAttachmentsView
+
+**Назначение:** Вид списка вложений — плитка или строки, и сколько файлов из списка показано. Общий для [[containers#AttachmentContainer|контейнера вложений]] и колонки вложений таблицы: список у них один и тот же компонент, и считать видимое дважды незачем.
+
+**Параметры:** объект
+| Параметр | Тип | Описание |
+|---|---|---|
+| `items` | `Attachment[]` | Полный список файлов |
+| `limit` | `number?` | Сколько показывать сразу. Не задан — показываются все |
+| `initialViewMode` | `AttachmentViewMode?` | Вид при открытии, по умолчанию `"grid"` |
+
+**Возвращает:** `{ visibleItems, hiddenCount, hasMore, showMore, setShowMore, viewMode, setViewMode }`
+
+Предел приходит числом, а не опциями конфига: у контейнера он считается из `shownItems`/`otherItems` через [[utils|`getShownItemsLimit`]], а у колонки таблицы опций вида нет вовсе — там он зашит константой.
+
+---
+
 ## useAutoCompleteControl
 
 **Назначение:** Состояние автозаполнения для edit-контрола. Хранит текущее введённое значение и список опций; статические опции собираются из переданного списка значений, динамические — задаются через `setOptions`.
@@ -190,6 +207,51 @@ return (
 
 **Возвращает:** `[customize]` — функция кастомизации для передачи в чарт
 
+Текст делений шкал хук **не форматирует**: это делает **useChartAxisTickFormat** ещё в генераторе оси (`tickFormat`), до того как d3 измерит ширину шкалы. В `customize` подписи делений осей Y только укорачиваются многоточием (`wrap`: текст длиннее 60px — 80px минус поля по 10px) и перекрашиваются в `fontColor`. От **useChartAxisAttributes** хук берёт только `strokeColors` — цвета линий и градиентной заливки по порядку серий (не задан — `defaultColor`).
+
+---
+
+## useChartAxisAttributes
+
+**Назначение:** Оси значений линейного графика и атрибуты, по `stringFormat` которых форматируются деления — отдельно для левой и правой шкалы.
+
+**Параметры:**
+| Параметр | Тип | Описание |
+|---|---|---|
+| `dataSources` | `ConfigDataSource[]` | Источники данных страницы |
+| `relatedAttributes` | `ConfigRelatedDataSource[]` | Связанные источники элемента `chart` |
+
+**Возвращает:** `{ axes, strokeColors, leftAxisAttribute, rightAxisAttribute }`
+
+---
+
+## useChartAxisTitles
+
+**Назначение:** Подписи осей линейного графика и место, которое они занимают вокруг тела графика. Размеры возвращаются числами: тело получает пиксельную геометрию d3, а в fill-режиме доступную ячейку надо поделить между телом и подписями.
+
+**Параметры:**
+| Параметр | Тип | Описание |
+|---|---|---|
+| `options` | `ConfigOptions` | Опции элемента `chart` (читается `options.axis.titlePosition`) |
+| `axes` | `ConfigRelatedDataSource[]` | Оси значений графика |
+| `isLineChart` | `boolean` | Подписи осей работают только у линейного графика |
+
+**Возвращает:** `{ axisTitles, hasTopTitles, hasSideTitles, axisTitlesHeight, hideLeftAxis, hideRightAxis }`. `axisTitles` — `{ left, right }` с `ChartAxisTitle` (`{ title, color? }`): `color` задан, только если на стороне одна серия. Ширину вертикальных подписей хук не считает — она зависит от числа строк текста, и компонент `Chart` измеряет тело между ними.
+
+---
+
+## useChartAxisTickFormat
+
+**Назначение:** Форматтеры делений левой и правой шкал линейного графика по `stringFormat` своего атрибута. Отдаются в `tickFormat` генератора оси, а не подменяют текст после отрисовки: d3 измеряет ширину шкалы по нарисованным подписям и по ней сдвигает поле графика.
+
+**Параметры:**
+| Параметр | Тип | Описание |
+|---|---|---|
+| `dataSources` | `ConfigDataSource[]` | Источники данных страницы |
+| `relatedAttributes` | `ConfigRelatedDataSource[]` | Связанные источники элемента `chart` |
+
+**Возвращает:** `{ formatLeftTick, formatRightTick }` — `(value: d3.NumberValue) => string`
+
 ---
 
 ## useChartData
@@ -204,10 +266,31 @@ return (
 
 **Возвращает:** `{ data: ChartDataProps[], loading: boolean }`
 
-`ChartDataProps`: `{ items, layerInfo, attributeName, attributeUnits, dataSourceName, color }`
+`ChartDataProps`: `{ items, layerInfo, attributeName, attributeUnits, dataSourceName, color, axisSide }`
+
+Серии строятся только по осям значений (`isValueAxis`: `axis.type` равен `"y"` или не задан). `color` берётся через `resolveAxis(...).color`, `axisSide` — через `getAxisSide` (см. [[utils#isValueAxis · getAxisSide · isRightAxis · hasAxisConfig|утилиты осей]]). Сторона едет вместе с данными серии: серии без значений потом отсеиваются, и сопоставлять их с осями по индексу уже нельзя. У графика по атрибутам объекта (без `relatedDataSources`) `axisSide` всегда `"left"`.
+
+Конфиг источника оси ищется через **useConfigDataSources** — поэтому график в модалке работает и с источником из `config.modals[].dataSources`.
 
 ```ts
 const { data, loading } = useChartData({ element: chartElement, type });
+```
+
+---
+
+## useConfigDataSources
+
+**Назначение:** Конфиги всех источников, доступных контейнерам виджета: `currentPage.dataSources` (страница + корень) и источники **всех** модалок (`config.modals[].dataSources`). Одноимённый источник страницы перекрывает модальный. Только для поиска конфига по имени — в конфиг страницы результат не пишется (иначе модальные источники осели бы в странице при сохранении `currentPage`).
+
+**Параметры:** `type?: WidgetType` (default `Dashboard`)
+
+**Возвращает:** `ConfigDataSource[]`
+
+Используется в **useChartData**, **useRelatedDataSourceAttributes**, `useTreeFilterData` и `TextFilter` (`searchDataSource`). Источники модалок — утилита [[utils#getModalsDataSources|getModalsDataSources]]; загрузка при открытии — [[setup#Ленивые источники модалок (client-new)|Подключение]].
+
+```ts
+const configDataSources = useConfigDataSources(type);
+const configDataSource = configDataSources.find(({ name }) => name === relatedDataSource);
 ```
 
 ---
@@ -537,6 +620,8 @@ const layer = getConfigLayer("myLayer");
 
 **Возвращает:** `GlobalContextProps` (без `children`)
 
+Если хост не передал свой `t` (так в Storybook), хук отдаёт запасной переводчик: он возвращает `defaultValue` (или ключ) и сам подставляет переменные `{{name}}` из опций вызова (`interpolateTranslation`), как это сделал бы i18next.
+
 ```ts
 const { api, t, ewktGeometry, ewktExtent, zoomLevel } = useGlobalContext();
 ```
@@ -591,7 +676,9 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 | `dataSources` | `FetchedDataSource[]` |
 | `feature` | `FeatureDc?` |
 
-**Возвращает:** `{ attributes: ClientFeatureAttribute[], layerInfo: QueryLayerServiceInfoDc, dataSource?: FetchedDataSource }`
+**Возвращает:** `{ attributes: ClientFeatureAttribute[], layerInfo: QueryLayerServiceInfoDc, dataSource?: FetchedDataSource, configDataSource?: ConfigDataSource }`
+
+`configDataSource` ищется через **useConfigDataSources** — включая источники модалок.
 
 ---
 

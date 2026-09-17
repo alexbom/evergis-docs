@@ -74,7 +74,32 @@ const attr = getAttributeByName("name", attributes);
 
 `(chartElement: ConfigContainerChild) => ConfigRelatedDataSource[]`
 
-Возвращает оси `chartAxis === "y"` из `elementConfig.options.relatedDataSources`.
+Возвращает оси значений из `elementConfig.options.relatedDataSources` — записи, у которых `axis.type` равен `"y"` либо не задан вовсе (фильтр `isValueAxis`).
+
+---
+
+### resolveAxis
+
+`(source?: Partial<ConfigRelatedDataSource>) => ConfigAxis`
+
+Настройки оси источника. Читает `axis`, а при его отсутствии собирает объект из устаревших плоских полей `chartAxis` / `axisColor` / `hideAxis` — слой совместимости для конфигов, созданных до переезда на [[types#ConfigAxis|`ConfigAxis`]]. Заданный `axis` приоритетнее плоских полей.
+
+В dev-сборке каждый источник со старой формой один раз пишет предупреждение в консоль: без такого маркера момент «легаси закончилось» не наступает и временный слой становится постоянным.
+
+Через `resolveAxis` ходят **все** чтения оси — и хелперы ниже, и прямые чтения цвета, подписи и `hide`.
+
+---
+
+### isValueAxis · getAxisSide · isRightAxis · hasAxisConfig
+
+`chartAxis.ts` — чтение оси с умолчаниями поверх `resolveAxis`, чтобы «нет поля» везде значило одно и то же.
+
+| Функция | Сигнатура | Умолчание / смысл |
+|---|---|---|
+| `isValueAxis` | `(source) => boolean` | нет `axis.type` → `"y"`, то есть ось значений |
+| `getAxisSide` | `(source) => ConfigAxisSide` | нет `axis.side` → `"left"` |
+| `isRightAxis` | `(source) => boolean` | `getAxisSide(...) === "right"` |
+| `hasAxisConfig` | `(source) => boolean` | запись описывает ось чарта, а не источник фильтра (у фильтра осей нет — `BarChartFilter` собирает `relatedConfig` вручную). Смотрит и на устаревший `chartAxis` |
 
 ---
 
@@ -465,6 +490,18 @@ Type-guards самого значения живут в соседнем мод�
 
 ---
 
+### getModalsDataSources
+
+`(config?: ConfigContainer, modalIds?: string[]) => ConfigDataSource[]`
+
+Источники модалок конфига (`config.modals[].dataSources`) без дублей по имени — выигрывает первый. Без `modalIds` — источники всех модалок, иначе только перечисленных. Внутри [[hooks#useConfigDataSources|useConfigDataSources]] (все модалки) и клиентского `useModalDataSources` (открытые модалки — см. [[setup#Ленивые источники модалок (client-new)|Подключение]]).
+
+```ts
+const openedModalDataSources = getModalsDataSources(config, openedModalIds);
+```
+
+---
+
 ### toConditionsArray
 
 `(value?: string | string[]) => string[]`
@@ -793,11 +830,19 @@ Type-guards самого значения живут в соседнем мод�
 
 ---
 
+### getShownItemsLimit
+
+`(options: ConfigOptions) => number | undefined`
+
+Сколько элементов списка показывать сразу. Заданы обе опции — выигрывает меньшая, не задана ни одна — предела нет. Отдельно от `sliceShownOtherItems` он нужен тем, кто режет список сам: [[hooks#useAttachmentsView|`useAttachmentsView`]] принимает предел числом, потому что у колонки вложений опций конфига нет.
+
+---
+
 ### sliceShownOtherItems
 
 `<T>(data: T, options: ConfigOptions, showMore?: boolean) => T`
 
-Обрезает массив по `min(shownItems, otherItems)` если `!showMore`.
+Обрезает массив по `getShownItemsLimit(options)` если `!showMore`.
 
 ---
 

@@ -195,12 +195,12 @@ const child: StrictConfigContainerChild = {
 |---|---|---|
 | `ElementButton` | `"button"` | — (Record<string, never>) |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
-| `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `width` |
+| `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
 | `ElementControl` | `"control"` | `relatedDataSource`, `label`, `width`, `control`, `placeholder` |
 | `ElementIcon` | `"icon"` | `fontSize`, `fontColor` |
 | `ElementImage` | `"image"` | `width`, `height`, `fit`, `resourceId`, `url` |
-| `ElementLegend` | `"legend"` | `twoColumns`, `chartId`, `relatedDataSources`, `fontSize`, `chartType` |
+| `ElementLegend` | `"legend"` | `twoColumns`, `chartId`, `relatedDataSources`, `fontSize`, `chartType`, `column` |
 | `ElementLink` | `"link"` | `simple`, `title` |
 | `ElementMarkdown` | `"markdown"` | `expandLength`, `noMargin`, `typography` |
 | `ElementModal` | `"modal"` | `modalId`, `icon` |
@@ -217,7 +217,7 @@ const child: StrictConfigContainerChild = {
 | `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `icon`, `title`, `layerName`, `geometryType`) |
 | `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
 | `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
-| `ChartContainer` | `Chart` | `twoColumns`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
+| `ChartContainer` | `Chart` | `twoColumns`, `legendInline`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
 | `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems`, `grid`, `editMode`, `fixedHeight`, `autoHeight`, `gap` + `ContainerBoxOptions` |
 | `GridRowContainer` | `GridRow` | `gap`, `alignItems`, `autoHeight` + `ContainerBoxOptions` |
 | `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `columns`, `gap`, `innerGap`, `align`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
@@ -245,7 +245,7 @@ const child: StrictConfigContainerChild = {
 | `ProgressContainer` | `Progress` | `bgColor`, `innerTemplateStyle`, `maxValue`, `hideTitle`, `innerValue`, `colors`, `colorAttribute` |
 | `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `maxLines`, `wordBreak`, `center`, `fontColor`, `bgColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute`, `align`, `columns`, `gap`, `innerGap` |
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
-| `StructuredDataContainer` | `StructuredData` | `attributesDescription`, `relatedDataSource`, `filterName`, `editMode`, `expandable`, `expanded` + `ContainerBoxOptions` (+ дети: `StructuredDataTableChild` (`id: "data"`, `type: "table"`, опции — `ElementTableOptions`), `StructuredDataAliasChild`, `StructuredDataTitleChild`, `StructuredDataTitleIconChild`) |
+| `StructuredDataContainer` | `StructuredData` | `attributesDescription`, `relatedDataSource`, `filterName`, `editMode`, `saveToLayer`, `expandable`, `expanded` + `ContainerBoxOptions` (+ дети: `StructuredDataTableChild` (`id: "data"`, `type: "table"`, опции — `ElementTableOptions`), `StructuredDataAliasChild`, `StructuredDataTitleChild`, `StructuredDataTitleIconChild`) |
 | `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
 | `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` |
 | `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
@@ -394,7 +394,7 @@ interface BgImageLayerProps {
 
 | Файл | Содержимое |
 |---|---|
-| `containers/ChartContainer/types.ts` | `ChartProps`, `ChartDataProps` (`BarChartData[]`, `PieChartData[]`, `FilterItem[]`) |
+| `containers/ChartContainer/types.ts` | `ChartProps`, `ChartDataProps` (`BarChartData[]`, `PieChartData[]`, `FilterItem[]`, `axisSide` — сторона шкалы серии) |
 | `containers/DataSourceInnerContainer/types.ts` | `InnerContainerProps` — `ContainerProps + feature?: FeatureDc` |
 | `containers/FiltersContainer/types.ts` | `FilterOption` (`text`, `value`, `min`, `max`), `WidgetFilterProps` (`type`, `filter`, `config`) |
 | `containers/FiltersContainer/constants.ts` | константы для рендера фильтров |
@@ -403,6 +403,8 @@ interface BgImageLayerProps {
 | `elements/ElementCamera/types.ts` | `SmallPreviewProps` (`images`, `totalCount`, `currentIndex`), `CameraAttributeProps` |
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
 | `components/Chart/FillContext.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
+| `components/Chart/ChartPlotContext.ts` | `ChartPlotInsets` (`left`, `right`, `width`) и `ChartPlotContextValue` (`reportPlotInsets`) — обратный канал: `Chart` после отрисовки d3 сообщает `ChartContainer`, где лежит поле графика, и тот выравнивает по нему подпись оси X и легенду |
+| `hooks/useChartAxisTitles.ts` | `ChartAxisTitle` (`title`, `color?`) — подпись оси одной стороны; `color` задан, только если на стороне одна серия |
 | `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `column`, `loading`) |
 | `components/ContainerBackground/types.ts` | `ContainerBackgroundProps` — `Pick<ContainerProps, "elementConfig" \| "renderElement">` |
 | `components/ContainerBackground/styled.ts` | `BgImageHostProps` (`$hasBgImage`), слой `ContainerBackgroundLayer`, миксин `bgImageHostMixin` |
@@ -498,11 +500,55 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 |---|---|---|
 | `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `autoSyncLayers?`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
 | `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
-| `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки колонки, которых в серверном контракте нет |
+| `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?`, `parentResourceId?`, `fileExtensions?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки, вида и загрузки вложений, которых в серверном контракте нет |
 | `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |
 | `FetchedDataSource` / `WidgetDataSource` | `name`, `features`, `layerName?`, `attributes?` | Загруженный источник в состоянии виджета |
 
 > Не путать `ConfigDataSource.attributes` (`ConfigDataSourceAttribute[]` — метаданные и формат атрибутов источника) с `options.attributes` (`string[]` — список имён атрибутов для отображения в `OneColumn`/`TwoColumn`).
+
+---
+
+## Типы осей графика
+
+### ConfigAxis
+
+Настройки одной оси и привязанной к ней серии. Лежат в `ConfigRelatedDataSource.axis` — по одному объекту на источник.
+
+```ts
+interface ConfigAxis {
+  type?: "x" | "y";              // роль источника, по умолчанию "y"
+  side?: "left" | "right";       // сторона шкалы, по умолчанию "left"
+  color?: string;                // цвет линии, заливки и метки в легенде
+  title?: string;                // подпись оси; цвет — color серии (одна на стороне) или нейтральный
+  hide?: boolean;                // скрыть ось целиком
+}
+```
+
+Заменяет прежние плоские поля `ConfigRelatedDataSource`: `chartAxis` → `axis.type`, `axisColor` → `axis.color`, `hideAxis` → `axis.hide`.
+
+> [!info] Старые конфиги работают через слой совместимости
+> Плоские поля остались в типе как `@deprecated` и читаются утилитой [[utils#resolveAxis|`resolveAxis`]]: при отсутствии `axis` она собирает объект из них. Заданный `axis` приоритетнее — узел, который уже правили, не откатывается к старым значениям.
+>
+> Слой временный. Каждый источник со старой формой один раз сообщает о себе в консоль в dev-сборке — по этим сообщениям видно, когда легаси закончилось и слой можно снять. Редактор дашборда нормализует конфиг на входе, поэтому открытый и сохранённый контейнер переезжает на `axis` сам.
+
+Отличие в умолчании: раньше источник **без** `chartAxis` из графика выпадал, теперь отсутствие `axis.type` означает `"y"`. Обратной дороги к «источник без оси игнорируется» нет.
+
+`side` — не только про то, с какой стороны нарисованы значения: серия строится **по шкале своей стороны**, домены левой и правой считаются независимо. `alias` (имя серии в легенде) к оси не относится и остаётся снаружи `axis`.
+
+### ConfigChartAxisOptions
+
+Общие настройки осей графика, `ElementChart.options.axis`:
+
+```ts
+interface ConfigChartAxisOptions {
+  titlePosition?: "side" | "top";                          // общий режим подписей осей Y
+  x?: { title?: string; align?: "left" | "center" | "right" };  // подпись оси X
+}
+```
+
+Типы-алиасы: `ConfigAxisType`, `ConfigAxisSide`, `ConfigAxisAlign`, `ConfigAxisTitlePosition`.
+
+Подробности рендеринга — [[elements#ElementChart|ElementChart]] (подписи осей Y) и [[containers#ChartContainer|ChartContainer]] (подпись оси X и легенда).
 
 ---
 

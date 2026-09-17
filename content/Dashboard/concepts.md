@@ -65,6 +65,43 @@
 
 Во время задержки контейнер показывает прежние данные, а не спиннер: `setProjectDataSourcesAreLoading` взводится уже при отправке запроса. Источник, которого ещё нет в сторе, всё это время рисует свой `ContainerLoading`.
 
+### Где объявляются источники
+
+| Место | Когда грузится |
+|---|---|
+| `config.dataSources` (корень) | Со страницей — общий для всех страниц; перекрывает одноимённый страничный |
+| `page.dataSources` (страница) | Со страницей |
+| `config.modals[].dataSources` (модалка) | **При открытии модалки**, пока она открыта; после закрытия данные остаются в кэше |
+
+Корень и страница объединяются в `currentPage.dataSources` ([[hooks#useWidgetPage|useWidgetPage]]). Модальные источники туда **не** попадают: `currentPage` сохраняется обратно в конфиг страницы целиком, и модальные источники осели бы в нём. Для поиска конфига по имени контейнеры используют [[hooks#useConfigDataSources|useConfigDataSources]] — страница, корень и все модалки; одноимённый страничный источник перекрывает модальный.
+
+Пример: источник со статистикой продаж нужен только списку в модалке «Подробности» — объявленный на странице, он запрашивался бы при каждой инициализации дашборда, даже если модалку никто не откроет.
+
+```json
+{
+  "modals": [
+    {
+      "id": "details_modal",
+      "options": { "title": "Подробности" },
+      "dataSources": [{ "name": "sales_stats", "layerName": "sales", "condition": "region = %region" }],
+      "children": [
+        {
+          "id": "sales_list",
+          "templateName": "DataSource",
+          "options": { "relatedDataSource": "sales_stats", "innerTemplateName": "OneColumn" },
+          "children": [
+            { "id": "alias", "attributeName": "product" },
+            { "id": "value", "attributeName": "total" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Загрузку делает хост по уведомлению `onModalToggle` — см. [[elements#ElementModal|ElementModal]] и [[setup#Ленивые источники модалок (client-new)|Ленивые источники модалок]].
+
 ### Настройка атрибутов источника — секция `attributes`
 
 Иногда атрибуты приходят «сырыми»: у EQL- и python-источника слоя нет вообще, а у слоя формат может не совпадать с тем, как значение нужно показать в конкретном дашборде. Для этого у источника есть секция `attributes` (`ConfigDataSourceAttribute[]`) — она **накладывается поверх** атрибутов слоя или ответа запроса.
@@ -407,7 +444,7 @@ interface ConfigLayer {
 > - `options.outflow` без слота `bgImage` — ошибка `orphan-option`: вытекать нечему, опция молча не работает. `options.innerPadding` так не проверяется — это обычный отступ, осмысленный и без картинки.
 > - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
 > - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
-> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`).
+> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`); `options.saveToLayer` стоит только на источнике со слоем — без `relatedDataSource` или на источнике, объявленном без `layerName`, это `save-to-layer-without-layer`, а без `editMode` — предупреждение `orphan-option`.
 
 ### Сводный пример с двумя уровнями `id`
 

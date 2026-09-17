@@ -87,7 +87,7 @@ ContainersGroupContainer
 Хранит атрибуты и конфиг карточки объекта, layerInfo, controls, edit-состояние. Читается через `useWidgetContext(WidgetType.FeatureCard)`.
 
 ### GlobalContext
-Глобальные настройки: `api`, `t`, `ewktGeometry`, `ewktExtent`, `zoomLevel`, `themeName`, `language`. Читается через `useGlobalContext()`.
+Глобальные настройки: `api`, `t`, `language`, `themeName`, состояние карты для системных плейсхолдеров (`ewktGeometry`, `ewktExtent` → `%extent`, `zoomLevel` → `%zoom`), проект (`projectName` → `%project` / `%project.name`, `projectAlias` → `%project.alias`) и API уведомлений `notification` (`add` / `update` / `close`). Читается через `useGlobalContext()`, полная таблица — в [[setup#GlobalProvider (@evergis/react)|Подключении]].
 
 Подробнее о контекстах — в [[concepts|Основных понятиях]].
 
@@ -114,6 +114,8 @@ getRenderElement() → ElementComponent
 ```
 
 Изменение фильтров — только затронутые источники данных перезагружаются (умная инвалидация через `getUpdatingDataSources()`).
+
+Источники модалок (`config.modals[].dataSources`) в `currentPage.dataSources` не пишутся и грузятся лениво — при открытии модалки (`ElementModal` → `onModalToggle`). Поиск конфига источника по имени идёт через [[hooks#useConfigDataSources|useConfigDataSources]] (страница + все модалки, страничный источник перекрывает модальный), клиентская загрузка — см. [[setup#Ленивые источники модалок (client-new)|Ленивые источники модалок]].
 
 ## Связанные разделы
 

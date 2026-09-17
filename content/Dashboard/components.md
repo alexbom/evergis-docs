@@ -53,9 +53,17 @@
 | `type` | `WidgetType` |
 | `renderElement` | `RenderElementFunction` |
 
-**Зависимости:** `useChartData`, `useChartChange`, `useWidgetFilters`, `useWidgetContext`, `useGlobalContext`, `useResizeBox` (только в fill-режиме)
+**Зависимости:** `useChartData`, `useChartChange`, `useChartAxisTitles`, `useChartAxisTickFormat`, `useWidgetFilters`, `useWidgetContext`, `useGlobalContext`, `useResizeBox` (в fill-режиме — ячейка; при вертикальных подписях осей — тело между ними)
 
 **Режим `fill`:** читается из контекста `FillContext`, который выставляет `ChartContainer` (опции контейнера до элемента `chart` не доходят). При `fill` тело графика оборачивается в измеряемый `ChartFillMeasure`, а размеры берутся из `useResizeBox`, а не из `options.width`/`options.height`. Подробно — [[containers#Как работает fill|ChartContainer]].
+
+**Подписи осей (`line`):** компонент рисует подписи осей Y вокруг тела графика — вертикально по бокам (`axis.titlePosition: "side"`) либо строкой над телом (`"top"`). Разметка подписей — внутренние компоненты `AxisTitlesTop` и `AxisTitleSideSlot` (`components/Chart/components/AxisTitles.tsx`). Ширина вертикальной подписи зависит от числа строк текста, поэтому тело между подписями (`LineChartBody`) измеряется `useResizeBox`, а не вычисляется. Высота строки горизонтальных подписей известна заранее и вычитается из тела только в fill-режиме (вне fill обёртка честно растёт на эту строку). См. [[elements#Оси линейного графика|ElementChart]].
+
+**Положение поля графика (`line`):** после отрисовки d3 компонент сообщает контейнеру отступы поля (области линий и сетки) через `ChartPlotContext` — в `customize` по `xScale.range()` и offset-размерам тела. По ним [[containers#ChartContainer|ChartContainer]] выравнивает подпись оси X и легенду. Без контейнера провайдера нет, и отчёт не отправляется.
+
+**Поля SVG (`line`):** снизу резервируется полоса под подписи оси X (`LINE_CHART_LABEL_MARGIN`), сверху — выступ верхнего деления шкал (`Y_AXIS_LABEL_OVERHANG`): d3 центрирует подпись деления на линии сетки, и в fill `overflow: hidden` у `ChartFillMeasure` срезал бы её наполовину. Добавленное сверху поле компенсируется в `xAxisPadding` — `draw.ts` вычитает верхнее поле и из нижней границы поля графика.
+
+**Поля SVG (`bar`):** при видимых значениях шкалы (`showLabels`) сверху и снизу резервируется тот же выступ (`Y_AXIS_LABEL_OVERHANG`). Барчарт обёрнут в `BarChartContainer` с `overflow-x: hidden` — из-за него и по вертикали содержимое не `visible`, и без резерва крайние деления (например, «0» внизу) срезались наполовину даже вне fill. Поле добавляется только внутри SVG, внешние размеры обёрток не меняются.
 
 **Типы чартов** (через `options.chartType`):
 - `bar` (default) — StyledBarChart из `@evergis/charts`
@@ -80,6 +88,7 @@
 | `loading` | `boolean` |
 | `chartElement` | `ConfigContainerChild` |
 | `twoColumns` | `boolean?` |
+| `column` | `boolean?` — записи столбиком (`true`) или в ряд (`false`); не задано — раскладку выбирает контейнер |
 | `fontSize` | `string?` |
 | `type` | `WidgetType` |
 

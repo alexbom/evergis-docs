@@ -47,12 +47,14 @@ interface ConfigOptions
 | `outflow` | `boolean` | Слой фонового изображения (`bgImage`) вытекает за края контейнера на `1.5rem` (`BG_IMAGE_OUTFLOW`) — по бокам и **вверх**, вниз никогда: там начинается следующий контейнер колонки. Раскладку не меняет — слой абсолютный, содержимое остаётся в своих границах. Без слота `bgImage` не делает ничего; обрезается любым предком с `overflow` кроме `visible`, включая собственный `options.overflow`. Читает сам слой ([[components\|`ContainerBackground`]]), а не хост |
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
-| `column` | `boolean` | Вертикальная раскладка детей (один в столбик) |
+| `column` | `boolean` | Вертикальная раскладка детей (один в столбик). У `ElementLegend` — направление записей: `false` в ряд, `true` столбиком |
 | `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки grid\|Режим сетки]] |
 | `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
+| `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. См. [[containers#StructuredDataContainer\|StructuredData]] |
 | `autoHeight` | `boolean` | Сетка растёт под содержимое: `height` становится минимумом (`min-height`), треки — `minmax(auto, Nfr)`, внутренний скролл трека снимается. Читается у **каждого** узла (сетка, `GridRow`, вложенная сетка) и вверх не поднимается. См. [[containers#Рост под содержимое autoHeight\|Рост под содержимое]] |
 | `fixedHeight` | `boolean` | Высотой сетки распоряжается внешняя раскладка: у корневой строки не рендерится ручка нижней границы, и высоту нельзя утянуть мышью. Нужен сеткам, растянутым на бокс панели фиксированного экрана или дока. Читается только у **корневого** узла сетки в `editMode`; у вложенных ручки высоты нет и так |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
+| `legendInline` | `boolean` | `ChartContainer`: легенда в одной строке справа от подписи оси X. Игнорируется при `twoColumns` и без подписи оси X |
 | `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
 | `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце |
 | `columns` | `number` | Число плиток в строке ряда плиточного контейнера (включает grid-режим) |
@@ -70,7 +72,7 @@ interface ConfigOptions
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `barHeight` | `number` | Высота StackBar |
 
-**Используется в:** `ElementChart`, `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 `innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
@@ -118,9 +120,9 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`; типы — от источника), без источника — единственная схема и обязательна |
+| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`, настройки загрузки вложений `parentResourceId`/`fileExtensions`; типы — от источника), без источника — единственная схема и обязательна |
 | `relatedDataSource` | `string` | ⚠️ entity-ref на `[[concepts#Источники данных\|ConfigDataSource]]` (см. `[[types#Branded types\|DataSourceName]]`) |
-| `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников с alias/axis для серий графика |
+| `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников для серий графика. Имя серии — `alias`, настройки её оси — вложенный `axis` ([[types#ConfigAxis\|`ConfigAxis`]]) |
 | `relatedAttributes` | `ConfigRelatedAttribute[]` | Атрибуты из связанных слоёв (join) |
 | `relatedResources` | `ConfigRelatedResource[]` | Связанные Python-ресурсы (TaskContainer) |
 | `responseFilters` | `Record<string, string>` | Фильтры ответа задачи |
@@ -147,6 +149,7 @@ interface ConfigOptions
 | `dotSnapping` | `boolean` | Привязка точек LineChart к ближайшему значению |
 | `drawMinMax` | `boolean` | Рисовать min/max-маркеры |
 | `angle` | `number` | Угол поворота подписей оси (BarChart) |
+| `axis` | `ConfigChartAxisOptions` | Оси линейного графика: `titlePosition` (`"side"` \| `"top"` — общий режим подписей осей Y) и `x` (`title`, `align` — подпись оси X). Настройки конкретной оси — в `relatedDataSources[].axis`. Подписи осей Y рисует только `line`; строку подписи оси X строит `ChartContainer` при любом `chartType`, но по полю графика выравнивает только у `line` |
 
 **Используется в:** `ElementChart`, `ElementLegend`, `DataSourceProgressContainer`.
 

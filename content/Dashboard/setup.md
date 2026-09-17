@@ -14,6 +14,7 @@
 | `useDialog()` | `src/hooks` | `openDialog` — открытие диалога каталога ресурсов |
 | `useExpandableContainers()` | `@evergis/react` | `expandedContainers`, `expandContainer` |
 | `useSelectedTab()` | `components/Dashboard/hooks/useSelectTab` | `selectedTabId`, `setSelectedTabId` |
+| `useProjectModals()` | `components/Dashboard/hooks/useProjectModals` | `[openedModalIds, onModalToggle]` — открытые модалки в слайсе `dashboard` (`toggleProjectModal`); `onModalToggle` уходит в базовый провайдер |
 | `useProjectDataSourceFilters()` | `components/Dashboard/hooks` | `filters`, `changeFilters` |
 | `useDashboardPages()` | `components/Dashboard/hooks` | `nextPage`, `prevPage`, `changePage` |
 | `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
@@ -29,6 +30,7 @@
 | `getProjectPageIndex` | `dashboard` |
 | `getProjectDataSources` | `dashboard` |
 | `getProjectDataSourcesAreLoading` | `dashboard` |
+| `getProjectOpenedModalIds` | `dashboard` |
 | `getProjectGeometryFilter` | `project` |
 | `getReferenceLayerInfos` | `dashboard` |
 
@@ -77,6 +79,7 @@
 | `loading` | `boolean` | Идёт загрузка данных |
 | `editMode` | `boolean` | Режим редактирования **атрибутов объекта** (в контейнерах — `isEditing`). К раскладке отношения не имеет |
 | `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. раздел ниже |
+| `onModalToggle` | `(modalId: string, isOpen: boolean) => void` | Модалка `config.modals[].id` открылась или закрылась — хост грузит её `dataSources`, пока она открыта. См. [[setup#Ленивые источники модалок (client-new)\|раздел ниже]] |
 | `filters` | `SelectedFilters` | Активные фильтры |
 | `dashboardLayers` | `DashboardState["layers"]` | Состояние слоёв |
 | `setDashboardLayer` | `(payload) => void` | Установить параметры слоя |
@@ -144,6 +147,7 @@ import { replaceObject } from "find-and";
 | `isRaster` | `boolean` | Карточка растрового объекта |
 | `editMode` | `boolean` | Режим редактирования атрибутов объекта |
 | `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. [[setup#Сохранение изменений раскладки\|раздел выше]] |
+| `onModalToggle` | `(modalId: string, isOpen: boolean) => void` | Модалка карточки открылась или закрылась — см. [[setup#Ленивые источники модалок (client-new)\|раздел ниже]]. В client-new передаётся из `useFeatureModals()` (слайс `feature`, `toggleFeatureModal`) |
 | `isFeatureEditable` | `boolean` | Можно ли редактировать объект |
 | `hasCopyRights` | `boolean` | Есть ли права на копирование |
 | `editOnly` | `boolean` | Режим «только редактирование» |
@@ -218,9 +222,33 @@ import { replaceObject } from "find-and";
 - `isEmpty` → `<DashboardSoon />` (у текущей страницы нет конфигурации)
 - Иначе → `<DashboardWrapper>` с `<FiltersUpdatingOverlay />` (если `filtersUpdating` из слайса `dashboard`) + `<DashboardBase />` из `@evergis/react`
 
-`useDashboardStatus` не только считает флаги (`useDashboardsOpen` + `isEmpty(currentPage)`), но и запускает загрузку: внутри он вызывает `useReferenceLayerInfos()` (метаданные слоёв страницы) и `useProjectDataSources()` (источники данных страницы, вместе с подписками `autoSyncLayer` / `autoSyncLayers` через `useDataSourceSubscriptions` — см. [[concepts#Real-time обновления|Real-time обновления]]).
+`useDashboardStatus` не только считает флаги (`useDashboardsOpen` + `isEmpty(currentPage)`), но и запускает загрузку: внутри он вызывает `useReferenceLayerInfos()` (метаданные слоёв страницы и открытых модалок) и `useProjectDataSources()` (источники данных страницы, вместе с подписками `autoSyncLayer` / `autoSyncLayers` через `useDataSourceSubscriptions` — см. [[concepts#Real-time обновления|Real-time обновления]]).
 
 Какие именно источники уйдут в запрос, решает утилита `getUnloadedDataSources` (`components/Dashboard/utils`): источник считается загруженным, только если в сторе под его именем лежит **массив** `features` и сигнатура запроса совпадает с текущей. Сигнатура собирается из `DATA_SOURCE_REQUEST_FIELDS` (`ds`, `query`, `parameters`, `condition`, `layerName`, `limit`, `url`, `resourceId`, `fileName`, `methodName`). После ошибки в сторе остаётся `null` — такой источник запрашивается снова. Отдельный вход `outdatedNames` добивает случай, когда сигнатура та же, а значения фильтров уже другие.
+
+**Правка источников в конфиге текущей страницы** (например, в редакторе) перезапрашивает только источники с изменившимся запросом, без сброса стора — иначе обнулялись бы соседние графики. Старый и новый наборы сравниваются утилитой `getQueryRelevantDataSources` (`components/Dashboard/utils`), которая выбрасывает из каждого источника секцию `attributes`: оверлей атрибутов (`alias`, `type`, `stringFormat`, `description`) на серверный запрос не влияет и рендерится прямо из конфига (`getDataSourceLayerInfo`), поэтому правка формата или подписи атрибута в сеть не ходит. Смена страницы этот механизм не задействует — там своя загрузка.
+
+---
+
+## Ленивые источники модалок (client-new)
+
+Источники из `config.modals[].dataSources` (см. [[elements#ElementModal|ElementModal]]) грузятся не со страницей, а при открытии модалки. `ElementModal` сообщает об открытии и закрытии через проп `onModalToggle`; провайдеры кладут id в слайсы (`dashboard.openedModalIds` / `feature.openedModalIds`). Загрузчики — `useProjectDataSources` (дашборд) и `useFeatureDataSources` (карточка) — работают через общие хуки из `components/Dashboard/hooks`:
+
+| Хук | Что делает |
+|---|---|
+| `useModalDataSources(type)` | Наборы источников: `activeDataSources` (страница + открытые модалки — то, что грузится), `allDataSources` (страница + все модалки, из [[hooks#useConfigDataSources\|useConfigDataSources]]), `openedModalDataSources`, `closedModalNames`, `configWithModals` (`currentPage` с `allDataSources` — конфиг для [[hooks#useDataSources\|useDataSources]]) |
+| `useModalAwareFetch(type, fetchData)` | Обёртка загрузчика для событий перезапроса (фильтры, `%extent`/`%zoom`, autoSync): источники **закрытых** модалок не грузятся, а **вытесняются из стора** |
+| `useOpenedModalsFetch(type, fetchData, isBlocked?)` | При открытии модалки запрашивает её источники, которых нет в сторе (`getUnloadedDataSources`). Запрошенные имена помнит до закрытия — упавший запрос не зацикливается; `isBlocked` откладывает загрузку, пока карточка грузит объект |
+
+Жизненный цикл данных модалки:
+
+- **Открыта** — источники ведут себя как страничные: фильтры, движение карты, autoSync, `debounce`.
+- **Закрыта** — данные остаются в сторе (повторное открытие мгновенное). Событие, которое перезапросило бы источник, вместо запроса удаляет его данные — при следующем открытии он окажется незагруженным и запросится с актуальными фильтрами и видом карты.
+- **Смена страницы / контекста / объекта карточки** — стор сбрасывается целиком, модальный кэш вместе с ним. Размонтированная открытая модалка сама сообщает о закрытии.
+
+Подписки autoSync (`useDataSourceSubscriptions`, `useFeatureDataSourceSubscriptions`) оформляются сразу на слои **всех** модалок: подписка ставится один раз на соединение, и модалка, открытая позже, иначе осталась бы без неё.
+
+Клиентский валидатор ([[authoring|Правила генерации]]) предупреждает `modal-datasource-shadowed`, если имя источника модалки совпадает со страничным или корневым: такой источник перекрыт и грузится вместе со страницей.
 
 ---
 
