@@ -41,6 +41,7 @@
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` |
 | `FeatureCardDefaultHeader` | — кастомных детей нет, структура фиксирована |
+| Модалка (`config.modals[]`) | `titleIcon` — иконка перед заголовком, `bgImage` — картинка фона шапки (геометрия и якорь — `options.header`); оба только **прямыми** детьми модалки. Остальные дети — обычное содержимое. См. [[elements#ElementModal\|ElementModal]] |
 
 ### Универсальные слоты
 

@@ -54,7 +54,7 @@ interface ConfigOptions
 | `autoHeight` | `boolean` | Сетка растёт под содержимое: `height` становится минимумом (`min-height`), треки — `minmax(auto, Nfr)`, внутренний скролл трека снимается. Читается у **каждого** узла (сетка, `GridRow`, вложенная сетка) и вверх не поднимается. См. [[containers#Рост под содержимое autoHeight\|Рост под содержимое]] |
 | `fixedHeight` | `boolean` | Высотой сетки распоряжается внешняя раскладка: у корневой строки не рендерится ручка нижней границы, и высоту нельзя утянуть мышью. Нужен сеткам, растянутым на бокс панели фиксированного экрана или дока. Читается только у **корневого** узла сетки в `editMode`; у вложенных ручки высоты нет и так |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
-| `legendInline` | `boolean` | `ChartContainer`: легенда в одной строке справа от подписи оси X. Игнорируется при `twoColumns` и без подписи оси X |
+| `legendInline` | `boolean` | `ChartContainer`: легенда в одной строке справа от подписи оси X. Игнорируется при `twoColumns`, без подписи оси X и у нелинейных графиков |
 | `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
 | `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце |
 | `columns` | `number` | Число плиток в строке ряда плиточного контейнера (включает grid-режим) |
@@ -120,7 +120,7 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`, настройки загрузки вложений `parentResourceId`/`fileExtensions`; типы — от источника), без источника — единственная схема и обязательна |
+| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`, настройки загрузки вложений `parentResourceId`/`fileExtensions`, список значений колонки `variants`/`relatedDataSource`/`attributeValue`/`attributeAlias` и его контрол `control`; типы — от источника), без источника — единственная схема и обязательна |
 | `relatedDataSource` | `string` | ⚠️ entity-ref на `[[concepts#Источники данных\|ConfigDataSource]]` (см. `[[types#Branded types\|DataSourceName]]`) |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников для серий графика. Имя серии — `alias`, настройки её оси — вложенный `axis` ([[types#ConfigAxis\|`ConfigAxis`]]) |
 | `relatedAttributes` | `ConfigRelatedAttribute[]` | Атрибуты из связанных слоёв (join) |
@@ -149,7 +149,7 @@ interface ConfigOptions
 | `dotSnapping` | `boolean` | Привязка точек LineChart к ближайшему значению |
 | `drawMinMax` | `boolean` | Рисовать min/max-маркеры |
 | `angle` | `number` | Угол поворота подписей оси (BarChart) |
-| `axis` | `ConfigChartAxisOptions` | Оси линейного графика: `titlePosition` (`"side"` \| `"top"` — общий режим подписей осей Y) и `x` (`title`, `align` — подпись оси X). Настройки конкретной оси — в `relatedDataSources[].axis`. Подписи осей Y рисует только `line`; строку подписи оси X строит `ChartContainer` при любом `chartType`, но по полю графика выравнивает только у `line` |
+| `axis` | `ConfigChartAxisOptions` | Оси линейного графика: `titlePosition` (`"side"` \| `"top"` — общий режим подписей осей Y) и `x` (`title`, `align` — подпись оси X). Настройки конкретной оси — в `relatedDataSources[].axis`. Работает только у `line`: подписи осей Y рисует элемент `chart`, строку подписи оси X — `ChartContainer`; у других типов `axis` игнорируется |
 
 **Используется в:** `ElementChart`, `ElementLegend`, `DataSourceProgressContainer`.
 
