@@ -292,6 +292,7 @@ interface ConfigLayer {
   searchFields?: string[]; // поля для поиска по слою
   minScale?: number;     // минимальный масштаб отображения
   maxScale?: number;     // максимальный масштаб отображения
+  notifications?: ConfigNotifications; // "all" | "my" | string[] — чьи изменения слоя применять, см. [[#Фильтр уведомлений по автору — notifications]]
 }
 ```
 
@@ -583,6 +584,51 @@ interface ConfigLayer {
 - Отдельный эффект в `useFeatureDataSources` перезапрашивает источники, когда у того же объекта изменились значения атрибутов: они подставляются в параметры и условия запросов (`%attributeName`), а `feature.id` при внешнем обновлении не меняется и эффект первичной загрузки не срабатывает
 
 Оба хука держат payload подписки пустым, пока `connection` не поднят: карточка смонтирована с самого старта приложения, а `useServerNotification` оформляет подписку один раз на текущий payload.
+
+### Фильтр уведомлений по автору — `notifications`
+
+Сервер пишет в каждое уведомление (`ClientNotificationDc`) имя пользователя, чьё изменение его породило, — `senderName`. Опция `notifications` решает, чьи изменения текущая сессия применяет:
+
+| Значение | Что применяется |
+|---|---|
+| `"all"` (по умолчанию) | любые изменения — поведение без опции |
+| `"my"` | только изменения текущего пользователя (из любой его вкладки и устройства) |
+| `["ivanov", "petrov"]` | только изменения перечисленных пользователей. Текущий пользователь неявно **не** добавляется; `"my"` внутри массива — обычное имя |
+
+Имена сравниваются без учёта регистра. Уведомление без `senderName` (изменение системной задачи) применяется всегда.
+
+Тип значения — `ConfigNotifications` из `@evergis/react` (см. [[types#Типы источника данных|Типы]]); поле объявлено в `ConfigMiscOptions` (корень, см. [[options#ConfigMiscOptions|Опции]]), `ConfigLayer` и `ConfigDataSource`.
+
+**Где задаётся** — только в конфигурации дашборда (`projectInfo.content.dashboardConfiguration`):
+
+| Уровень | Поле | На что влияет |
+|---|---|---|
+| Корень | `options.notifications` | изменения проекта (`project_updated`); значение по умолчанию для уровней ниже |
+| Слой страницы | `children[0].children[i].layers[].notifications` (`ConfigLayer`) | конфигурация слоя (`layer_updated`) и его объекты (`feature_layer_updated`): перерисовка на карте, 3D-модели, таблица, карточка объекта, статистика по атрибуту |
+| Источник данных | `dataSources[].notifications` (корня, страницы, модалки, карточки) | перезапрос источника по `autoSyncLayer` / `autoSyncLayers` |
+
+Побеждает самый конкретный уровень: источник → слой из уведомления (ищется в `layers` **текущей** страницы) → корень → `"all"`. Решение принимается на каждый источник отдельно: одно уведомление слоя может перезапросить один источник и быть отброшенным для другого.
+
+```json
+{
+  "options": { "notifications": "my" },
+  "children": [{ "id": "pages", "children": [{
+    "id": "page_1",
+    "layers": [{ "name": "incidents_layer", "notifications": "all" }],
+    "dataSources": [{
+      "name": "incidents_by_district",
+      "ds": "incidents_layer",
+      "query": "SELECT district, count(*) AS cnt FROM incidents_layer GROUP BY district",
+      "autoSyncLayers": ["incidents_layer"],
+      "notifications": ["dispatcher_1", "dispatcher_2"]
+    }]
+  }]}]
+}
+```
+
+Реализация (client-new): чистые функции `resolveNotifications` / `isNotificationAllowed` (`utils/notifications.ts`) и хук `useNotificationsFilter` (`hooks/`). Хук возвращает **стабильную** функцию, которая читает пользователя и конфиг через ref, — ею пользуются и обработчики, зарегистрированные один раз на соединение (слой карты, `ModelLayer`). Валидатор `validateDashboardConfig` (проверка `checkNotifications` в `validateNotifications.ts`) обходит `options.notifications` корня, `layers[]` и `dataSources[]` страниц, `dataSources[]` корня и модалок и ловит неверное значение — ошибку `invalid-notifications` (допустимы `"all"`, `"my"` или массив непустых строк): рантайм нераспознанное значение пропускает как `"all"`, и без проверки опечатка осталась бы незамеченной.
+
+> [!warning] Режим «только свои» оставляет сессию на устаревших данных: отброшенное чужое изменение не отобразится до перезагрузки, а следующее своё сохранение может его затереть.
 
 ---
 
