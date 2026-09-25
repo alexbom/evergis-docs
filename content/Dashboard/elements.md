@@ -11,7 +11,9 @@
 
 **Каждый элемент обязан иметь поле `id`** — это **slot** (зарезервированное место) внутри parent-контейнера. Контейнер рендерит конкретный slot через `renderElement({ id: "<slot>" })` и ожидает фиксированные ключи (`alias`, `value`, `chart`, `legend`, `title`, `description`, `bgImage`, `icon`, `units`, ...). Если `id` элемента не совпадает с ожидаемым slot-id контейнера — элемент не отрисуется. Три slot-id универсальны и допустимы у любого контейнера: `title` и `titleIcon` уходят в заголовок, `bgImage` — в слой фона под содержимым (см. [[containers#Универсальные слоты|Контейнеры]]); единственное исключение — `Divider`, у которого фона нет. Таблица slot-id по контейнерам и шапкам — в [[concepts#ID контейнеров и элементов|разделе про id]]. В примерах ниже slot-id выбран под типовой контейнер-родитель.
 
-Список `type`-литералов и их `<Name>` (для совместимости с legacy — некоторые типы носят историческое имя):
+**Подстановки.** `value`, `defaultValue`, `options.label`, `options.placeholder` и `options.title` любого элемента проходят через резолвер строк конфига (`%filter`, `$dashboard:`, `{attr}`, `%project`, …) при рендере через `getRenderElement` — см. [[concepts#Подстановки в строках конфига|Основные понятия]]. Сами элементы получают уже подставленные строки.
+
+Список `type`-литералов и их `<Name>` (некоторые типы носят имя, отличное от компонента):
 
 | `type` | `<Name>` |
 |---|---|
@@ -238,10 +240,13 @@
 
 **Поведение:** загружает items из `dataSource`, по выбору вызывает `changeControls({ [targetAttributeName]: value })`. Проверяет `isEditable` из `layerInfo`.
 
+**Значение по умолчанию.** Приоритет: выбор пользователя (`controls[targetAttributeName]`) → значение атрибута объекта → `defaultValue` элемента. `defaultValue` поддерживает подстановки (см. [[concepts#Подстановки в строках конфига|Основные понятия]]), например `"$dashboard:scenario"`. Он фиксируется при открытии карточки — берётся первое непустое значение (хук `useFirstNonEmptyValue` в `ElementControl/hooks`), поэтому смена фильтра дашборда не затирает выбор. В `controls` дефолт не записывается и при сохранении не уходит, пока пользователь не выберет значение сам. `label` и `placeholder` тоже проходят через подстановки.
+
 ```tsx
 {
   id: "value",
   type: "control",
+  defaultValue: "$dashboard:scenario",
   options: {
     relatedDataSource: "statusDs",
     control: { type: "dropdown", targetAttributeName: "status", attributeName: "id" },
@@ -446,7 +451,7 @@ SVG-ресурс отображается как обычная картинка
 | `modalId` | `string` | **Обязательный.** ID модала из `config.modals` |
 | `icon` | `IconTypesKeys` | Иконка кнопки (default: `"new_window"`) |
 
-**Поведение:** находит `ConfigModal` по `modalId`, рендерит `ContainerChildren` внутри `Dialog`.
+**Поведение:** находит `ConfigModal` по `modalId`, рендерит `ContainerChildren` внутри `Dialog`. Заголовок модалки (`ConfigModal.options.title`) проходит через подстановки строк конфига так же, как подписи элементов (см. [[concepts#Подстановки в строках конфига|Основные понятия]]).
 
 **Открытие (`hooks/useModalOpen`):** видимость диалога — локальный флаг экземпляра. У одного `modalId` бывает несколько кнопок (слот `modal` в строках `DataSource`), и общий флаг открыл бы все диалоги сразу. Об открытии и закрытии хост узнаёт через проп провайдера [[setup#BaseDashboardProvider (@evergis/react)|`onModalToggle(modalId, isOpen)`]]. Размонтирование **открытого** экземпляра (смена страницы, закрытие карточки) тоже шлёт `isOpen: false`; закрытый экземпляр при размонтировании молчит, чтобы не «закрыть» соседний открытый с тем же id.
 

@@ -388,6 +388,15 @@ const { title, icon, onClickLogo } = useDashboardHeader();
 | `getUpdatingDataSources()` | Вернуть источники, затронутые изменившимися фильтрами |
 | `getUpdatedDataSources(responses, current, other)` | Смерджить ответы в массив `FetchedDataSource` |
 
+Для не-дашборда (карточки) хук читает фильтры ближайшего дашборда через `useDashboardFilterStore` и передаёт их резолверу для `$dashboard:`. `getUpdatingDataSources` учитывает три вида изменений:
+- фильтры виджета;
+- дефолты фильтров, пришедшие из `$dashboard:`, пока фильтр не выбран;
+- фильтры дашборда.
+
+Ссылки ищутся по токенам: `%name`, `$dashboard:name`, в том числе внутри строки. Расчёт — чистая [[utils|утилита]] `selectUpdatingDataSources`; хук хранит снимки прошлых значений и обновляет их, когда список не пуст. Сам перезапрос карточки на смену фильтра дашборда запускает client-new (`useFeatureDataSources`).
+
+Датасорсы дашборда для `$dashboard:<датасорс>:<поле>` берутся из того же стора (`useDashboardFilterStore`), на самом дашборде — из датасорсов виджета.
+
 Одинаковые запросы, оказавшиеся в полёте одновременно, схлопываются в один: сигнатура собирается из уже подставленных фильтрами параметров запроса, и второй вызов получает тот же промис вместо нового обращения к серверу. Это дедуп конкурентных дублей, а не кэш — как только промис завершился, запись снимается.
 
 ```ts
@@ -892,6 +901,31 @@ const { dataSources, filters, attributes } = useWidgetContext(type);
 ```ts
 const { pageIndex, currentPage } = useWidgetPage(type);
 ```
+
+У не-дашборда (карточки) `currentPage.filters` приходят с разрезолвленными дефолтами `defaultValue: "$dashboard:…"`: пока фильтр не выбран, его дефолт следует за фильтром дашборда. Страница дашборда отдаётся как есть: редактор пишет её `currentPage` обратно в конфиг.
+
+---
+
+## useConfigStringSources
+
+**Назначение:** Источники подстановок строк конфига для виджета: фильтры виджета (`%`), фильтры дашборда (`$dashboard:`), атрибуты объекта, датасорсы левой панели, вид карты, проект. См. [[concepts#Подстановки в строках конфига|Основные понятия]].
+
+**Параметры:** `type: WidgetType`
+
+**Возвращает:** `ConfigStringSources`. Передаётся в `getRenderElement({ configStringSources })`, который резолвит `value` / `defaultValue` / подписи каждого узла. Атрибуты строки `DataSource` при этом подменяют атрибуты карточки.
+
+```ts
+const sources = useConfigStringSources(type);
+const title = resolveConfigString("Показатели за $dashboard:year год", sources);
+```
+
+---
+
+## useDashboardFilterStore
+
+**Назначение:** Стор фильтров ближайшего дашборда (`{ selectedFilters, configFilters, dataSources }`) для `$dashboard:`. Для `type = Dashboard` возвращает `undefined`: там `$dashboard:name` равен `%name`.
+
+**Параметры:** `type: WidgetType`
 
 ---
 

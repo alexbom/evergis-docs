@@ -173,7 +173,9 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `({ t, config, filters, relatedConfig, dataSource, layerInfo }) => FilterItem[] | null`
 
-Формирует данные для чарта из features датасорса. Сортировка, обрезка по `otherItems`, генерация цветового градиента, форматирование значений через `formatAttributeValue`.
+Формирует данные для чарта из features датасорса. Сортировка (`orderByValue` / `orderByTitle`), обрезка по `otherItems` с элементом «Другое» (сумма хвоста), форматирование подписей через `formatAttributeValue`. Палитра растягивается под число элементов только у источника с осью (`axis` / `chartAxis`, см. **resolveAxis**); цвет из `attributeColor` строки приоритетнее палитры.
+
+Границы элемента `min` / `max` берутся из строки по `attributeMin` / `attributeMax` фильтра `relatedConfig.filterName` — каждая независимо. Фильтр указан, но в `filters` его нет → пустой массив.
 
 ---
 
@@ -323,6 +325,14 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ---
 
+### getPageFilters
+
+`(config: ConfigContainer, pageIndex: number) => ConfigFilter[]`
+
+Фильтры страницы `pageIndex` (с 1) вместе с общими фильтрами конфига (`config.filters`); общие перекрывают одноимённые фильтры страницы. На ней строится `currentPage.filters` в [[hooks|хуке]] `useWidgetPage` и стор фильтров дашборда в `useDashboardFilterStore`.
+
+---
+
 ### getProjectValue
 
 `({ prop?, projectName?, projectAlias? }) => string | undefined`
@@ -344,6 +354,13 @@ Resolves контейнер из реестра — через `getContainerComp
 `(props: GetRenderElementProps) => RenderElementFunction`
 
 Фабрика функции `renderElement({ id?, index?, wrap? })` для рендера дочерних элементов контейнера. Находит ребёнка по `id` (через `returnFound` из `find-and`) или по `index`; резолвит ссылки `containerId` на контейнер верхнего уровня; рекурсивно строит вложенный `renderElement`; делегирует значение `getElementValue`; скрывает пустые элементы (`isHiddenEmptyValue`) и форматирует результат через `formatElementValue`. Ключевая утилита registry-рендера — см. [[architecture#Поток данных|Поток данных]]. Парный хук — [[hooks|`useRenderElement`]].
+
+**Подстановки в строках узла.** С пропом `configStringSources` (источники от [[hooks|хука]] `useConfigStringSources`) каждый найденный узел проходит через **resolveElementStrings**: `value`, `defaultValue`, `options.label`, `options.placeholder`, `options.title` получают подставленные значения `%filter`, `$dashboard:`, `{attr}`, `%project` и т.д. (см. [[concepts#Подстановки в строках конфига|Основные понятия]]). Атрибуты рендера (строки `DataSource`) перекрывают атрибуты виджета. Проп пробрасывается во вложенные `renderElement`. Без него строки выводятся как есть.
+
+```ts
+const configStringSources = useConfigStringSources(type);
+const renderElement = getRenderElement({ type, config, elementConfig, attributes, configStringSources });
+```
 
 ---
 
@@ -447,13 +464,41 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### formatDataSourceCondition
 
-`({ condition, configFilters, filters, attributes, geometry, extent?, zoomLevel?, projectName?, projectAlias?, layerParams?, eqlParameters? }) => string`
+`({ condition, configFilters, filters, dataSources?, dashboard?, attributes, geometry, extent?, zoomLevel?, projectName?, projectAlias?, layerParams?, eqlParameters? }) => string`
 
-Основная утилита подстановки фильтров в EQL-условие. Обрабатывает `$(params)` секции и основную часть условия через `applyVarsToCondition`. Заменяет `%filterName`, `%filterName.min`, `%filterName.max`, `%geometry`, `%extent`, `%zoom`, `%project`, `{attributeName}`.
+Подстановки в EQL-условие — обёртка над общим резолвером строк конфига (см. [[concepts#Подстановки в строках конфига|Основные понятия]]) в режиме «условие». Ведущие `$(params)` секции форматируются отдельно (даты без `#'…'`), остаток — по секциям `AND`. Заменяет все вхождения `%name[.min|.max|.lN|.prop]`, `$dashboard:name[...]`, `$dashboard:dataSource:field`, `{attributeName}`, `$card`, `%geometry`, `%extent`, `%zoom`, `%project[.name|.alias]`; eql-параметры слоя подставляются по имени.
 
-Системные фильтры карты (`%geometry`, `%extent`, `%zoom`, см. [[concepts#Системные фильтры карты|Основные понятия]]) подставляются **до** цикла по `configFilters` — одноимённый пользовательский фильтр их не перехватит. `%extent` уходит в кавычках, `%zoom` — числом без кавычек; составные формы (`%zoomLevel`, `%zoom.min`) системная замена не трогает.
+- `dataSources` — для `%name.prop` через `relatedDataSource`.
+- `dashboard` (`{ selectedFilters, configFilters, dataSources }`) — стор для `$dashboard:`. Не задан — `$dashboard:` читает `filters` / `configFilters`.
+- Системные значения имеют приоритет над одноимённым фильтром. `%extent`, `%geometry`, `%project` уходят в кавычках, `%zoom` — числом.
+- Фильтр подставляется, только если он есть в `configFilters`. Пустое значение оставляет плейсхолдер.
 
-Там же резолвится текущий проект (`%project`, `%project.name`, `%project.alias`, см. [[concepts#Текущий проект|Основные понятия]]) — значение строковое, поэтому уходит в кавычках. Свойства заменяются раньше голого плейсхолдера, значение берёт **getProjectValue**; `%project_id` и `%project.foo` замена не трогает.
+`applyVarsToCondition` — то же для отдельной секции или массива секций без разбора `$(params)`.
+
+---
+
+### configString
+
+Общий резолвер строк конфига (`utils/configString`):
+
+| Функция | Назначение |
+|---|---|
+| `tokenizeConfigString(value)` | разбор строки на литералы и токены |
+| `resolveConfigToken(token, sources, mode)` | сырое значение токена; `mode`: `"value"` / `"condition"` |
+| `resolveQueryParameter(value, sources)` | значение параметра запроса |
+| `resolveConfigString(value, sources)` | строка UI: целиком — значение с типом, внутри текста — массив через `", "`, пустое — `""` |
+| `formatConditionString(condition, sources, eql?)` | условие слоя |
+| `resolveElementStrings(element, sources)` | `value`, `defaultValue`, `options.label/placeholder/title` узла; без подстановок — тот же объект |
+| `resolveFilterDefaults(configFilters, dashboard)` | `defaultValue: "$dashboard:…"` фильтров виджета |
+| `referencesFilters({ value, widgetNames, dashboardNames, hasDashboardStore })` | ссылается ли строка на изменившиеся фильтры — для перезапроса |
+| `isDashboardReference(value)` | строка содержит `$dashboard:` |
+| `getFilterTokenValue({ name, prop, store, mode })` | значение токена фильтра из стора: `.min` / `.max`, `.lN`, `.prop`, дефолт |
+| `formatConditionSection(section, sources, options?)` | одна секция условия (без разбора `$(params)`) |
+| `getSingleToken(segments)` | токен, если строка целиком — один токен (значение уходит с типом) |
+
+Грамматика — одна регулярка `CONFIG_TOKEN_REGEXP` (`constants.ts`). Виды токенов: `filter` (`%name[.prop]`, `$dashboard:name[.prop]` — поле `scope`), `dataSource` (`$dashboard:<датасорс>:<поле>`), `card` (`$card:<слой>:<поле>`), `attribute` (`{name}`). Незнакомый токен (`known: false`) остаётся в строке как написан.
+
+`ConfigStringSources`: `widget` (`%`), `dashboard` (`$dashboard:` — фильтры и датасорсы дашборда), `attributes`, `layerInfo`, `geometry`, `extent`, `zoomLevel`, `projectName`, `projectAlias`. Для виджета их собирает хук `useConfigStringSources(type)`.
 
 ---
 
@@ -484,7 +529,7 @@ Type-guards самого значения живут в соседнем мод�
 
 `(dataSources?: ConfigDataSource[]) => ConfigDataSource[]`
 
-Источники, чей запрос зависит от текущего вида карты: в `parameters` или `condition` встречаются `%extent` / `%zoom`. При движении карты перезапрашивают только их — иначе каждый пан дёргал бы все запросы страницы. Граница имени та же, что при подстановке: `%zoomLevel` и `%extent_id` в выборку не попадают.
+Источники, чей запрос зависит от текущего вида карты: в `parameters` или `condition` встречаются `%extent` / `%zoom` — строкой целиком или внутри строки (`"bbox=%extent"`). При движении карты перезапрашивают только их — иначе каждый пан дёргал бы все запросы страницы. Строки разбирает тот же токенизатор, что и резолвер подстановок (**configString**): `%zoomLevel`, `%extent_id` и `%zoom.min` в выборку не попадают.
 
 Потребитель — клиентский [[hooks|хук]] `useMapViewRefetch` (client-new).
 
@@ -646,6 +691,34 @@ const openedModalDataSources = getModalsDataSources(config, openedModalIds);
 
 ## Операции с источниками данных
 
+### selectUpdatingDataSources
+
+`({ configDataSources?, filters?, configFilters?, dashboard?, prev }) => ConfigDataSource[] | undefined`
+
+Какие источники перезапросить после изменения фильтров. Чистая функция, ядро `getUpdatingDataSources` [[hooks|хука]] `useDataSources` (хук хранит снимки `prev` и обновляет их, когда список не пуст).
+
+| Параметр | Описание |
+|---|---|
+| `configDataSources` | источники конфига |
+| `filters` / `configFilters` | выбранные фильтры виджета и их конфиг |
+| `dashboard` | стор фильтров дашборда (`{ selectedFilters, configFilters, dataSources }`) — только у карточки |
+| `prev` | снимок прошлого расчёта: `{ filters?, configFilters?, dashboardFilters? }` |
+
+Изменением считаются: смена выбранного фильтра виджета (**getChangedFilterNames**), смена дефолта невыбранного фильтра (**getChangedDefaultNames** — дефолт из `$dashboard:`), смена фильтра дашборда. Источник попадает в список, если его `parameters` ссылаются на изменившийся фильтр — `%name` или `$dashboard:name`, целиком, со свойством или внутри строки (**referencesFilters**). Источники слоя без `query` попадают на любое изменение. Нечего перезапрашивать — `undefined`.
+
+```ts
+const updating = selectUpdatingDataSources({ configDataSources, filters, configFilters, dashboard, prev });
+```
+
+---
+
+### getChangedFilterNames / getChangedDefaultNames
+
+- `getChangedFilterNames(filters, prevFilters, configFilters?) => string[]` — имена фильтров, чьё выбранное значение изменилось. Скаляры сравниваются как есть, массивы поэлементно, объектные значения (tree, features) — по JSON.
+- `getChangedDefaultNames(configFilters, prevConfigFilters, filters) => string[]` — имена невыбранных фильтров, чей `defaultValue` изменился. Для потребителей это то же, что смена значения. Без прошлого снимка — пустой список.
+
+---
+
 ### addDataSource
 
 `(config, pageIndex, query, additional) => ConfigContainer["children"]`
@@ -664,15 +737,17 @@ const openedModalDataSources = getModalsDataSources(config, openedModalIds);
 
 ### applyQueryFilters
 
-`({ parameters, filters, selectedFilters, geometry, extent?, zoomLevel?, projectName?, projectAlias?, attributes?, layerInfo?, dataSources, projectDataSources? }) => Record<string, any>`
+`({ parameters, filters, selectedFilters?, dashboard?, geometry?, extent?, zoomLevel?, projectName?, projectAlias?, attributes?, layerInfo?, dataSources }) => Record<string, any>`
 
-Резолвит значения `parameters` (EQL-параметров или параметров python-скрипта) из нескольких источников:
+Резолвит значения `parameters` (EQL-параметров или параметров python-скрипта) — обёртка над резолвером строк конфига (см. [[concepts#Подстановки в строках конфига|Основные понятия]]) в режиме «параметры»:
 
-- `%filterName` → значение фильтра; поддерживает `.min`, `.max`, `.property`, а также системные `%geometry`, `%extent` (строка EWKT) и `%zoom` (**число**);
-- `%project`, `%project.name`, `%project.alias` → имя и алиас открытого проекта (см. [[concepts#Текущий проект|Основные понятия]]); значение берёт **getProjectValue**, при отсутствии значения ключ выпадает из результата;
+- `%filterName` → значение фильтра; поддерживает `.min`, `.max`, `.lN`, `.property`, а также системные `%geometry`, `%extent` (строка EWKT) и `%zoom` (**число**);
+- `%project`, `%project.name`, `%project.alias` → имя и алиас открытого проекта (см. [[concepts#Текущий проект|Основные понятия]]);
+- `$dashboard:filterName[.prop]` → фильтр дашборда; `$dashboard:dataSource:fieldName` → поле первой строки датасорса дашборда (по имени, затем по `layerName`). Стор — `dashboard`; не задан — фильтры и датасорсы самого виджета;
 - `$card:layerName:fieldName` → значение атрибута текущего объекта FeatureCard (из `attributes`, если `layerInfo.name === layerName`);
-- `$left:layerName:fieldName` → значение из первого feature `projectDataSources` по имени слоя;
 - `{attributeName}` → подстановка/интерполяция значений атрибутов объекта.
+
+Строка-токен целиком уходит значением с типом. Пустой или незнакомый фильтр не отправляется. Токены внутри строки интерполируются текстом. Незнакомый `{name}` и строка на `$` без известного префикса уходят литералом.
 
 Используется в источниках данных, а также билдером [[hooks|хука]] `useSavePrototypeBuilder` для сборки параметров `beforeSave`/`afterSave` скриптов.
 
