@@ -38,7 +38,19 @@
 
 ## ElementButton
 
-**Назначение:** Кнопка, открывающая URL из атрибута объекта в новой вкладке.
+**Назначение:** Кнопка, открывающая URL из атрибута объекта в новой вкладке. Также служит слотом `button` у контейнеров-хозяев (например, [[containers#TaskContainer|TaskContainer]]): вид задаёт слот, поведение — контейнер.
+
+**Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
+
+**Props:** `ContainerProps` (без `elementConfig`/`onClick`) + `elementConfig?: ElementButtonConfig` + **`ElementButtonOverrides`** — поведение, которое передаёт контейнер-хозяин:
+
+| Prop | Тип | Описание |
+|---|---|---|
+| `title` | `string` | Текст кнопки; перекрывает `value` |
+| `icon` | `ReactNode` | Готовая иконка (например, спиннер ожидания) |
+| `color` | `string` | Цвет; перекрывает `options.color` |
+| `disabled` | `boolean` | Кнопка недоступна |
+| `onClick` | `VoidFunction` | Обработчик; с ним кнопка рисуется и без ссылки в атрибуте |
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
@@ -47,12 +59,36 @@
 | `value` | `string` | Текст кнопки |
 | `attributeName` | `string` | Имя атрибута, содержащего URL для открытия |
 
-**Опции (`options`):** нет — `ElementButtonOptions = Record<string, never>`.
+**Опции (`options`):** поля [[options#ConfigButtonOptions|ConfigButtonOptions]] + `icon`, `radius`.
 
-**Поведение:** читает `attributeName` → `attribute.value` (URL) → `window.open(url)`. Если значение атрибута не строка или пустое — не рендерится.
+| Опция | Тип | Описание |
+|---|---|---|
+| `variant` | `"solid" \| "soft" \| "outline" \| "ghost"` | Заливка и обводка. По умолчанию `"solid"` |
+| `color` | `string` | Произвольный CSS-цвет; перекрывает флаги цвета |
+| `primary`, `secondary`, `error`, `violet` | `boolean` | Флаги цвета (приоритет в этом порядке). Без `color` и флагов — `primary`; нейтральная — `primary: false` |
+| `size` | `"small" \| "medium" \| "large" \| "xlarge"` | Высота 24 / 32 / 40 / 48; по умолчанию `"medium"` |
+| `shape` | `"square" \| "round"` | Скругление по размеру / пилюля-круг |
+| `radius` | `number` | Скругление вручную, px |
+| `icon` | `IconTypesKeys` | Иконка кнопки |
+| `iconRight` | `boolean` | Иконка справа от текста |
+
+**Поведение:**
+- Ссылка — `attributeName` → `attribute.value`; клик — `window.open(url)`. Без `onClick` и без строковой ссылки кнопка **не рендерится**.
+- Без `onClick` и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`) — прежняя кнопка-ссылка `ImageContainerButton`.
+- Если задана хоть одна опция внешнего вида или передан `onClick` — `IconButton` из `@evergis/uilib-gl` (пропсы собирает `getElementButtonProps` из `elements/ElementButton/utils/`).
 
 ```tsx
-{ id: "value", type: "button", attributeName: "report_url", value: "Открыть отчёт" }
+// кнопка-ссылка
+{ id: "button", type: "button", attributeName: "report_url", value: "Открыть отчёт" }
+
+// кнопка-ссылка в виде IconButton
+{
+  id: "button",
+  type: "button",
+  attributeName: "report_url",
+  value: "Отчёт",
+  options: { variant: "soft", size: "small", icon: "download", iconRight: true }
+}
 ```
 
 ---

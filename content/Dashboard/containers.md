@@ -1156,6 +1156,26 @@
 
 **Назначение:** Кнопка запуска/остановки Python-задачи через `usePythonTask`. Показывает лог выполнения задачи в реальном времени.
 
+**Типы:** `templateName = "Task"` · `TaskContainerOptions` · `TaskContainerProps`. Дети — `TaskContainerChild = TaskButtonChild | TaskTitleChild | TaskTitleIconChild`.
+
+**Props:** `ContainerProps`
+
+**Слоты (`children`):**
+
+| Slot-id | Тип | Описание |
+|---|---|---|
+| `button` | `"button"` ([[elements#ElementButton\|ElementButton]]) | Кнопка запуска. Вид — из слота (`value` — текст, `options` — [[options#ConfigButtonOptions\|ConfigButtonOptions]] + `icon`/`radius`), поведение — от контейнера: запуск/остановка, текст и иконка по статусу задачи, цвет из `statusColors`, спиннер во время ожидания, недоступность без `relatedResources`. Без слота — встроенная кнопка `StatusWaitingButton` |
+| `title`, `titleIcon` | `"text"` / `"icon"` | Универсальные слоты заголовка |
+
+Поведение кнопки (и встроенной, и из слота):
+
+- клик запускает задачу, повторный — останавливает; без `relatedResources` кнопка заблокирована;
+- во время ожидания вместо иконки — спиннер, в процессе (`Process`) текст — «Остановить», после завершения — текст и иконка статуса;
+- в исходном состоянии текст — `value` слота → `options.title` контейнера → «Запуск», иконка — `options.icon` слота → `options.icon` контейнера;
+- `statusColors[status]`, если задан, перекрывает цвет слота (оттенки наведения и нажатия вычисляются).
+
+Логику текста/иконки держит хук `useTaskButtonState` (`TaskContainer/hooks/`).
+
 **Опции:**
 
 | Опция | Тип | Описание |
@@ -1164,7 +1184,7 @@
 | `relatedResources` | `ConfigRelatedResource[]` | Список Python-ресурсов задачи |
 | `center` | `boolean` | Центрировать кнопку |
 | `icon` | `IconTypesKeys` | Иконка кнопки |
-| `statusColors` | `Record<string, string>` | Цвет по статусу задачи (`{ "running": "#f39c12", "done": "#27ae60" }`) |
+| `statusColors` | `Record<RemoteTaskStatus, string>` | Цвет кнопки по статусу задачи; ключи — значения `RemoteTaskStatus`: `Init`, `Process`, `Completed`, `Interrupted`, `Error`, `Timeout`, `Waiting`, `InQueue`, `Unknown` (`{ "Process": "#f39c12", "Completed": "#27ae60" }`) |
 | `responseFilters` | `Record<string, string>` | Маппинг полей ответа задачи на фильтры |
 | `useNotifications` | `boolean` | Показывать прогресс-уведомления о выполнении задачи |
 
@@ -1175,8 +1195,18 @@
   options: {
     title: "Запустить расчёт",
     relatedResources: [{ resourceId: "calc_script_id" }],
-    statusColors: { "running": "#f39c12", "done": "#27ae60", "error": "#e74c3c" }
+    statusColors: { Process: "#f39c12", Completed: "#27ae60", Error: "#e74c3c" }
   }
+}
+
+// вид кнопки задаёт слот `button`
+{
+  id: "python_run_custom",
+  templateName: "Task",
+  options: { relatedResources: [{ resourceId: "calc_script_id" }], center: true },
+  children: [
+    { id: "button", type: "button", value: "Пересчитать", options: { variant: "outline", violet: true, size: "large", shape: "round", icon: "play" } }
+  ]
 }
 ```
 

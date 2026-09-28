@@ -36,6 +36,7 @@
 | `EditAttachment` | `alias` |
 | `EditGroup` | `alias`, `tooltip`, `units`, `icon` |
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
+| `Task` | `button` — кнопка запуска `type: "button"` (вид — из слота, поведение и статусы — контейнер); без слота — встроенная кнопка |
 | `Vote` | собственных слотов нет — только универсальные `title`/`titleIcon`/`bgImage`; на узле обязателен `attributeName` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |

@@ -28,7 +28,7 @@
 
 Контролы и ввод: `AutoComplete`, `Checkbox`, `ColorPicker`, `DatePicker`, `Dropdown`, `DropdownField`, `Input`, `NumberInput`, `NumberRangeSlider`, `RangeNumberInput`, `Slider`, `Switch`, `TreeDropdown`, `TreeId`, `TreeItemProps`, `MultiSelectContainer`, `ComplexOptionText`, `PartialLoadData`, `useAsyncAutocomplete`.
 
-Кнопки и действия: `ActionsGroup`, `FlatButton`, `IconButton`, `IconButtonButton`, `IconButtonInnerChild`, `IconToggle`, `IconToggleButton`, `RaisedButton`, `Menu`, `Popover`, `Popup`.
+Кнопки и действия: `ActionsGroup`, `FlatButton`, `IconButton`, `IIconButtonProps`, `IconButtonVariant`, `IconButtonSize`, `IconButtonShape`, `IconButtonButton`, `IconButtonInnerChild`, `IconToggle`, `IconToggleButton`, `RaisedButton`, `Menu`, `Popover`, `Popup`.
 
 Раскладка и типографика: `Blank`, `Chip`, `Description`, `Divider`, `Flex`, `FlexSpan`, `H2`, `Icon`, `IconTypesKeys`, `LegendToggler`, `Tooltip`, `Dialog`, `DialogActions`, `DialogContent`, `DialogTitle`.
 

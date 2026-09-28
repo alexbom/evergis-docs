@@ -416,6 +416,7 @@ interface ConfigLayer {
 | `AddFeatureContainer` | **дети — кнопки `AddFeatureButtonChild` с уникальным `id`** (перечисляемые сущности — см. подраздел выше) |
 | `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности) |
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
+| `TaskContainer` | `button` — кнопка запуска `type: "button"` (`TaskButtonChild`): вид — из слота, поведение и статусы — от контейнера; без слота — встроенная кнопка |
 | `VoteContainer` | собственных слотов **нет** — экран рисует сам контейнер; допустимы только универсальные `title`/`titleIcon`/`bgImage`. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |

@@ -62,7 +62,7 @@ findChart(modalId);          // ❌ TS error — ModalId ≠ ChartId
 
 Slot-id обязателен у каждого элемента — без него контейнер не разместит элемент в нужное место (см. [[concepts#ID контейнеров и элементов|семантику id]]).
 
-Литеральные slot-id (`"alias"`, `"chart"`, `"legend"`, `"title"`, `"value"`, `"units"`, ...) — это не entity-id, а ключи фиксированного набора. Они сужаются через literal `id` в parent-specific child-типах (см. `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild` в `componentTypes.ts`).
+Литеральные slot-id (`"alias"`, `"chart"`, `"legend"`, `"title"`, `"value"`, `"units"`, ...) — это не entity-id, а ключи фиксированного набора. Они сужаются через literal `id` в parent-specific child-типах (см. `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `TaskButtonChild` в `componentTypes.ts`).
 
 Три slot-id универсальны и в parent-specific child-типах не перечисляются — их наборы задаются константами: `TITLE_SLOT_IDS` (`title`, `titleIcon`), `BG_IMAGE_SLOT_ID` (`bgImage`) и их объединение `NON_TRACK_SLOT_IDS` — узлы, которые контейнер читает по `id` сам и не отдаёт ни в рендер тела, ни в треки сетки (см. [[containers#Универсальные слоты|Контейнеры]]).
 
@@ -193,7 +193,7 @@ const child: StrictConfigContainerChild = {
 
 | Component | `type` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `ElementButton` | `"button"` | — (Record<string, never>) |
+| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`) + `icon`, `radius` |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
 | `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
@@ -247,7 +247,7 @@ const child: StrictConfigContainerChild = {
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `StructuredDataContainer` | `StructuredData` | `attributesDescription`, `relatedDataSource`, `filterName`, `editMode`, `saveToLayer`, `expandable`, `expanded` + `ContainerBoxOptions` (+ дети: `StructuredDataTableChild` (`id: "data"`, `type: "table"`, опции — `ElementTableOptions`), `StructuredDataAliasChild`, `StructuredDataTitleChild`, `StructuredDataTitleIconChild`) |
 | `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
-| `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` |
+| `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` (дети — `TaskContainerChild`: слот `button` + `title`/`titleIcon`) |
 | `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
 | `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
 | `UploadContainer` | `Upload` | `expandable`, `expanded` + `ContainerBoxOptions` |
@@ -403,6 +403,8 @@ interface BgImageLayerProps {
 | `containers/StructuredDataContainer/types.ts` | `DraftRowState` (`"pristine" \| "created" \| "updated" \| "deleted"`), `DraftRow` (`key`, `featureId?`, `properties`, `state`), `StructuredDataAttribute` — атрибут схемы после слияния `attributesDescription` с атрибутами источника (плюс `control` и `listOptions` — они есть только у схемы **представления**, см. [[containers#StructuredDataContainer\|Контейнеры]]), `StructuredDataContextValue` (`schema`, `rows`, `loading`, `canEdit`, `canDelete`, `onCellChange`, `onRowDelete`) |
 | `containers/StructuredDataContainer/constants.ts` | `STRUCTURED_DATA_VIEW_SLOT` (`"data"`), типы атрибутов по группам, `DEFAULT_ATTRIBUTE_TYPE`, `DEFAULT_ATTRIBUTE_CONTROL` (`"dropdown"` — контрол колонки со списком, когда `control` не задан), `SAVE_ERROR_DURATION` |
 | `containers/DataSourceContainer/constants.ts` | константы раскладки плиток источника |
+| `containers/TaskContainer/types.ts` | `TaskButtonProps` (`title`, `icon?`, `status`, `statusColors?`, `isWaiting`, `isDisabled`, `onClick`) — пропсы кнопки запуска; `TaskSlotButtonProps` — то же + `type?`, `buttonConfig: TaskButtonChild` для кнопки из слота `button` |
+| `elements/ElementButton/constants.ts` | `ELEMENT_BUTTON_APPEARANCE_KEYS` — опции внешнего вида, переводящие кнопку-ссылку на `IconButton`; `ELEMENT_BUTTON_COLOR_FLAGS`; `DEFAULT_ELEMENT_BUTTON_VARIANT` (`"solid"`) |
 | `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps` |
 | `containers/VoteContainer/constants.ts` | имена атрибутов таблиц голосования и лимиты формы |
 | `elements/ElementTable/types.ts` | `SortDirection`, `TableSort` (одна колонка за раз, `null` — исходный порядок), `CellMode` (`"idle" \| "focused" \| "editing"`), `TableCellProps`, `TableHeadRowProps`, `TableColumnResizerProps`, `AttachmentsCellState` — состояние колонки вложений целиком (список, вид поп-апа, галерея, загрузка, удаление) и `AttachmentsCellPopupProps` |

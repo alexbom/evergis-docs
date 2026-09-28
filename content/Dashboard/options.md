@@ -2,7 +2,7 @@
 
 ## Обзор
 
-`ConfigOptions` — общий словарь конфигурационных опций для всех контейнеров, элементов и шапок Dashboard. Исторически это был один плоский интерфейс с 100+ полями. После рефакторинга типизации интерфейс разбит на **13 доменных миксинов**:
+`ConfigOptions` — общий словарь конфигурационных опций для всех контейнеров, элементов и шапок Dashboard. Исторически это был один плоский интерфейс с 100+ полями. После рефакторинга типизации интерфейс разбит на **14 доменных миксинов**:
 
 ```ts
 interface ConfigOptions
@@ -12,6 +12,7 @@ interface ConfigOptions
     ConfigExpandableOptions,
     ConfigDataSourceBindingOptions,
     ConfigChartOptions,
+    ConfigButtonOptions,
     ConfigVisualOptions,
     ConfigTextDisplayOptions,
     ConfigCollectionOptions,
@@ -21,7 +22,7 @@ interface ConfigOptions
     ConfigMiscOptions {}
 ```
 
-> `ConfigEntityRefOptions` — тринадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
+> `ConfigEntityRefOptions` — четырнадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
 
 Каждый компонент использует только часть полей. В `componentTypes.ts` для каждого компонента определён `<Name>Options = Pick<ConfigOptions, ...>` — список фактически читаемых полей. Это даёт:
 
@@ -72,7 +73,7 @@ interface ConfigOptions
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `barHeight` | `number` | Высота StackBar |
 
-**Используется в:** `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 `innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
@@ -155,6 +156,26 @@ interface ConfigOptions
 
 ---
 
+## ConfigButtonOptions
+
+Внешний вид кнопки — `IconButton` из `@evergis/uilib-gl`. Скругление вручную — `radius` (px) из [[#ConfigLayoutOptions|ConfigLayoutOptions]], иконка — `icon` из [[#ConfigVisualOptions|ConfigVisualOptions]].
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `variant` | `IconButtonVariant` | Заливка и обводка: `"solid"` \| `"soft"` \| `"outline"` \| `"ghost"`. По умолчанию `"solid"` |
+| `color` | `string` | Произвольный CSS-цвет; перекрывает флаги цвета. Оттенки наведения и нажатия вычисляются |
+| `primary` | `boolean` | Флаг цвета. Приоритет флагов: `primary` → `secondary` → `error` → `violet`. Если не задан ни `color`, ни один флаг — кнопка `primary`; нейтральная — явным `primary: false` |
+| `secondary` | `boolean` | Флаг цвета |
+| `error` | `boolean` | Флаг цвета |
+| `violet` | `boolean` | Флаг цвета |
+| `size` | `IconButtonSize` | `"small"` \| `"medium"` \| `"large"` \| `"xlarge"` — высота 24 / 32 / 40 / 48. По умолчанию `"medium"` |
+| `shape` | `IconButtonShape` | `"square"` — скругление по размеру, `"round"` — пилюля/круг |
+| `iconRight` | `boolean` | Иконка справа от текста |
+
+**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`), а через него — слот `button` у [[containers#TaskContainer|TaskContainer]].
+
+---
+
 ## ConfigVisualOptions
 
 Иконки и изображения.
@@ -171,7 +192,7 @@ interface ConfigOptions
 | `big` | `boolean` | Большой размер компонента |
 | `tagView` | `boolean` | Отображать в виде «тэга» |
 
-**Используется в:** `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `AddFeatureButton`, `ExportPdfContainer`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`icon`), `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `AddFeatureButton`, `ExportPdfContainer`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 ---
 
