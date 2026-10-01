@@ -45,20 +45,26 @@ Discriminated union `DashboardChild` (16 вариантов элементов +
 
 ```
 GlobalProvider (contexts/GlobalContext)
-└── BaseDashboardProvider / FeatureCardProvider (contexts/*Context)
-    └── Dashboard (components/Dashboard/index.tsx)
-        ├── DashboardHeader (components/DashboardHeader)
-        │   └── DashboardDefaultHeader / FeatureCardDefaultHeader / ...
-        └── PagesContainer (containers/PagesContainer)
-            └── ContainerChildren (components/ContainerChildren)
-                └── [ContainerComponent по registry]
-                    │   (ContainersGroupContainer, ChartContainer, ...)
-                    ├── ContainerBackground → слот bgImage (слой под содержимым)
-                    ├── ExpandableTitle    → слоты title / titleIcon
-                    └── renderElement({ id })
-                        └── [ElementComponent по registry]
-                            (ElementChart, ElementImage, ...)
+└── TaskExecutionProvider
+    ├── TaskExecutionHost (общие логи Python-задач)
+    └── BaseDashboardProvider / FeatureCardProvider (contexts/*Context)
+        └── WidgetModalsProvider → WidgetActionsProvider
+            ├── WidgetModalHost (окна + контекст открытия + локальные источники)
+            ├── DashboardHeader / FeatureCardHeader (хост размещает отдельно)
+            │   └── DashboardDefaultHeader / FeatureCardDefaultHeader / ...
+            └── Dashboard (components/Dashboard/index.tsx)
+                └── PagesContainer (containers/PagesContainer)
+                    └── ContainerChildren (components/ContainerChildren)
+                        └── [ContainerComponent по registry]
+                            │   (ContainersGroupContainer, ChartContainer, ...)
+                            ├── ContainerBackground → слот bgImage (слой под содержимым)
+                            ├── ExpandableTitle    → слоты title / titleIcon
+                            └── renderElement({ id })
+                                └── [ElementComponent по registry]
+                                    (ElementChart, ElementImage, ...)
 ```
+
+Главный `Dashboard` рендерит только тело `PagesContainer` либо loading-заглушку. Шапку хост размещает отдельно в пределах того же контекста: её точка входа — `DashboardHeader` / `FeatureCardHeader` (см. [[components|Компоненты]]).
 
 Три slot-id универсальны: контейнер читает их по `id` сам и не отдаёт ни в общий рендер тела, ни в треки сетки (`NON_TRACK_SLOT_IDS`). `title` / `titleIcon` уходят в `ExpandableTitle`, `bgImage` — в `ContainerBackground`. Детали — [[containers#Универсальные слоты|Контейнеры]].
 
@@ -115,8 +121,26 @@ getRenderElement() → ElementComponent
 
 Изменение фильтров — только затронутые источники данных перезагружаются (умная инвалидация через `getUpdatingDataSources()`).
 
-Источники модалок (`config.modals[].dataSources`) в `currentPage.dataSources` не пишутся и грузятся лениво — при открытии модалки (`ElementModal` → `onModalToggle`). Поиск конфига источника по имени идёт через [[hooks#useConfigDataSources|useConfigDataSources]] (страница + все модалки, страничный источник перекрывает модальный), клиентская загрузка — см. [[setup#Ленивые источники модалок (client-new)|Ленивые источники модалок]].
+Источники модалок (`config.modals[].dataSources`) в `currentPage.dataSources` не пишутся и грузятся лениво через `WidgetModalHost` → [[hooks#useModalSources / useModalAutoSync (internal)|useModalSources]] → внутренний `useDataSourceRequests`. `ModalDataContext` перекрывает источники и loading своего окна в [[hooks#useWidgetContext|useWidgetContext]], а [[hooks#useConfigDataSources|useConfigDataSources]] внутри окна видит страницу и источники этой модалки. Страничный источник с тем же именем сохраняет приоритет. При открытии `onModalToggle(..., { managed: true })` исключает повторную клиентскую загрузку; интеграция — [[setup#Подключение Actions|Подключение Actions]].
 
 ## Связанные разделы
 
 [[concepts|Основные понятия]] | [[options|Опции]] | [[types|Типы]] | [[setup|Подключение]] | [[hooks|Хуки]]
+
+## Исполнение Actions
+
+Общий runtime в `components/Dashboard/actions` выполняет действия последовательно: callback предыдущего вызова завершается до следующего вызова массива. `WidgetActionsProvider` создаёт области root/page своего `WidgetType`; окно дополняет их реестром модалки. Разрешение ID идёт от внутренней области к внешней. [[actions|Контракт и сценарии]].
+
+```text
+Клик элемента / записи / сегмента
+  → useActionBindings (контекст записи + sourceKey)
+  → createActionRuntime → executeActionSequence
+      → resolveActionInvocation (ссылка/inline, scopes)
+      → resolveActionParameters (живые фильтры + снимок клика)
+      → исполнитель runTask / setFilters / openUrl / openModal
+      → callback: первый истинный вариант или else
+```
+
+`TaskExecutionProvider` внутри `GlobalProvider` наблюдает независимые Python-задачи дольше жизни страницы. `usePythonTask` и Actions используют один сервис, сборку параметров ресурса и уведомления. Уход из контекста отменяет продолжения; повторный клик или ручная остановка дополнительно запрашивают остановку серверной задачи. Смена страницы сама по себе её не останавливает.
+
+`WidgetModalsProvider` и `WidgetModalHost` хранят одно окно на ID и контекст каждой ревизии открытия. `ActionContextProvider` несёт данные клика/задачи/параметров, `ActionScopeProvider` — реестры и сигнал отмены, `ModalDataContext` — данные источников окна. Загрузка учитывает резолвленные параметры, условия, `debounce` и autoSync; закрытие либо смена ревизии исключает применение поздних ответов. Поиск визуального узла через [[utils#findDashboardNode|findDashboardNode]] обходит только `children`, `header`, `modals` и пропускает реестры Actions.

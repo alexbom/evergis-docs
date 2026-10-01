@@ -49,10 +49,10 @@ interface ConfigOptions
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик). У `ElementLegend` — направление записей: `false` в ряд, `true` столбиком |
-| `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки grid\|Режим сетки]] |
+| `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки (grid)\|Режим сетки]] |
 | `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
 | `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. См. [[containers#StructuredDataContainer\|StructuredData]] |
-| `autoHeight` | `boolean` | Сетка растёт под содержимое: `height` становится минимумом (`min-height`), треки — `minmax(auto, Nfr)`, внутренний скролл трека снимается. Читается у **каждого** узла (сетка, `GridRow`, вложенная сетка) и вверх не поднимается. См. [[containers#Рост под содержимое autoHeight\|Рост под содержимое]] |
+| `autoHeight` | `boolean` | Сетка растёт под содержимое: `height` становится минимумом (`min-height`), треки — `minmax(auto, Nfr)`, внутренний скролл трека снимается. Читается у **каждого** узла (сетка, `GridRow`, вложенная сетка) и вверх не поднимается. См. [[containers#Рост под содержимое (autoHeight)\|Рост под содержимое]] |
 | `fixedHeight` | `boolean` | Высотой сетки распоряжается внешняя раскладка: у корневой строки не рендерится ручка нижней границы, и высоту нельзя утянуть мышью. Нужен сеткам, растянутым на бокс панели фиксированного экрана или дока. Читается только у **корневого** узла сетки в `editMode`; у вложенных ручки высоты нет и так |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
 | `legendInline` | `boolean` | `ChartContainer`: легенда в одной строке справа от подписи оси X. Игнорируется при `twoColumns`, без подписи оси X и у нелинейных графиков |
@@ -126,7 +126,7 @@ interface ConfigOptions
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников для серий графика. Имя серии — `alias`, настройки её оси — вложенный `axis` ([[types#ConfigAxis\|`ConfigAxis`]]) |
 | `relatedAttributes` | `ConfigRelatedAttribute[]` | Атрибуты из связанных слоёв (join) |
 | `relatedResources` | `ConfigRelatedResource[]` | Связанные Python-ресурсы (TaskContainer) |
-| `responseFilters` | `Record<string, string>` | Фильтры ответа задачи |
+| `responseFilters` | `Record<string, string>` | Маппинг `имя фильтра → имя свойства` первой записи ответа задачи; значение допускает `%field`. Контракт — [[containers#TaskContainer\|TaskContainer]] |
 | `hideIfEmptyDataSource` | `string` | Скрыть контейнер, если указанный источник пуст |
 
 **Используется в:** `ElementChart`, `ElementControl`, `ElementLegend`, `ElementSlideshow`, `AttachmentContainer`, `DataSourceContainer`, `DataSourceInnerContainer`, `DataSourceProgressContainer`, `EditAttachmentContainer`, `StructuredDataContainer` (`attributesDescription`, `relatedDataSource`), `TaskContainer`.
@@ -357,3 +357,9 @@ interface ConfigOptions
 ## Связанные разделы
 
 [[types|Типы]] | [[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[headers|Шапки]]
+
+## Actions задаются вне options
+
+Поле `actions` относится к узлу/странице/модалке, а не к оформлению `ConfigOptions`. В корне, странице и модалке оно содержит `ConfigActionDefinition[]`; на поддерживаемой визуальной поверхности — `ConfigActionInvocation[]`. Реестры и привязки имеют разные роли; контракты — [[types#Типы Actions|Типы Actions]], сценарии — [[actions|Actions]].
+
+Настройки каждого действия лежат в **его собственном** `options`: например, `{ type: "openModal", options: { modalId: "details" } }`. Вложенное `options.parameters` у `runTask` / `openModal` — аргументы задачи / параметры окна; эти поля не добавляют новых миксинов `ConfigOptions`.

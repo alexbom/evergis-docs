@@ -15,10 +15,12 @@
 | `useExpandableContainers()` | `@evergis/react` | `expandedContainers`, `expandContainer` |
 | `useSelectedTab()` | `components/Dashboard/hooks/useSelectTab` | `selectedTabId`, `setSelectedTabId` |
 | `useProjectModals()` | `components/Dashboard/hooks/useProjectModals` | `[openedModalIds, onModalToggle]` — открытые модалки в слайсе `dashboard` (`toggleProjectModal`); `onModalToggle` уходит в базовый провайдер |
-| `useProjectDataSourceFilters()` | `components/Dashboard/hooks` | `filters`, `changeFilters` |
+| `useProjectDataSourceFilters()` | `components/Dashboard/hooks` | `[filters, changeFilters, getActionFilters]`: getter читает Redux синхронно, а `changeFilters` объединяет изменения с актуальным стором |
+| `useDashboardsOpen()` | `components/Dashboard/hooks` | `actionsActive` — разрешены ли действия открытого дашборда |
+| `useModalNotifications(config, pageIndex)` | `components/Dashboard/hooks` | `isModalNotificationAllowed(senderName, source, layerName)` — политика autoSync для источников модального окна; использует конфиг именно этого виджета |
 | `useDashboardPages()` | `components/Dashboard/hooks` | `nextPage`, `prevPage`, `changePage` |
 | `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
-| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider` и `options.outflow` без этого слота (`orphan-option`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
+| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider`, `options.outflow` без этого слота (`orphan-option`) и ошибки [[actions\|Actions]] (`invalid-action`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
 | `useLayersListVisibility()` | `components/MainPanel/hooks` | `isVisible`, `toggleVisibility` |
 
 Колбэк `selectAttachmentsFromCatalog` открывает диалог `DIALOGS.RESOURCE_CATALOG` (`ResourceCatalogOptions`) и передаёт выбранные `CatalogResourceDc[]` через `onApply`.
@@ -62,7 +64,7 @@
 
 Файл: `contexts/DashboardContext/index.tsx`
 
-Тонкий `memo`-компонент, создающий `DashboardContext` из всех переданных props. Конфиг `config: ConfigContainer` содержит `children: DashboardChild[]` (discriminated union из [[types#Дискриминированный union DashboardChild|типов]]).
+`memo`-компонент создаёт `DashboardContext` из переданных props и подключает `WidgetModalsProvider`, `WidgetActionsProvider` и `WidgetModalHost`. В `ConfigContainer.children` используется базовый `ConfigContainerChild[]`; для авторинга с проверкой вариантов компонентов доступны `DashboardChild` и строгие типы (см. [[types#Дискриминированный union DashboardChild|типы]]).
 
 ### Props (`DashboardContextProps`)
 
@@ -79,8 +81,14 @@
 | `loading` | `boolean` | Идёт загрузка данных |
 | `editMode` | `boolean` | Режим редактирования **атрибутов объекта** (в контейнерах — `isEditing`). К раскладке отношения не имеет |
 | `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. раздел ниже |
-| `onModalToggle` | `(modalId: string, isOpen: boolean) => void` | Модалка `config.modals[].id` открылась или закрылась — хост грузит её `dataSources`, пока она открыта. См. [[setup#Ленивые источники модалок (client-new)\|раздел ниже]] |
+| `onModalToggle` | `(modalId: string, isOpen: boolean, metadata?: { managed: boolean }) => void` | Событие открытия/закрытия. Общий modal host при открытии передаёт `{ managed: true }`; его источники загружает библиотека |
+| `onModalContextChange` | `(modalId: string, snapshot: WidgetModalSnapshot \| null) => void` | Снимок открытия: `modalId`, `revision`, `context`; при закрытии — `null`. Тип описан в [[types#Типы Actions\|Типах]] |
+| `isModalNotificationAllowed` | `(senderName: string \| undefined, source: ConfigDataSource, layerName: string) => boolean` | Допуск WebSocket-обновления модального источника; без обработчика допускаются все события наблюдаемых слоёв |
 | `filters` | `SelectedFilters` | Активные фильтры |
+| `getActionFilters` | `() => SelectedFilters` | Синхронный getter текущих фильтров для последовательных [[actions\|Actions]] |
+| `actionContextKey` | `string` | При смене значения прекращаются цепочки и закрываются окна прежнего контекста |
+| `actionsActive` | `boolean` | Разрешает запуск Actions; по умолчанию `true`. Изменение прекращает текущие цепочки и закрывает окна |
+| `actionNavigation` | `ActionNavigationFactory` | Адаптер переходов; по умолчанию браузерная навигация. Контракт — [[types#Типы Actions\|Типы]] |
 | `dashboardLayers` | `DashboardState["layers"]` | Состояние слоёв |
 | `setDashboardLayer` | `(payload) => void` | Установить параметры слоя |
 | `selectedTabId` | `string` | ID выбранной вкладки |
@@ -98,7 +106,7 @@
 
 ### Сохранение изменений раскладки
 
-`onContainerChange` — единственная точка, через которую контейнер сообщает наружу новую версию собственного конфига. Сейчас его вызывает только [[containers#Редактирование раскладки editMode|сетка в режиме редактирования]]: после перетаскивания границы или операции над ячейками.
+`onContainerChange` — единственная точка, через которую контейнер сообщает наружу новую версию собственного конфига. Сейчас его вызывает только [[containers#Редактирование раскладки (editMode)|сетка в режиме редактирования]]: после перетаскивания границы или операции над ячейками.
 
 Внутрь дашборда колбэк уходит по цепочке «контекст → `useWidgetContext` → `PagesContainer` → `getRenderElement({ onChange })` → проп `onChange` контейнера». Тот же проп есть у `FeatureCardProvider`.
 
@@ -133,7 +141,7 @@ import { replaceObject } from "find-and";
 
 Файл: `contexts/FeatureCardContext/index.tsx`
 
-Провайдер контекста карточки объекта. Принимает данные выбранного feature и информацию слоя.
+Провайдер контекста карточки объекта. Принимает данные выбранного feature и информацию слоя; подключает собственные области Actions и модальных окон для `WidgetType.FeatureCard`.
 
 ### Ключевые props (`FeatureCardContextSettings`)
 
@@ -147,7 +155,9 @@ import { replaceObject } from "find-and";
 | `isRaster` | `boolean` | Карточка растрового объекта |
 | `editMode` | `boolean` | Режим редактирования атрибутов объекта |
 | `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. [[setup#Сохранение изменений раскладки\|раздел выше]] |
-| `onModalToggle` | `(modalId: string, isOpen: boolean) => void` | Модалка карточки открылась или закрылась — см. [[setup#Ленивые источники модалок (client-new)\|раздел ниже]]. В client-new передаётся из `useFeatureModals()` (слайс `feature`, `toggleFeatureModal`) |
+| `onModalToggle` | `(modalId: string, isOpen: boolean, metadata?: { managed: boolean }) => void` | События модалки карточки. В client-new `useFeatureModals()` исключает управляемые библиотекой окна из клиентского загрузчика |
+| `onModalContextChange` | `(modalId: string, snapshot: WidgetModalSnapshot \| null) => void` | Снимок контекста открытия; при закрытии — `null` |
+| `isModalNotificationAllowed` | `(senderName: string \| undefined, source: ConfigDataSource, layerName: string) => boolean` | Политика autoSync по конфигу карточки и её текущей странице |
 | `isFeatureEditable` | `boolean` | Можно ли редактировать объект |
 | `hasCopyRights` | `boolean` | Есть ли права на копирование |
 | `editOnly` | `boolean` | Режим «только редактирование» |
@@ -156,6 +166,10 @@ import { replaceObject } from "find-and";
 | `dataSources` | `WidgetDataSource[]` | Источники данных карточки |
 | `loading` | `boolean` | Идёт загрузка данных |
 | `filters` | `SelectedFilters` | Активные фильтры |
+| `getActionFilters` | `() => SelectedFilters` | Синхронный getter фильтров карточки |
+| `actionContextKey` | `string` | Идентификатор слоя/объекта/страницы; отменяет продолжения прежнего контекста |
+| `actionsActive` | `boolean` | Разрешены ли действия карточки; по умолчанию `true` |
+| `actionNavigation` | `ActionNavigationFactory` | Адаптер переходов для Actions карточки |
 | `controls` | `Record<string, EditAttributeValue>` | Значения edit-контролов |
 | `changeControls` | `(controls) => void` | Обновить контролы |
 | `changeFilters` | `(filters) => void` | Изменить фильтры |
@@ -170,7 +184,7 @@ import { replaceObject } from "find-and";
 
 Файл: `contexts/GlobalContext/index.tsx`
 
-Глобальный контекст с данными, необходимыми всем компонентам: i18n, API, геометрия, текущий проект, тема.
+Глобальный контекст с данными, необходимыми всем компонентам: i18n, API, геометрия, текущий проект, тема. Внутри автоматически устанавливает `TaskExecutionProvider`: задачи Dashboard и FeatureCard получают независимые handles, общий журнал и уведомления. Смена страницы прекращает callback, но сервис продолжает наблюдать серверную задачу (см. [[actions|Actions]]).
 
 ### Props (`GlobalContextProps`)
 
@@ -185,7 +199,7 @@ import { replaceObject } from "find-and";
 | `projectAlias` | `string` | Алиас открытого проекта — плейсхолдер `%project.alias`, при пустом значении используется `projectName` |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
-| `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`). Нужен для прогресс-уведомлений серверных [[hooks\|хуков]] `beforeSave`/`afterSave` |
+| `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`): прогресс и ошибки задач, остановка цепочек [[actions\|Actions]], заблокированные переходы, серверные [[hooks\|хуки]] `beforeSave`/`afterSave` |
 
 ```tsx
 <GlobalProvider api={api} t={t} ewktGeometry={geometry} ewktExtent={extent} zoomLevel={zoom} themeName="Light">
@@ -232,7 +246,9 @@ import { replaceObject } from "find-and";
 
 ## Ленивые источники модалок (client-new)
 
-Источники из `config.modals[].dataSources` (см. [[elements#ElementModal|ElementModal]]) грузятся не со страницей, а при открытии модалки. `ElementModal` сообщает об открытии и закрытии через проп `onModalToggle`; провайдеры кладут id в слайсы (`dashboard.openedModalIds` / `feature.openedModalIds`). Загрузчики — `useProjectDataSources` (дашборд) и `useFeatureDataSources` (карточка) — работают через общие хуки из `components/Dashboard/hooks`:
+Этот клиентский путь обслуживает окна, которые вызывают `onModalToggle` без metadata `managed`. Штатный [[elements#ElementModal|ElementModal]] использует библиотечный modal host: см. [[setup#Подключение Actions|Подключение Actions]].
+
+Источники из `config.modals[].dataSources` грузятся не со страницей, а при открытии окна. `useProjectModals` / `useFeatureModals` записывают в слайсы (`dashboard.openedModalIds` / `feature.openedModalIds`) только `isOpen && !metadata?.managed`. Поэтому библиотечное окно не запускает дополнительный запрос без контекста нажатой записи. Для остальных окон загрузчики `useProjectDataSources` / `useFeatureDataSources` работают через общие хуки из `components/Dashboard/hooks`:
 
 | Хук | Что делает |
 |---|---|
@@ -266,3 +282,22 @@ import { replaceObject } from "find-and";
 ## Связанные разделы
 
 [[hooks|Хуки]] | [[components|Компоненты]] | [[requirements|Системные требования]] | [[architecture|Архитектура]] | [[types|Типы]]
+
+## Подключение Actions
+
+Базовые провайдеры библиотеки автоматически подключают [[actions|Actions]] и единый modal host, `GlobalProvider` — общий `TaskExecutionProvider`. Дополнительный ручной провайдер не нужен. `getActionFilters` должен синхронно читать фактический стор: после `setFilters` следующий шаг видит изменения до перерисовки React. Клиентские `useProjectDataSourceFilters` / `useFeatureDataSourceFilters` возвращают этот getter третьим элементом tuple, а запись объединяют с `getFilters()`, чтобы последовательные действия не теряли предыдущее обновление.
+
+| Виджет client-new | `actionContextKey` | `actionsActive` |
+|---|---|---|
+| Dashboard | `${projectInfo?.name ?? ""}:${pageIndex}` | `useDashboardsOpen()` |
+| FeatureCard | `${currentLayerName ?? editorLayerName ?? ""}:${feature?.id ?? ""}:${pageIndex}` | `!!feature` |
+
+Модальные источники загружаются библиотекой в изолированном `ModalDataContext`. При открытии вызываются `onModalContextChange(id, snapshot)` и `onModalToggle(id, true, { managed: true })`, при закрытии — `onModalToggle(id, false)` и `onModalContextChange(id, null)`. Смена записи увеличивает `revision`, отменяет область прошлого открытия и защищает от поздних ответов. Данные живут в окне: повторное открытие загружает их заново; кэш прежнего клиентского пути на этот host не распространяется.
+
+`isModalNotificationAllowed` заполняется `useModalNotifications(config, pageIndex)`. Дашборд передаёт `config` превью либо `projectInfo.content.dashboardConfiguration`, карточка — `layerInfo.configuration.cardConfiguration`. Явный аргумент `notificationsOverride` у `useNotificationsFilter` задаёт `config.options.notifications` и слои именно этой страницы: фильтрация уведомлений карточки не берёт настройки соседнего дашборда.
+
+Клиентская обёртка `validateActions` вызывает публичный `validateDashboardActions` из `@evergis/react/dist/dashboardActions` и переводит диагностику в `ConfigIssue`: `code: "invalid-action"`, `parentId: issue.ownerId`, сохранённые `path`, `severity`, `message`. Её вызывает `validateDashboardConfig`; превью редактора также показывает ошибки Actions.
+
+Параметры Python-ресурса собираются общими утилитами `@evergis/react/dist/taskParameters`. Клиентские `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` в форме запуска инструмента переэкспортируют библиотечную реализацию; форма и [[actions|runTask]] используют одну обработку схемы и дефолтов.
+
+Для тестовых хостов доступен `actionNavigation(reserve)` — фабрика `{open(url,target), dispose()}` вместо настоящей навигации; production использует браузер по умолчанию. [[actions|Полный контракт]].

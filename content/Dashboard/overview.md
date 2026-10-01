@@ -13,7 +13,7 @@ Dashboard — конфигурационный UI-компонент из пак
 - **Управление слоями** — управление видимостью и параметрами карт-слоёв через `DashboardLayerPayload`
 - **Real-time через WebSocket** — `autoSyncLayer` (свой слой источника) и `autoSyncLayers` (чужие слои источников query / python) на `ConfigDataSource` подписываются на `FeatureLayerUpdated` и автоматически обновляют данные
 - **Раскладка на CSS-сетке** — `ContainersGroup` с `options.grid` строит сетку «строки → ячейки» с долями в `fr` и неограниченной вложенностью; `options.editMode` включает правку раскладки мышью (ресайз границ, объединение, деление, перестановка ячеек), результат уходит хосту через `onContainerChange`
-- **Разнообразные контейнеры** — 36 шаблонов: Chart, Filters, DataSource, Edit*, Tabs, Layers, Slideshow, Task, ExportPdf, Attachment, StructuredData, GridRow и др.
+- **Разнообразные контейнеры** — 37 шаблонов реестра (включая Pages): Chart, Filters, DataSource, Edit*, Tabs, Layers, Slideshow, Task, ExportPdf, Attachment, StructuredData, GridRow и др.
 - **Разнообразные элементы** — 16 типов: Chart, Chips, Control, Image, Link, Icon, Modal, Tooltip, Markdown, Slideshow, Svg, Legend, Camera, Button, Uploader, Table
 - **Структурированные данные** — контейнер `StructuredData` даёт редактируемую таблицу со схемой прямо в конфиге; результат правки уходит потребителям `FeatureCollection`-фильтром
 - **Несколько типов шапок** — Dashboard Default и 3 типа FeatureCard (Default, Background, Slideshow)
@@ -27,3 +27,9 @@ Dashboard — конфигурационный UI-компонент из пак
 ## Связанные разделы
 
 [[setup|Подключение]] | [[architecture|Архитектура]] | [[concepts|Основные понятия]]
+
+## Actions
+
+[[actions|Система Actions]] позволяет описывать переиспользуемые действия в JSON, привязывать их к кликам элементов, строк и графиков, запускать Python-задачи и продолжать цепочку по результату. Поддерживает `runTask`, `setFilters`, `openUrl`, `openModal`, реестры root/page/modal и условные callback. Работает также в FeatureCard и модалках; визуальный редактор Actions пока не добавлен.
+
+Общий сервис задач ведёт независимые результаты, логи и уведомления даже после смены страницы. Модальное окно получает атрибуты нажатой записи, ответ задачи и параметры, а собственные источники загружает в этом контексте. Повторное открытие одного ID обновляет окно и защищает его от поздних ответов прежнего запроса. Подключение штатными провайдерами — [[setup#Подключение Actions|Подключение Actions]].

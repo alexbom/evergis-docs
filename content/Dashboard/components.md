@@ -42,7 +42,7 @@
 
 ## Chart
 
-**Назначение:** Основной компонент для отображения чартов: bar, line, pie, stack. Большой компонент с поддержкой фильтрации по клику, тултипами, маркерами, легендой.
+**Назначение:** Основной компонент для отображения чартов: bar, line, pie, stack. Оркестрирует внутренние `BarChartView`, `LineChartView`, `PieChartView`, `StackChartView`; раскладка вынесена в `useChartLayout`, форматирование и взаимодействие — в `useChartPresentation`. Поддерживает фильтрацию и [[actions|Actions]] по клику, тултипы, маркеры и легенду.
 
 **Props (`ChartProps`):**
 | Prop | Тип |
@@ -53,7 +53,7 @@
 | `type` | `WidgetType` |
 | `renderElement` | `RenderElementFunction` |
 
-**Зависимости:** `useChartData`, `useChartChange`, `useChartAxisTitles`, `useChartAxisTickFormat`, `useWidgetFilters`, `useWidgetContext`, `useGlobalContext`, `useResizeBox` (в fill-режиме — ячейка; при вертикальных подписях осей — тело между ними)
+**Зависимости внутренних хуков:** [[hooks|хуки]] `useChartData`, `useChartChange`, `useChartAxisTitles`, `useChartAxisTickFormat`, `useWidgetContext`, `useGlobalContext`, `useResizeBox` (в fill-режиме — ячейка; при вертикальных подписях осей — тело между ними). `useChartActions` объединяет Actions и прежнюю фильтрацию; событие сохраняет исходное имя и запись независимо от форматированной подписи.
 
 **Режим `fill`:** читается из контекста `FillContext`, который выставляет `ChartContainer` (опции контейнера до элемента `chart` не доходят). При `fill` тело графика оборачивается в измеряемый `ChartFillMeasure`, а размеры берутся из `useResizeBox`, а не из `options.width`/`options.height`. Подробно — [[containers#Как работает fill|ChartContainer]].
 
@@ -73,7 +73,7 @@
 
 ### ChartWrapper
 
-Обёртка с loading skeleton и позиционированием (width, height, column).
+Обёртка с loading skeleton и позиционированием (width, height, column). Принимает также `onClick?: MouseEventHandler<HTMLDivElement>`: кликабельный график останавливает всплытие до Action родительского контейнера.
 
 ---
 
@@ -89,8 +89,10 @@
 | `chartElement` | `ConfigContainerChild` |
 | `twoColumns` | `boolean?` |
 | `column` | `boolean?` — записи столбиком (`true`) или в ряд (`false`); не задано — раскладку выбирает контейнер |
-| `fontSize` | `string?` |
+| `fontSize` | `string \| number` |
 | `type` | `WidgetType` |
+
+**Клики:** использует [[hooks#useChartActions (internal)|useChartActions]] того же `chartElement`, что и сегменты графика. Один сегмент и его запись легенды имеют один источник цепочки. `rawName` сохраняет ключ фильтра при форматировании подписи; `syntheticOther` не кликабелен. Легенда `line` остаётся без новых Actions. Собственное поле `actions` элемента `legend` не создаёт отдельной привязки: исполняются действия связанного графика.
 
 ---
 
@@ -244,13 +246,13 @@
 
 ### DashboardLoading
 
-**Назначение:** Полноэкранный лоадер при смене страницы и пока не пришёл ни один источник данных. Условие показа — [[hooks#useDataSourceLoading|`useDataSourceLoading`]]; используется корневым `Dashboard` и `ElementModal`.
+**Назначение:** Полноэкранный лоадер при смене страницы и пока не пришёл ни один источник данных. В корневом `Dashboard` условие задаёт [[hooks#useDataSourceLoading|useDataSourceLoading]]. Общий `WidgetModalHost` использует этот же компонент с отдельным гейтом `ModalDataContext.isLoading`: данные страницы не управляют заглушкой окна.
 
 ---
 
 ## LogTerminal
 
-**Назначение:** Терминал (xterm.js) для вывода лога выполнения Python-задачи. Используется в `TaskContainer`. Поддерживает инкрементальную дозапись строкового лога, вывод JSON-результата и Ctrl+C для копирования выделения.
+**Назначение:** Терминал (xterm.js) для вывода лога выполнения Python-задачи. Общий `TaskExecutionHost` открывает лог по `runId`; [[containers#TaskContainer|TaskContainer]] выводит кнопку для каждого независимого запуска. Поддерживает инкрементальную дозапись строкового лога, вывод JSON-результата и Ctrl+C для копирования выделения.
 
 **Props (`TaskLogTerminalProps`):**
 | Prop | Тип |
@@ -278,7 +280,7 @@
 
 ## ResizeHandle
 
-**Назначение:** Ручка перетаскивания границы. Общая для [[containers#Режим сетки grid|сетки]] дашборда и колонок таблицы [[elements|ElementTable]]: жест один и тот же, и выглядеть он обязан одинаково. Сам жест — [[hooks|хук]] `useResizeDrag`.
+**Назначение:** Ручка перетаскивания границы. Общая для [[containers#Режим сетки (grid)|сетки]] дашборда и колонок таблицы [[elements|ElementTable]]: жест один и тот же, и выглядеть он обязан одинаково. Сам жест — [[hooks|хук]] `useResizeDrag`.
 
 **Props:**
 | Prop | Тип | Описание |
@@ -309,13 +311,17 @@
 **Props:**
 | Prop | Тип |
 |---|---|
-| `data` | `ChartDataItem[]` |
+| `data` | `ChartDataProps[]` |
+| `onItemClick` | `((item: FilterItem) => void)?` — общий обработчик Actions/фильтрации |
 | `filterName` | `string` |
 | `type` | `WidgetType` |
 | `alias` | `ConfigContainerChild?` |
 | `options` | `ConfigOptions` |
 | `renderTooltip` | функция |
 | `renderElement` | `RenderElementFunction` |
+| `fill` | `boolean?` — полоса заполняет доступную высоту |
+
+**Поведение:** при `onItemClick` передаёт ему исходный item; без него сохраняет фильтрацию по `filterName`. Использует `rawName`, а синтетическая запись «Другое» не получает обработчик.
 
 ---
 
@@ -330,6 +336,7 @@
 | `width` | `number?` |
 | `height` | `number?` |
 | `fontColor` | `string?` |
+| `...rest` | `HTMLAttributes<HTMLDivElement>` — DOM-обработчики, `role`, `tabIndex` и прочие атрибуты корня |
 
 ```tsx
 <SvgImage url="/sp/resources/file/icon.svg" width={24} fontColor="#333" />

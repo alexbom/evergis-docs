@@ -163,9 +163,9 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ### getDataFromAttributes
 
-`(t, config, attributes?) => PieChartData[]`
+`(t, config, attributes?) => (PieChartData & Partial<FilterItem>)[]`
 
-Формирует данные для PieChart из дочерних элементов конфига и атрибутов объекта. Поддерживает сортировку по значению и группировку "других" элементов.
+Формирует данные для PieChart из дочерних элементов конфига и атрибутов объекта. Поддерживает сортировку по значению и группировку «других» элементов. Сохраняет `rawName` (имя атрибута) и `eventData` (`recordId`, `index`, `attribute`, `rawValue`) для [[actions|Actions]]. Суммарная запись «Другое» помечается `syntheticOther: true` и не запускает действия.
 
 ---
 
@@ -176,6 +176,8 @@ Resolves контейнер из реестра — через `getContainerComp
 Формирует данные для чарта из features датасорса. Сортировка (`orderByValue` / `orderByTitle`), обрезка по `otherItems` с элементом «Другое» (сумма хвоста), форматирование подписей через `formatAttributeValue`. Палитра растягивается под число элементов только у источника с осью (`axis` / `chartAxis`, см. **resolveAxis**); цвет из `attributeColor` строки приоритетнее палитры.
 
 Границы элемента `min` / `max` берутся из строки по `attributeMin` / `attributeMax` фильтра `relatedConfig.filterName` — каждая независимо. Фильтр указан, но в `filters` его нет → пустой массив.
+
+Каждая запись содержит `rawName` и `eventData`: исходный `feature`, `index`, стабильный `recordId` (`feature.id` → `properties.gid` → JSON свойств), `dataSourceName`, `series`, `rawName`, `rawValue`. Форматирование `name` не меняет ключ фильтра. Суммарный хвост «Другое» имеет `syntheticOther: true`; обычная запись с такой подписью сохраняет обработчик [[actions|Actions]].
 
 ---
 
@@ -353,7 +355,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `(props: GetRenderElementProps) => RenderElementFunction`
 
-Фабрика функции `renderElement({ id?, index?, wrap? })` для рендера дочерних элементов контейнера. Находит ребёнка по `id` (через `returnFound` из `find-and`) или по `index`; резолвит ссылки `containerId` на контейнер верхнего уровня; рекурсивно строит вложенный `renderElement`; делегирует значение `getElementValue`; скрывает пустые элементы (`isHiddenEmptyValue`) и форматирует результат через `formatElementValue`. Ключевая утилита registry-рендера — см. [[architecture#Поток данных|Поток данных]]. Парный хук — [[hooks|`useRenderElement`]].
+Фабрика функции `renderElement({ id?, index?, wrap? })` для рендера дочерних элементов контейнера. Находит ребёнка по `id` через **findDashboardNode** или по `index`; резолвит ссылки `containerId` на визуальный узел конфига; рекурсивно строит вложенный `renderElement`; делегирует значение `getElementValue`; скрывает пустые элементы (`isHiddenEmptyValue`) и форматирует результат через `formatElementValue`. Контейнеры оборачиваются в `ActionNodeProvider`, который передаёт путь и атрибуты для [[actions|Actions]]. Ключевая утилита registry-рендера — см. [[architecture#Поток данных|Поток данных]]. Парный хук — [[hooks|`useRenderElement`]].
 
 **Подстановки в строках узла.** С пропом `configStringSources` (источники от [[hooks|хука]] `useConfigStringSources`) каждый найденный узел проходит через **resolveElementStrings**: `value`, `defaultValue`, `options.label`, `options.placeholder`, `options.title` получают подставленные значения `%filter`, `$dashboard:`, `{attr}`, `%project` и т.д. (см. [[concepts#Подстановки в строках конфига|Основные понятия]]). Атрибуты рендера (строки `DataSource`) перекрывают атрибуты виджета. Проп пробрасывается во вложенные `renderElement`. Без него строки выводятся как есть.
 
@@ -464,7 +466,7 @@ const renderElement = getRenderElement({ type, config, elementConfig, attributes
 
 ### formatDataSourceCondition
 
-`({ condition, configFilters, filters, dataSources?, dashboard?, attributes, geometry, extent?, zoomLevel?, projectName?, projectAlias?, layerParams?, eqlParameters? }) => string`
+`({ condition?, configFilters?, filters, dataSources?, dashboard?, attributes?, geometry?, extent?, zoomLevel?, projectName?, projectAlias?, layerParams?, eqlParameters?, contextSources? }) => string | string[]`
 
 Подстановки в EQL-условие — обёртка над общим резолвером строк конфига (см. [[concepts#Подстановки в строках конфига|Основные понятия]]) в режиме «условие». Ведущие `$(params)` секции форматируются отдельно (даты без `#'…'`), остаток — по секциям `AND`. Заменяет все вхождения `%name[.min|.max|.lN|.prop]`, `$dashboard:name[...]`, `$dashboard:dataSource:field`, `{attributeName}`, `$card`, `%geometry`, `%extent`, `%zoom`, `%project[.name|.alias]`; eql-параметры слоя подставляются по имени.
 
@@ -474,6 +476,8 @@ const renderElement = getRenderElement({ type, config, elementConfig, attributes
 - Фильтр подставляется, только если он есть в `configFilters`. Пустое значение оставляет плейсхолдер.
 
 `applyVarsToCondition` — то же для отдельной секции или массива секций без разбора `$(params)`.
+
+`contextSources?: ConfigStringSources` добавляет `taskResponse`, `event`, `parameters` открытия модалки для `#field`, `$event`, `$params`. Остальные источники подстановок задаются явными аргументами. Массив `condition` форматируется поэлементно; отсутствующее условие даёт `""`. Выполнение EQL остаётся серверным — условия callback [[actions|Actions]] вычисляет отдельный evaluator.
 
 ---
 
@@ -496,9 +500,9 @@ const renderElement = getRenderElement({ type, config, elementConfig, attributes
 | `formatConditionSection(section, sources, options?)` | одна секция условия (без разбора `$(params)`) |
 | `getSingleToken(segments)` | токен, если строка целиком — один токен (значение уходит с типом) |
 
-Грамматика — одна регулярка `CONFIG_TOKEN_REGEXP` (`constants.ts`). Виды токенов: `filter` (`%name[.prop]`, `$dashboard:name[.prop]` — поле `scope`), `dataSource` (`$dashboard:<датасорс>:<поле>`), `card` (`$card:<слой>:<поле>`), `attribute` (`{name}`). Незнакомый токен (`known: false`) остаётся в строке как написан.
+Общая грамматика использует `CONFIG_TOKEN_REGEXP` и добавленные в `tokenizeConfigString` префиксы [[actions|Actions]]. Виды токенов: `filter` (`%name[.prop]`, `$dashboard:name[.prop]` — поле `scope`), `dataSource` (`$dashboard:<датасорс>:<поле>`), `card` (`$card:<слой>:<поле>`), `attribute` (`{name}`), `action` (`#field`, `$event[.path]`, `$params[.path]`). У `action` поле `scope` равно `"result"`, `"event"` или `"parameters"`, поле `path` задаёт путь свойства. Незнакомый токен (`known: false`) остаётся в строке как написан.
 
-`ConfigStringSources`: `widget` (`%`), `dashboard` (`$dashboard:` — фильтры и датасорсы дашборда), `attributes`, `layerInfo`, `geometry`, `extent`, `zoomLevel`, `projectName`, `projectAlias`. Для виджета их собирает хук `useConfigStringSources(type)`.
+`ConfigStringSources`: `widget` (`%`), `dashboard` (`$dashboard:` — фильтры и датасорсы дашборда), `attributes`, `layerInfo`, `geometry`, `extent`, `zoomLevel`, `projectName`, `projectAlias`, `taskResponse`, `event`, `parameters`. Для виджета их собирает [[hooks#useConfigStringSources|хук useConfigStringSources]]. Новые префиксы экранируются обратной косой чертой; фрагмент URL `/report#section` остаётся литералом. Одиночный токен сохраняет тип, интерполяция зависит от режима резолвера.
 
 ---
 
@@ -593,7 +597,7 @@ const openedModalDataSources = getModalsDataSources(config, openedModalIds);
 
 `({ style, width, height, overflow, defaults, defaultWidth, heightAsMin }) => CSSObject | undefined`
 
-Собирает CSS-объект корневой обёртки контейнера: внутренние дефолты плюс размеры из `options` (см. [[containers#Размерная модель обёртки ContainerBoxOptions|размерную модель]]). Результат уходит в styled-проп, а не в inline-style, поэтому перебивается снаружи обычной специфичностью — без `!important`. Опции перекрывают одноимённые поля авторского `style`.
+Собирает CSS-объект корневой обёртки контейнера: внутренние дефолты плюс размеры из `options` (см. [[containers#Размерная модель обёртки (ContainerBoxOptions)|размерную модель]]). Результат уходит в styled-проп, а не в inline-style, поэтому перебивается снаружи обычной специфичностью — без `!important`. Опции перекрывают одноимённые поля авторского `style`.
 
 Размер `"100%"` включает **fill-режим**: контейнер занимает ячейку целиком, для чего снимаются конфликтующие внутренние дефолты обёртки (`width`/`minWidth`/`maxWidth`/`marginLeft`/`marginRight` по горизонтали, `height`/`minHeight`/`maxHeight`/`marginTop`/`marginBottom` по вертикали), а контент лишается возможности её распирать (`min-width`/`min-height: 0`). Для fill-высоты добавляется `flex: 1 1 auto` — в колонке контейнер забирает остаток ячейки под заголовком, а не переполняет её на его высоту. `overflow` уходит в CSS как есть и ничем не подменяется.
 
@@ -737,7 +741,7 @@ const updating = selectUpdatingDataSources({ configDataSources, filters, configF
 
 ### applyQueryFilters
 
-`({ parameters, filters, selectedFilters?, dashboard?, geometry?, extent?, zoomLevel?, projectName?, projectAlias?, attributes?, layerInfo?, dataSources }) => Record<string, any>`
+`({ parameters, filters, selectedFilters?, dashboard?, geometry?, extent?, zoomLevel?, projectName?, projectAlias?, attributes?, layerInfo?, dataSources, contextSources? }) => Record<string, unknown>`
 
 Резолвит значения `parameters` (EQL-параметров или параметров python-скрипта) — обёртка над резолвером строк конфига (см. [[concepts#Подстановки в строках конфига|Основные понятия]]) в режиме «параметры»:
 
@@ -750,6 +754,24 @@ const updating = selectUpdatingDataSources({ configDataSources, filters, configF
 Строка-токен целиком уходит значением с типом. Пустой или незнакомый фильтр не отправляется. Токены внутри строки интерполируются текстом. Незнакомый `{name}` и строка на `$` без известного префикса уходят литералом.
 
 Используется в источниках данных, а также билдером [[hooks|хука]] `useSavePrototypeBuilder` для сборки параметров `beforeSave`/`afterSave` скриптов.
+
+`contextSources` передаёт данные открытия модального окна: `#field`, `$event`, `$params`. `parameters` имеет тип `Record<string, unknown>`; функция резолвит каждое верхнеуровневое значение и пропускает `undefined`. Рекурсивный обход вложенных объектов и массивов параметров Actions выполняет **resolveActionParameters**.
+
+---
+
+### getUpdatedDataSources (internal)
+
+`(responses: DataSourcePromise[], currentDataSources: ConfigDataSource[], otherDataSources: FetchedDataSource[]) => FetchedDataSource[]`
+
+Нормализует результаты `Promise.allSettled` и объединяет их с остальными источниками. Отдельный файл `utils/getUpdatedDataSources.ts` не реэкспортируется из `utils/index.ts`, но функция доступна в результате [[hooks#useDataSources|useDataSources]].
+
+`features` или `items` успешного ответа становятся записями источника; EQL/URL получают порядковые ID и одинаковые `attributes`/`properties`. Ошибка даёт `features: null`, `attributes: null`. Описание атрибутов принимается массивом либо объектом `имя → настройки`; для Python без описания оно выводится из свойств первой записи (`Float` для чисел, иначе `String`).
+
+```ts
+const { getUpdatedDataSources } = useDataSources({ type, config: currentPage, filters });
+const responses = await Promise.allSettled(requests);
+const sources = getUpdatedDataSources(responses, requestedSources, otherSources);
+```
 
 ---
 
@@ -833,7 +855,7 @@ const updating = selectUpdatingDataSources({ configDataSources, filters, configF
 
 ## Утилиты сетки (grid)
 
-Утилиты [[containers#Режим сетки grid|режима сетки]]. Часть отдаётся наружу через `grid/index.ts` — только листовые модули (`gridTracks`, `gridTree`, `createGridNodeId`): баррель `utils` оттуда не тянут, иначе цикл `getRenderElement → registry → контейнеры → grid` уронит инициализацию в TDZ. Операции раскладки (`gridOperations`) и DOM-чтение остаются внутренними. Типы и константы — [[types#Публичная поверхность сетки|Типы]].
+Утилиты [[containers#Режим сетки (grid)|режима сетки]]. Часть отдаётся наружу через `grid/index.ts` — только листовые модули (`gridTracks`, `gridTree`, `createGridNodeId`): баррель `utils` оттуда не тянут, иначе цикл `getRenderElement → registry → контейнеры → grid` уронит инициализацию в TDZ. Операции раскладки (`gridOperations`) и DOM-чтение остаются внутренними. Типы и константы — [[types#Публичная поверхность сетки|Типы]].
 
 ### Треки (`gridTracks`)
 
@@ -865,14 +887,14 @@ const updating = selectUpdatingDataSources({ configDataSources, filters, configF
 
 | Функция | Сигнатура и назначение |
 |---|---|
-| `collectConfigIds` | `(source: unknown, acc?) => Set<string>` — все `id` в поддереве конфига. Обходит объект целиком, а не только `children`: узлы встречаются и в других коллекциях (`modals`, вложенные структуры), и `returnFound` из `find-and` ищет так же. Дубликат id заставил бы движок молча взять первое совпадение |
+| `collectConfigIds` | `(source: unknown, acc?) => Set<string>` — все `id` в поддереве конфига. Обходит объект целиком, включая метаданные, и поэтому резервирует также ID Actions при генерации сетки. Сам рендер ищет только визуальные узлы через **findDashboardNode**; дубликаты ID визуальных узлов по-прежнему недопустимы |
 | `createGridIdFactory` | `(usedIds: Set<string>) => GridIdFactory` — фабрика уникальных id со сквозной нумерацией (`gridRow_1`, `gridCell_1`). Счётчик общий на страницу: сеток на ней может быть несколько, и локальные счётчики выдали бы им одинаковые id |
 
 ### Операции и DOM (внутренние)
 
 | Модуль | Содержимое |
 |---|---|
-| `gridOperations` | `normalizeGrid`, `deleteCells`, `canMergeCells` / `mergeCells`, `canSwapCells` / `swapCells`, `getGridMenuState`, `applyGridAction` — применение [[types#Публичная поверхность сетки\|`GridEditAction`]] к черновику. Семантика операций — [[containers#Редактирование раскладки editMode\|Редактирование раскладки]] |
+| `gridOperations` | `normalizeGrid`, `deleteCells`, `canMergeCells` / `mergeCells`, `canSwapCells` / `swapCells`, `getGridMenuState`, `applyGridAction` — применение [[types#Публичная поверхность сетки\|`GridEditAction`]] к черновику. Семантика операций — [[containers#Редактирование раскладки (editMode)\|Редактирование раскладки]] |
 | `gridResizeOperations` | Пересчёт долей пары треков и высоты корня по итогу жеста |
 | `readTrackPixels` | `(grid, axis) => number[]` — пиксельные размеры треков из computed `grid-template-*`, а не из прямоугольников ячеек: у отрисованного грида браузер отдаёт уже разрешённые used values, без зазоров |
 | `readCellAtPoint` | Ячейка под курсором по маркеру `data-grid-cell` — цель перетаскивания |
@@ -956,3 +978,83 @@ const updating = selectUpdatingDataSources({ configDataSources, filters, configF
 ## Связанные разделы
 
 [[hooks|Хуки]] | [[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[types|Типы]]
+
+## Утилиты Actions
+
+Публичные функции экспортируются из `actions/index.ts`. Отдельный entry point `@evergis/react/dist/dashboardActions` содержит `validateDashboardActions` и базовые типы определений, вызовов, callback и диагностики. Грамматика и сценарии — [[actions|Actions]].
+
+### findDashboardNode
+
+`(root: unknown, id: string | undefined) => ConfigContainerChild | undefined`
+
+Ищет первое совпадение `id` только в ветвях `children`, `header`, `modals`. Массивы обходятся в исходном порядке; повторно посещённые объекты пропускаются. `actions`, `parameters`, данные записей и прочие метаданные не обходятся, поэтому совпавший `action.id` не подменяет визуальный узел. Экспортируется из `utils/index.ts`.
+
+```ts
+const chart = findDashboardNode(config, "chart_sales");
+```
+
+### resolveActionInvocation
+
+`(invocation: ConfigActionInvocation, scopes: ActionScopes) => ResolvedAction`
+
+Inline-вызов нормализуется с `event: "click"` по умолчанию. Ссылка ищется от последнего scope к первому; локальное определение заменяет дальнее целиком. `options` объединяются через **mergeActionParameters**; наличие поля `callback` у ссылки заменяет callback определения. Неизвестный ID выдаёт ошибку.
+
+```ts
+const action = resolveActionInvocation({ id: "calculate", options: { parameters: { limit: 200 } } }, scopes);
+```
+
+### mergeActionParameters
+
+`(base: unknown, override: unknown) => unknown`
+
+Рекурсивно объединяет объекты без изменения входов; массив override заменяет исходный, `null` сохраняется. Служебные ключи `__proto__`, `constructor`, `prototype` исключаются. Используется также при сборке параметров Python-ресурса.
+
+```ts
+const options = mergeActionParameters({ parameters: { limit: 100, mode: "fast" } }, { parameters: { limit: 200 } });
+// { parameters: { limit: 200, mode: "fast" } }
+```
+
+### resolveActionParameters
+
+`(value: unknown, context: ActionExecutionContext) => unknown`
+
+Рекурсивно обходит объекты и массивы, резолвит строковые листья через общий `configString`. Одиночный токен сохраняет тип; токен внутри текста становится строкой. Неизвестный одиночный токен даёт `undefined`, отсутствующий токен в интерполяции — пустой текст.
+
+```ts
+const parameters = resolveActionParameters({ limit: "%limit", object_id: "{gid}", result: "#price" }, context);
+```
+
+### parseActionCondition / evaluateActionCondition
+
+**Сигнатуры:** `parseActionCondition(expression: string) => ConditionNode`; `evaluateActionCondition(expression: string, context: ActionExecutionContext) => boolean`.
+
+Первая строит AST и выдаёт ошибку синтаксиса. Вторая вычисляет ограниченное подмножество JavaScript по данным контекста без `eval`; ошибка, отсутствующее значение или несовместимые типы дают `false`. Операторы `==`/`!=` не преобразуют типы. Точная грамматика — [[actions#Callback и условия|Callback и условия]].
+
+```ts
+const matched = evaluateActionCondition("#price > %price", context);
+```
+
+### createActionRuntime / executeActionSequence
+
+**Параметры:** `createActionRuntime(options: ActionRuntimeOptions)`; `executeActionSequence(request: ActionRunRequest, options: ActionRuntimeOptions, control: ActionExecutionControl)`.
+
+**Возвращает:** фабрика — `ActionRuntime` (`start`, `cancel`, `cancelAll`); исполнитель — `Promise<ActionExecutionContext>`. `start(request)` возвращает handle с `completion`, `cancel`, `signal`, `runId`, `sourceKey`, `scopes`. `completion` разрешается результатом со статусом `completed` / `cancelled` / `failed`; ошибка хранится в результате `failed`.
+
+Callback выполняется до следующего вызова массива. Повторный запуск отменяет только прежнюю цепочку с тем же `sourceKey`; контекст клика и реестры фиксируются, живые фильтры читает `getSources`. Циклы допустимы, исполнитель периодически отдаёт управление браузеру.
+
+```ts
+const runtime = createActionRuntime({ execute, getSources });
+const run = runtime.start({ sourceKey: "sales/row/1", actions, scopes, context });
+const result = await run.completion;
+```
+
+### validateDashboardActions
+
+`(config: unknown) => ActionValidationIssue[]`
+
+Проверяет реестры root/page/modal отдельно от визуальных вызовов: структуру, дубли ID внутри scope, разрешение ссылок, параметры четырёх действий, callback и его синтаксис, ссылки на задачи/модалки. Циклы ссылок допустимы. Диагностика содержит `path`, `code`, `message`, `ownerId?`, `severity: "error" | "warning"`; не-объект даёт пустой список. Включение в клиентский валидатор — [[setup#Подключение Actions|Подключение Actions]].
+
+```ts
+const issues = validateDashboardActions(config);
+const errors = issues.filter(({ severity }) => severity === "error");
+```

@@ -280,13 +280,13 @@ const { data, loading } = useChartData({ element: chartElement, type });
 
 ## useConfigDataSources
 
-**Назначение:** Конфиги всех источников, доступных контейнерам виджета: `currentPage.dataSources` (страница + корень) и источники **всех** модалок (`config.modals[].dataSources`). Одноимённый источник страницы перекрывает модальный. Только для поиска конфига по имени — в конфиг страницы результат не пишется (иначе модальные источники осели бы в странице при сохранении `currentPage`).
+**Назначение:** Конфиги источников, доступных контейнерам виджета. Вне модального окна объединяет `currentPage.dataSources` (страница + корень) и источники **всех** модалок (`config.modals[].dataSources`), удаляя дубли по имени с приоритетом страницы. Внутри окна своего `WidgetType` возвращает `ModalDataContext.configDataSources`: страница + собственные источники этого окна. Только для поиска конфига по имени — в конфиг страницы результат не пишется.
 
 **Параметры:** `type?: WidgetType` (default `Dashboard`)
 
 **Возвращает:** `ConfigDataSource[]`
 
-Используется в **useChartData**, **useRelatedDataSourceAttributes**, `useTreeFilterData` и `TextFilter` (`searchDataSource`). Источники модалок — утилита [[utils#getModalsDataSources|getModalsDataSources]]; загрузка при открытии — [[setup#Ленивые источники модалок (client-new)|Подключение]].
+Используется в **useChartData**, **useRelatedDataSourceAttributes**, `useTreeFilterData` и `TextFilter` (`searchDataSource`). Источники модалок — утилита [[utils#getModalsDataSources|getModalsDataSources]]; область и загрузка окна — [[setup#Подключение Actions|Подключение Actions]].
 
 ```ts
 const configDataSources = useConfigDataSources(type);
@@ -327,7 +327,7 @@ const configDataSource = configDataSources.find(({ name }) => name === relatedDa
 >
 > Гейт fill-высоты берётся по **результирующей** высоте (`root.$sizeCss.height`, а при её отсутствии — `minHeight`), а не по `options.height`: высоту задаёт ещё и авторский `style`, и внутренние `defaults` контейнера. Значение `auto` высотой не считается — делить нечего.
 >
-> `minHeight` учитывается наравне с `height` ради режима [[containers#Рост под содержимое autoHeight|`autoHeight`]]: там корень несёт только минимум, и без этого тело осталось бы без `flex: 1 1 auto` — схлопнулось бы по содержимому, а минимум корня до треков внутри не дошёл бы вовсе.
+> `minHeight` учитывается наравне с `height` ради режима [[containers#Рост под содержимое (autoHeight)|`autoHeight`]]: там корень несёт только минимум, и без этого тело осталось бы без `flex: 1 1 auto` — схлопнулось бы по содержимому, а минимум корня до треков внутри не дошёл бы вовсе.
 
 ```ts
 const { root, body } = useContainerRoot({ elementConfig });
@@ -369,7 +369,7 @@ const { title, icon, onClickLogo } = useDashboardHeader();
 
 ## useDataSources
 
-**Назначение:** Базовый хук получения данных. Поддерживает EQL-запросы, layer features, Python remote tasks, URL-эндпоинты.
+**Назначение:** Публичная обёртка над загрузчиком **useDataSourceRequests** и выбором источников, затронутых фильтрами. Поддерживает EQL-запросы, layer features, Python remote tasks, URL-эндпоинты.
 
 **Параметры:**
 | Параметр | Тип |
@@ -380,6 +380,7 @@ const { title, icon, onClickLogo } = useDashboardHeader();
 | `filters` | `SelectedFilters` |
 | `layerParams` | `Record<string, string>?` |
 | `eqlParameters` | `QueryLayerServiceConfigurationDc["eqlParameters"]?` |
+| `contextSources` | `ConfigStringSources?` — дополнительный контекст подстановок `taskResponse`, `event`, `parameters` для источников модального окна |
 
 **Возвращает:**
 | Поле | Описание |
@@ -405,15 +406,33 @@ const { getDataSourcePromises, getUpdatingDataSources } = useDataSources({ type,
 
 ---
 
+## useDataSourceRequests (internal)
+
+**Назначение:** Выполняет запрос одного источника. Вынесен в `hooks/useDataSourceRequests.ts`, но не реэкспортируется из `hooks/index.ts`. Используется публичным **useDataSources** и загрузчиком модалок.
+
+**Параметры:** объект `DataSourceRequestOptions` — та же таблица, что у **useDataSources**. `contextSources` дополняет обычные источники подстановок; фильтры, карта, проект и атрибуты задаются аргументами загрузчика.
+
+**Возвращает:** async-функцию `(source: ConfigDataSource, newFilters?: SelectedFilters, offset = 0) => Promise<...>`.
+
+Выбор канала: `resourceId` → Python remote task; `url` → POST JSON; без `layerName` → EQL-запрос вместе с описанием атрибутов; с `layerName` → `api.layers.getFeatures`. Одновременные запросы с одинаковой резолвленной сигнатурой используют один промис в пределах экземпляра хука. Завершённые ответы не кэшируются.
+
+```ts
+// Внутри библиотеки; хосты используют useDataSources.
+const load = useDataSourceRequests({ type, config: currentPage, filters, contextSources });
+const response = await load(source, undefined, 0);
+```
+
+---
+
 ## useDataSourceLoading
 
-**Назначение:** Признак «данных нет вообще» — единственное условие, при котором допустима полноэкранная заглушка `DashboardLoading`. Как только пришёл первый источник, страницу и модалку наполняют сами контейнеры, каждый со своим `ContainerLoading` / `ChartLoading`.
+**Назначение:** Признак «данных страницы нет вообще» для полноэкранной заглушки `DashboardLoading`. Как только пришёл первый источник, страницу наполняют сами контейнеры, каждый со своим `ContainerLoading` / `ChartLoading`. У модального окна отдельный гейт загрузки.
 
 **Параметры:** `type: WidgetType`
 
 **Возвращает:** `boolean` — `!!currentPage?.dataSources?.length && !dataSources?.length && !!isLoading`
 
-**Где используется:** корневой `Dashboard` и `ElementModal`. Опираться на «сырой» `isLoading` из `useWidgetContext` для гейта целого поддерева нельзя: этот флаг взводится на любой рефетч (смена фильтра, правка источника в редакторе, autoSync-уведомление) и гасит уже отрисованный контент.
+**Где используется:** корневой `Dashboard`. Опираться на «сырой» `isLoading` страницы из **useWidgetContext** для гейта целого поддерева нельзя: этот флаг взводится на любой рефетч и гасит уже отрисованный контент. У общего modal host собственный гейт: **useModalSources** отдаёт `isLoading && !loaded.length`, поэтому загрузка окна не зависит от занятости страницы.
 
 ---
 
@@ -602,7 +621,7 @@ const layer = getConfigLayer("myLayer");
 
 ## Хуки сетки (`grid/hooks`)
 
-Внутренние хуки [[containers#Режим сетки grid|сетки контейнеров]]. Наружу из пакета не экспортируются — используются только компонентами `grid/`.
+Внутренние хуки [[containers#Режим сетки (grid)|сетки контейнеров]]. Наружу из пакета не экспортируются — используются только компонентами `grid/`.
 
 | Хук | Назначение |
 |---|---|
@@ -728,7 +747,7 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 **Возвращает:** `RenderElementFunction`
 
 > [!info] Зачем нужен, если `renderElement` и так приходит пропом
-> Проп замкнут на тот узел, который был при его создании. Если компонент рендерит **изменённое** дерево — как сессия редактирования [[containers#Режим сетки grid|сетки]] со своим черновиком, — узлы, созданные split/merge/add, в старом замыкании не найдутся. Тогда `renderElement` пересоздают от актуального узла этим хуком; вся вложенность ниже подхватывается сама, потому что `getRenderElement` рекурсивно строит новый `renderElement` от каждого найденного узла.
+> Проп замкнут на тот узел, который был при его создании. Если компонент рендерит **изменённое** дерево — как сессия редактирования [[containers#Режим сетки (grid)|сетки]] со своим черновиком, — узлы, созданные split/merge/add, в старом замыкании не найдутся. Тогда `renderElement` пересоздают от актуального узла этим хуком; вся вложенность ниже подхватывается сама, потому что `getRenderElement` рекурсивно строит новый `renderElement` от каждого найденного узла.
 
 ---
 
@@ -750,7 +769,7 @@ return <ChartFillMeasure ref={chartRef}>{chartBody}</ChartFillMeasure>;
 
 ## useResizeDrag
 
-**Назначение:** Общий жест перетаскивания границы: подписка на ручку, снимок на нажатии, предпросмотр прямо в DOM на движении, запись результата на отпускании. Один и тот же для границ ячеек [[containers#Режим сетки grid|сетки]] и для ширины колонок таблицы [[elements|ElementTable]] — различаются они только тем, что меряют и куда пишут. Клик, которым закончился жест, хук съедает: мышь отпускают уже за пределами ручки, и без этого перетаскивание границы заканчивалось бы сортировкой колонки или сменой выделения в сетке.
+**Назначение:** Общий жест перетаскивания границы: подписка на ручку, снимок на нажатии, предпросмотр прямо в DOM на движении, запись результата на отпускании. Один и тот же для границ ячеек [[containers#Режим сетки (grid)|сетки]] и для ширины колонок таблицы [[elements|ElementTable]] — различаются они только тем, что меряют и куда пишут. Клик, которым закончился жест, хук съедает: мышь отпускают уже за пределами ручки, и без этого перетаскивание границы заканчивалось бы сортировкой колонки или сменой выделения в сетке.
 
 **Параметры:** объект
 | Параметр | Тип | Описание |
@@ -839,11 +858,11 @@ const { items, totalCount } = await updateDataSource(newFilters, offset);
 
 ## useWidgetConfig
 
-**Назначение:** Доступ к конфигурации виджета — список страниц, текущий конфиг, header.
+**Назначение:** Доступ к конфигурации виджета и списку страниц. Приоритет: явный `config` провайдера → конфиг редактирования при `isEditing` → конфиг Dashboard/FeatureCard. При `containerIds` собирает выбранные визуальные узлы в первую страницу, используя [[utils#findDashboardNode|findDashboardNode]].
 
 **Параметры:** `type?: WidgetType` (default `Dashboard`)
 
-**Возвращает:** `{ config: ConfigContainer, pages: ConfigContainerChild[], header: ConfigContainerHeader }`
+**Возвращает:** `{ config: ConfigContainer, pages: ConfigContainerChild[] }`. Поле `header` отдельно не возвращается — шапка находится в конфиге страницы.
 
 ```ts
 const { config, pages } = useWidgetConfig(type);
@@ -858,6 +877,8 @@ const { config, pages } = useWidgetConfig(type);
 **Параметры:** `type?: WidgetType` (default `Dashboard`)
 
 **Возвращает:** объединённый объект контекста — `dataSources`, `filters`, `attributes`, `layerInfo`, `selectedTabId`, `expandedContainers`, `changeFilters`, `setSelectedTabId` и т.д.
+
+В модальном окне своего `WidgetType` поля `dataSources` и `isLoading` берутся из `ModalDataContext`; `filters`, навигация и остальные данные остаются от виджета. Также возвращает `actionContextKey`, `actionsActive`, `onModalToggle`, `onModalContextChange`, `isModalNotificationAllowed`. Контекст нажатой записи и ответа задачи собирает **useConfigStringSources**.
 
 ```ts
 const { dataSources, filters, attributes } = useWidgetContext(type);
@@ -908,11 +929,11 @@ const { pageIndex, currentPage } = useWidgetPage(type);
 
 ## useConfigStringSources
 
-**Назначение:** Источники подстановок строк конфига для виджета: фильтры виджета (`%`), фильтры дашборда (`$dashboard:`), атрибуты объекта, датасорсы левой панели, вид карты, проект. См. [[concepts#Подстановки в строках конфига|Основные понятия]].
+**Назначение:** Источники подстановок строк конфига для виджета: фильтры виджета (`%`), фильтры дашборда (`$dashboard:`), атрибуты объекта, датасорсы левой панели, вид карты, проект и контекст [[actions|Actions]]. См. [[concepts#Подстановки в строках конфига|Основные понятия]].
 
 **Параметры:** `type: WidgetType`
 
-**Возвращает:** `ConfigStringSources`. Передаётся в `getRenderElement({ configStringSources })`, который резолвит `value` / `defaultValue` / подписи каждого узла. Атрибуты строки `DataSource` при этом подменяют атрибуты карточки.
+**Возвращает:** `ConfigStringSources`. Передаётся в `getRenderElement({ configStringSources })`, который резолвит `value` / `defaultValue` / подписи каждого узла. Атрибуты строки `DataSource` подменяют атрибуты карточки; в модалке `ActionContext` задаёт атрибуты записи открытия и `layerInfo`, а также `taskResponse` (`#field`), `event` (`$event`) и `parameters` (`$params`).
 
 ```ts
 const sources = useConfigStringSources(type);
@@ -931,7 +952,7 @@ const title = resolveConfigString("Показатели за $dashboard:year г�
 
 ## useWrapperSize
 
-**Назначение:** Собирает пропсы корневой обёртки контейнера: идентификаторы для внешних селекторов, авторский `style` из конфига и css-объект размеров из `options.width` / `options.height` / `options.overflow` (см. [[containers#Размерная модель обёртки ContainerBoxOptions|размерную модель]]). Вызывается почти всеми контейнерами вместо ручной сборки стилей.
+**Назначение:** Собирает пропсы корневой обёртки контейнера: идентификаторы для внешних селекторов, авторский `style` из конфига и css-объект размеров из `options.width` / `options.height` / `options.overflow` (см. [[containers#Размерная модель обёртки (ContainerBoxOptions)|размерную модель]]). Вызывается почти всеми контейнерами вместо ручной сборки стилей.
 
 **Параметры:**
 
@@ -961,3 +982,105 @@ return <ChartContainerWrapper {...root}>...</ChartContainerWrapper>;
 ## Связанные разделы
 
 [[components|Компоненты]] | [[utils|Утилиты]] | [[concepts|Основные понятия]] | [[setup|Подключение]] | [[types|Типы]]
+
+## Хуки Actions
+
+Публичные хуки реэкспортируются из `actions/index.ts` и контекстов; они используют область своего `WidgetType`. Контракт цепочек — [[actions|Actions]].
+
+### useActionBindings
+
+**Назначение:** Связывает click-вызовы узла конфига с исполнителем и контекстом конкретной записи.
+
+**Параметры (`ActionBindingOptions`):**
+
+| Поле | Тип | Назначение |
+|---|---|---|
+| `type` | `WidgetType?` | По умолчанию `Dashboard` |
+| `elementConfig` | `ConfigContainerChild?` | Узел с массивом вызовов `actions` |
+| `attributes` | `ClientFeatureAttribute[]?` | Атрибуты для `{name}` |
+| `eventData` | `ActionEventData?` | Дополнительные данные события |
+| `sourceKey` | `string?` | Путь источника внутри области; ID переиспользуемого действия его не заменяет |
+| `disabled` | `boolean?` | Запрет запуска; наследуется также от `ActionNodeProvider` |
+
+**Возвращает (`ActionBindingResult`):** `hasActions`, `trigger(data?, attributes?)`, `onClick`, `onKeyDown`, `role`, `tabIndex`. Ключ запуска объединяет область, путь, ID узла и записи. DOM-обработчики останавливают всплытие; Enter/Space запускают действия у ненативных кнопок. В disabled-области обработчики блокируют всплытие, но `hasActions` равен `false`.
+
+```tsx
+const binding = useActionBindings({ type, elementConfig, attributes });
+return <div role={binding.role} tabIndex={binding.tabIndex}
+  onClick={binding.onClick} onKeyDown={binding.onKeyDown}>{title}</div>;
+```
+
+### useWidgetActions / useActionContext / useActionScope
+
+**Назначение:** Доступ к исполнителю, снимку данных открытия и реестрам ближайшей области.
+
+**Параметры:** `type: WidgetType`.
+
+**Возвращает:** `useWidgetActions` — `{ start(actions, scopes, context, sourceKey, scopeSignal?) }`; `useActionContext` — `ActionExecutionContext | undefined`; `useActionScope` — `{ scopes, key, signal? } | undefined`. `scopes` располагаются от внешнего реестра к внутреннему.
+
+```ts
+const context = useActionContext(type);
+const scope = useActionScope(type);
+const runtime = useWidgetActions(type);
+```
+
+### useChartActions (internal)
+
+**Назначение:** Один обработчик для сегмента графика и соответствующей записи легенды, с Actions либо прежней фильтрацией.
+
+**Параметры:** `type: WidgetType`, `chart: ConfigContainerChild`, `items: FilterItem[]`.
+
+**Возвращает:** результат **useWidgetFilters** плюс `clickable`, `onItemClick(item)`. `chart.actions ?? ChartActionsContext.actions` выбирает привязку; пустой массив у элемента отключает наследование. `line` и `syntheticOther` не запускают действия. `rawName` используется для фильтра, `displayName` — для отображаемой подписи события.
+
+```ts
+const { clickable, onItemClick } = useChartActions(type, chart, items);
+```
+
+### useWidgetModals
+
+**Назначение:** Доступ к общему менеджеру окон Dashboard или FeatureCard.
+
+**Параметры:** `type: WidgetType`.
+
+**Возвращает:** `WidgetModalManager | undefined`: `openedModals`, `openModal(modalId, context, scopes, parameters?)`, `closeModal(modalId)`. Открытие неизвестного ID выдаёт ошибку; повторное открытие увеличивает ревизию одного окна.
+
+```ts
+const modals = useWidgetModals(type);
+modals?.closeModal("details");
+```
+
+### useModalSources / useModalAutoSync (internal)
+
+**Назначение:** Изолированная загрузка источников открытой модалки и подписки её слоёв. Находятся в `actions/modals/hooks/`, публично не реэкспортируются.
+
+**Параметры:** `useModalSources(type, entry: WidgetModalEntry, modal?: ConfigModal)`; `useModalAutoSync(type, sources: ConfigDataSource[])`.
+
+**Возвращает:** первый — `ModalDataOverlay` (`type`, `dataSources`, `configDataSources`, `isLoading`), второй — счётчик ревизии autoSync. Ключ запроса включает ID/ревизию открытия, резолвленные параметры и условия, параметры слоя и ревизию autoSync. Учитываются `debounce` и сигнал отмены; поздние ответы не применяются. Страничные источники с тем же именем перекрывают модальные. Пример подключения — [[setup#Подключение Actions|Подключение Actions]].
+
+### useTaskExecution / useOptionalTaskExecution
+
+**Назначение:** Общий сервис Python-задач внутри `GlobalProvider`; выполняется независимо от жизни страницы.
+
+**Параметры:** нет.
+
+**Возвращает:** `{ runTask, entries, openLog, closeLog, dismissTask, logRunId }`. `runTask(request: PythonExecutionRequest)` возвращает `PythonExecutionHandle`: `runId`, `completion`, `stop`, `getSnapshot`, `subscribe`. `completion` означает финальный ответ; при ошибке или остановке промис отклоняется. **useTaskExecution** без провайдера выдаёт ошибку, **useOptionalTaskExecution** возвращает `null`.
+
+```ts
+const { runTask, openLog } = useTaskExecution();
+const execution = runTask({ taskName: "calculate", tasks: currentPage.tasks, parameters: { limit: 100 } });
+openLog(execution.runId);
+const response = await execution.completion;
+```
+
+### usePythonTask
+
+**Назначение:** Совместимая фасадная обёртка общего сервиса для [[containers#TaskContainer|TaskContainer]] и других потребителей.
+
+**Параметры:** нет; `runTask(request: PythonExecutionRequest)` принимает параметры запуска.
+
+**Возвращает:** агрегированный snapshot (`taskId`, `status`, `log`, `error`, `loading`, `result` и др.), `runTask`, `stopTask`, `openLog`, `closeLog`, `isLogDialogOpen`, `executions`, `openExecutionLog`. `runTask` возвращает промис ответа, каждый запуск получает независимый handle; `stopTask` останавливает все handles данного экземпляра. По умолчанию фасад выключает уведомления, Actions включают их явно.
+
+```ts
+const { runTask, executions, openExecutionLog } = usePythonTask();
+await runTask({ resourceId, parameters: { limit: 100 }, useNotifications: true });
+```

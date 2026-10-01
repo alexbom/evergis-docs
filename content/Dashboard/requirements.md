@@ -3,7 +3,9 @@
 ## @evergis/react
 
 Хуки:
-`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useDataSourceLoading`, `useChartData`, `useChartChange`, `useChartAxisAttributes`, `useChartAxisTickFormat`, `useChartAxisTitles`, `useDashboardHeader`, `useEditControl`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderContainer`, `useRenderContainerItem`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useContainerRoot`, `useEditGroupAttributes`, `useEqualTileWidth`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`, `useBgImageHost`, `useResizeDrag`, `useConfigDataSources`, `useAttachmentDownload`, `useAttachmentsView`
+`useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useDataSourceLoading`, `useChartData`, `useChartChange`, `useChartAxisAttributes`, `useChartAxisTickFormat`, `useChartAxisTitles`, `useDashboardHeader`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useContainerRoot`, `useEditGroupAttributes`, `useEqualTileWidth`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`, `useBgImageHost`, `useResizeDrag`, `useConfigDataSources`, `useConfigStringSources`, `useDashboardFilterStore`, `useAttachmentDownload`, `useAttachmentsView`, `useActionBindings`, `useWidgetActions`, `useActionContext`, `useActionScope`, `useActionNode`, `useWidgetModals`, `useTaskExecution`, `useOptionalTaskExecution`, `usePythonTask`
+
+Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerItem`, `useDataSourceRequests`, `useChartActions`, `useModalSources`, `useModalAutoSync` используются внутри библиотеки и не реэкспортируются публичными баррелями. Контракты — [[hooks|Хуки]].
 
 Компоненты и провайдеры:
 `Dashboard`, `DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `GlobalProvider`, `ContainerBackground`, `ContainerWrapper`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
@@ -65,7 +67,7 @@
 | `react-markdown` | `ElementMarkdown` — рендеринг Markdown |
 | `rehype-raw`, `rehype-sanitize`, `remark-gfm` | Плагины для `react-markdown` |
 | `swiper` | `TabsContainer` — горизонтальный скролл вкладок |
-| `find-and` | `ElementLegend` — `returnFound` для поиска в дереве конфига |
+| `find-and` | Клиентское изменение конфигурации (`replaceObject`); поиск узлов рендера выполняет [[utils#findDashboardNode\|findDashboardNode]] |
 | `jsPDF`, `html2canvas` | `useExportPdf` — экспорт в PDF |
 | `d3` | `FEATURE_CARD_DEFAULT_COLORS` (`d3.schemeAccent`) для цветовой палитры карточки |
 | `maplibre-gl` | Типы `CircleLayerSpecification`, `FillLayerSpecification`, `LineLayerSpecification` для `CustomFeatureSelect` |
@@ -79,3 +81,17 @@
 ## Связанные разделы
 
 [[setup|Подключение]] | [[architecture|Архитектура]] | [[types|Типы]]
+
+## Actions
+
+Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает Python-ресурсы (`taskType: "pythonService"` или `"PythonTask"`). Условия callback вычисляются локально; EQL источников продолжает исполняться сервером. Новая вкладка подчиняется правилам пользовательского жеста браузера; при блокировке отображается ссылка. [[actions|Ограничения и проверка]].
+
+Публичные entry points:
+
+| Импорт | Назначение |
+|---|---|
+| `@evergis/react` | Штатные провайдеры, хуки и типы Actions/задач/модалок |
+| `@evergis/react/dist/dashboardActions` | Общие типы и проверка Actions; клиентский валидатор использует этот entry point |
+| `@evergis/react/dist/taskParameters` | `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` и типы схемы; общий код формы и исполнения задачи |
+
+Нужны `GlobalProvider` с `api` для задач и Dashboard/FeatureCard-провайдер для областей Actions и модалок. Уведомления подключаются через `GlobalProvider.notification`, политика autoSync модального окна — через `isModalNotificationAllowed` хоста. Подключение client-new описано только в [[setup|Подключении]].

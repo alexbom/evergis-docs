@@ -38,7 +38,7 @@
 
 ## ElementButton
 
-**Назначение:** Кнопка, открывающая URL из атрибута объекта в новой вкладке. Также служит слотом `button` у контейнеров-хозяев (например, [[containers#TaskContainer|TaskContainer]]): вид задаёт слот, поведение — контейнер.
+**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Также служит слотом `button` у контейнеров-хозяев (например, [[containers#TaskContainer|TaskContainer]]): вид задаёт слот, поведение — контейнер.
 
 **Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
 
@@ -51,6 +51,7 @@
 | `color` | `string` | Цвет; перекрывает `options.color` |
 | `disabled` | `boolean` | Кнопка недоступна |
 | `onClick` | `VoidFunction` | Обработчик; с ним кнопка рисуется и без ссылки в атрибуте |
+| `attributes` | `ClientFeatureAttribute[]` | Атрибуты конкретной записи; при отсутствии берутся из контекста виджета |
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
@@ -58,6 +59,7 @@
 |---|---|---|
 | `value` | `string` | Текст кнопки |
 | `attributeName` | `string` | Имя атрибута, содержащего URL для открытия |
+| `actions` | `ConfigActionInvocation[]` | Click-вызовы на узле, вне `options`; кнопка с Actions видна и без URL |
 
 **Опции (`options`):** поля [[options#ConfigButtonOptions|ConfigButtonOptions]] + `icon`, `radius`.
 
@@ -73,9 +75,9 @@
 | `iconRight` | `boolean` | Иконка справа от текста |
 
 **Поведение:**
-- Ссылка — `attributeName` → `attribute.value`; клик — `window.open(url)`. Без `onClick` и без строковой ссылки кнопка **не рендерится**.
-- Без `onClick` и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`) — прежняя кнопка-ссылка `ImageContainerButton`.
-- Если задана хоть одна опция внешнего вида или передан `onClick` — `IconButton` из `@evergis/uilib-gl` (пропсы собирает `getElementButtonProps` из `elements/ElementButton/utils/`).
+- Приоритет клика: обработчик Actions → внешний `onClick` → `window.open(url)` из `attributeName`. Без обработчика и строковой ссылки кнопка **не рендерится**.
+- Без обработчика и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`) — прежняя кнопка-ссылка `ImageContainerButton`.
+- Если задана хоть одна опция внешнего вида или есть обработчик Actions/`onClick` — `IconButton` из `@evergis/uilib-gl` (пропсы собирает `getElementButtonProps` из `elements/ElementButton/utils/`).
 
 ```tsx
 // кнопка-ссылка
@@ -88,6 +90,12 @@
   attributeName: "report_url",
   value: "Отчёт",
   options: { variant: "soft", size: "small", icon: "download", iconRight: true }
+}
+
+// кнопка действия без URL; filter enabled получает boolean
+{
+  id: "enable", type: "button", value: "Включить",
+  actions: [{ type: "setFilters", options: { filters: { enabled: { value: true } } } }]
 }
 ```
 
@@ -401,6 +409,8 @@ SVG-ресурс отображается как обычная картинка
 
 **Поведение:** для line-чарта — показывает оси Y как элементы легенды; для bar/pie — items из `data[0].items` с alias из атрибутов.
 
+**Actions:** клики записей использует связанный элемент `chart`, а не собственное поле `actions` легенды. Действия элемента графика перекрывают действия его `ChartContainer`; пустой `chart.actions: []` отключает наследование. Для `line` клики Actions не добавляются. Синтетическая запись «Другое» не кликабельна; обычная одноимённая запись работает. См. [[actions#Поверхности клика и совместимость|Поверхности клика]].
+
 ```tsx
 { id: "legend", type: "legend", options: { chartId: "chart", twoColumns: false, fontSize: 12 } }
 ```
@@ -415,7 +425,7 @@ SVG-ресурс отображается как обычная картинка
 
 ## ElementLink
 
-**Назначение:** Ссылка из значения атрибута. Внешние ссылки (`http...`) открываются в новой вкладке, внутренние — через `LocalLink` (SPA-навигация).
+**Назначение:** Ссылка из значения атрибута. Внешние ссылки (`http...`) открываются в новой вкладке, внутренние — через `LocalLink` (popover со ссылкой и копированием).
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
@@ -478,7 +488,11 @@ SVG-ресурс отображается как обычная картинка
 
 ## ElementModal
 
-**Назначение:** Иконка-кнопка, открывающая диалоговое окно с конфигом из `config.modals[modalId]`.
+**Назначение:** Иконка-кнопка, открывающая общий диалог с конфигом из массива `config.modals[]` по `id`.
+
+**Типы:** `type = "modal"` · `ElementModalOptions` · `ElementModalProps`. См. [[types#Элементы|сводную таблицу]].
+
+**Props:** `type` (по умолчанию `WidgetType.Dashboard`), `elementConfig?: ElementModalConfig`, `attributes?: ClientFeatureAttribute[]`. Явные атрибуты сохраняют запись, из которой открыто окно.
 
 **Опции:**
 
@@ -487,13 +501,13 @@ SVG-ресурс отображается как обычная картинка
 | `modalId` | `string` | **Обязательный.** ID модала из `config.modals` |
 | `icon` | `IconTypesKeys` | Иконка кнопки (default: `"new_window"`) |
 
-**Поведение:** находит `ConfigModal` по `modalId`, рендерит `ContainerChildren` внутри `Dialog`. Заголовок модалки (`ConfigModal.options.title`) проходит через подстановки строк конфига так же, как подписи элементов (см. [[concepts#Подстановки в строках конфига|Основные понятия]]).
+**Поведение:** находит `ConfigModal` по `modalId` и вызывает менеджер `useWidgetModals`. Сама иконка больше не владеет `Dialog`: содержимое через `ContainerChildren` рендерит общий `WidgetModalHost`. Заголовок (`ConfigModal.options.title`) проходит через подстановки строк конфига так же, как подписи элементов (см. [[concepts#Подстановки в строках конфига|Основные понятия]]). Нужен штатный Dashboard/FeatureCard-провайдер с менеджером окон.
 
-**Открытие (`hooks/useModalOpen`):** видимость диалога — локальный флаг экземпляра. У одного `modalId` бывает несколько кнопок (слот `modal` в строках `DataSource`), и общий флаг открыл бы все диалоги сразу. Об открытии и закрытии хост узнаёт через проп провайдера [[setup#BaseDashboardProvider (@evergis/react)|`onModalToggle(modalId, isOpen)`]]. Размонтирование **открытого** экземпляра (смена страницы, закрытие карточки) тоже шлёт `isOpen: false`; закрытый экземпляр при размонтировании молчит, чтобы не «закрыть» соседний открытый с тем же id.
+**Открытие:** ElementModal и openModal Action используют общий WidgetModalHost: один диалог на modalId. Повторное открытие обновляет атрибуты/результат задачи/параметры. Заголовок, содержимое и запросы получают контекст этого открытия. При закрытии/смене контекста дальнейшие callback модалки прекращаются.
 
-**Источники модалки (`dataSources`):** источники, нужные только модалке, объявляются в самой `ConfigModal`, а не на странице. Хост грузит их **при открытии**, пока модалка открыта — обновляет как страничные (фильтры, `%extent`/`%zoom`, autoSync); после закрытия данные остаются в кэше, а устаревшие вытесняются и перезапрашиваются при следующем открытии. Контейнеры внутри модалки находят конфиг такого источника через [[hooks#useConfigDataSources|`useConfigDataSources`]]. Одноимённый источник страницы или корня **перекрывает** модальный — тогда он грузится вместе со страницей (клиентский валидатор предупреждает `modal-datasource-shadowed`). Реализация загрузки в client-new — [[setup#Ленивые источники модалок (client-new)|Ленивые источники модалок]]; хост без `onModalToggle` источники модалки не грузит.
+**Источники модалки (`dataSources`):** библиотека лениво загружает их в области окна и обновляет по фильтрам, карте и autoSync. Запросы прежнего открытия не могут перезаписать новое. Источники страницы/корня с таким же именем сохраняют приоритет. Новые окна передают onModalToggle metadata managed:true, чтобы client-new не выполнял второй запрос без контекста. Подробнее: [[actions]] и [[setup#Подключение Actions]].
 
-**Загрузка:** содержимое заменяется на `DashboardLoading` только когда данных нет вообще — по [[hooks#useDataSourceLoading|`useDataSourceLoading`]], тому же условию, что и корневой `Dashboard`. При частичном обновлении источника (смена фильтра, autoSync) модалка остаётся на экране: перерисовываются лишь контейнеры, зависящие от обновившегося ИД, каждый со своим локальным скелетоном.
+**Загрузка:** общий host показывает `DashboardLoading`, когда собственные источники окна ещё загружаются и ни один их результат не пришёл (`isLoading && !loaded.length` у [[hooks#useModalSources / useModalAutoSync (internal)|useModalSources]]). Загрузка страницы не блокирует окно. При наличии результатов содержимое остаётся; данные обновляются по ключу резолвленного запроса, `debounce` и autoSync. Поздние ответы закрытого/заменённого открытия не применяются.
 
 **Раскладка окна (по макету):** отступ окна `3rem` сверху, по бокам и снизу (`MODAL_PADDING`), зазор заголовок → содержимое `2rem`, скругление `borderRadius.large` (0.75rem), тень `0 0.1875rem 0.3125rem rgba(0,0,0,.15)`. Заголовок — Regular 24/28 (`fonts.standard` + размер), цвет `palette.textPrimary`; крестик — глиф 1rem в правом верхнем углу строки заголовка. Область содержимого держит `scrollbar-gutter: stable` — место под скроллбар зарезервировано всегда, и его появление не дёргает окно; правый отступ содержимого уменьшен на ширину скроллбара client-new (`MODAL_SCROLLBAR_WIDTH` = 0.75rem), чтобы край контента совпадал с крестиком. Прямые дети модалки, как и дети страницы, оборачиваются карточкой `ContainerWrapper` (`ContainerChildren isMain`); `noBorders` снимает с неё только тень и отступ, поэтому модалка отдельно делает её фон прозрачным и убирает `backdrop-filter` — иначе поверх шапки под каждым ребёнком лежала бы белая размытая подложка.
 
@@ -504,7 +518,7 @@ SVG-ресурс отображается как обычная картинка
 | `titleIcon` | иконка перед текстом заголовка, отступ 0.5rem — как у заголовка контейнера |
 | `bgImage` | картинка фона шапки (`type: "image"`: URL в корневом `value`, `attributeName` или `options.resourceId`); геометрию и якорь задаёт `options.header`, масштаб — собственный `options.fit` (по умолчанию `cover`) |
 
-Оба слота берутся **только из прямых детей** модалки (`MODAL_SLOT_IDS`): обычный `renderElement` ищет `id` по всему поддереву (`find-and`), и `titleIcon`/`bgImage` вложенного контейнера всплыл бы в заголовок модалки. Поэтому `hooks/useModalContent` строит отдельный `renderSlot`, который видит только слоты модалки. В тело (`ContainerChildren`) слоты не попадают — они в `NON_TRACK_SLOT_IDS`.
+Оба слота берутся **только из прямых детей** модалки (`MODAL_SLOT_IDS`): обычный `renderElement` ищет `id` по структурному поддереву (`findDashboardNode`), и `titleIcon`/`bgImage` вложенного контейнера всплыл бы в заголовок модалки. Поэтому `hooks/useModalContent` строит отдельный `renderSlot`, который видит только слоты модалки. В тело (`ContainerChildren`) слоты не попадают — они в `NON_TRACK_SLOT_IDS`.
 
 **Фон шапки (`options.header`, `ConfigModalHeaderOptions`):** абсолютный слой под заголовком и содержимым (`components/ModalHeaderBackground`) — раскладку окна не сдвигает; окно — хост слоя (`position: relative` + `isolation: isolate`), фон заголовка uilib-gl прозрачен. Слой рисуется, если задан `gradient`, `overlay` или есть слот `bgImage`; иначе в DOM ничего нет. Порядок снизу вверх: градиент → картинка `bgImage` → `overlay`; маска `bottomBlur` ложится на слой целиком.
 
@@ -521,13 +535,14 @@ SVG-ресурс отображается как обычная картинка
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `id` | `ModalId` | Id модалки, на который ссылается `ElementModal.options.modalId` |
+| `id` | `string` | ID модалки, на который ссылается `ElementModal.options.modalId` или `openModal.options.modalId` |
 | `options.title` | `string` | Заголовок диалога |
 | `options.maxWidth` | `string` | CSS `max-width` диалога |
 | `options.minWidth` | `string` | CSS `min-width` диалога |
 | `options.minHeight` | `string` | CSS `min-height` диалога |
 | `options.header` | `ConfigModalHeaderOptions` | Фон шапки — см. выше |
 | `dataSources` | `ConfigDataSource[]` | Источники только этой модалки — грузятся при открытии, а не со страницей |
+| `actions` | `ConfigActionDefinition[]` | Локальный реестр определений, перекрывающий одноимённые Actions страницы/корня |
 | `children` | `ConfigContainerChild[]` | Содержимое модалки (рендерится через `ContainerChildren`) и слоты `titleIcon` / `bgImage` |
 
 ```tsx
@@ -542,7 +557,13 @@ modals: [
     // Грузится при открытии модалки, а не вместе со страницей
     dataSources: [{ name: "sales", layerName: "sales_layer" }],
     children: [
-      { id: "chart", templateName: "Chart", options: { chartType: "bar", relatedDataSource: "sales" } },
+      {
+        id: "sales_chart", templateName: "Chart",
+        children: [{ id: "chart", type: "chart", options: {
+          chartType: "bar",
+          relatedDataSources: [{ dataSourceName: "sales", attributeTitle: "product", attributeName: "total" }]
+        } }]
+      },
       { id: "txt", type: "markdown", attributeName: "description" }
     ]
   },
@@ -771,3 +792,9 @@ modals: [
 ## Связанные разделы
 
 [[containers|Контейнеры]] | [[concepts|Основные понятия]] | [[hooks|Хуки]] | [[options|Опции]] | [[types|Типы]]
+
+## Actions элементов
+
+Поле `actions?: ConfigActionInvocation[]` на узле поддерживают `icon`, `svg`, `image`, `link`, `button` и кликабельные части `chart`. Обработчик ближайшего элемента подавляет родительское действие. Actions заменяют старый переход `ElementLink`; без Actions прежнее поведение сохраняется. `ElementButton` с Actions видна без URL и внешнего `onClick`. Элементы внутри повторяемых строк получают атрибуты этой строки. См. [[actions|Actions]].
+
+Для `legend` исполняются Actions связанного графика. `table` получает действия строк от [[containers#StructuredDataContainer|StructuredDataContainer]], а не из собственного конфига; в режиме редактирования строки и их вложенные элементы не запускают Actions. `modal` открывает окно через общий менеджер и не является произвольной click-привязкой Actions.

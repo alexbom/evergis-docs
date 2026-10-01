@@ -411,8 +411,8 @@ interface BgImageLayerProps {
 | `elements/ElementTable/constants.ts` | геометрия ячейки и шапки, `ATTACHMENTS_INLINE_LIMIT` / `ATTACHMENTS_SHOWN_ITEMS` / `ATTACHMENTS_VIEW_MODE`, `EMPTY_LIST_OPTION` (`{ text: "—", value: "" }` — пустой пункт списка, снимающий значение) |
 | `elements/ElementCamera/types.ts` | `SmallPreviewProps` (`images`, `totalCount`, `currentIndex`), `CameraAttributeProps` |
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
-| `components/Chart/FillContext.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
-| `components/Chart/ChartPlotContext.ts` | `ChartPlotInsets` (`left`, `right`, `width`) и `ChartPlotContextValue` (`reportPlotInsets`) — обратный канал: `Chart` после отрисовки d3 сообщает `ChartContainer`, где лежит поле графика, и тот выравнивает по нему подпись оси X и легенду |
+| `src/contexts/FillContext/index.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
+| `src/contexts/ChartPlotContext/index.ts` | `ChartPlotInsets` (`left`, `right`, `width`) и `ChartPlotContextValue` (`reportPlotInsets`) — обратный канал: `Chart` после отрисовки d3 сообщает `ChartContainer`, где лежит поле графика, и тот выравнивает по нему подпись оси X и легенду |
 | `hooks/useChartAxisTitles.ts` | `ChartAxisTitle` (`title`, `color?`) — подпись оси одной стороны; `color` задан, только если на стороне одна серия |
 | `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `column`, `loading`) |
 | `components/ContainerBackground/types.ts` | `ContainerBackgroundProps` — `Pick<ContainerProps, "elementConfig" \| "renderElement">` |
@@ -423,7 +423,7 @@ interface BgImageLayerProps {
 
 ## Колбэк изменения конфига
 
-`ContainerProps` содержит опциональный `onChange?: (config: ConfigContainerChild) => void` — контейнер сообщает наружу новую версию собственного узла. Сейчас источник один: [[containers#Редактирование раскладки editMode|сетка в режиме редактирования]].
+`ContainerProps` содержит опциональный `onChange?: (config: ConfigContainerChild) => void` — контейнер сообщает наружу новую версию собственного узла. Сейчас источник один: [[containers#Редактирование раскладки (editMode)|сетка в режиме редактирования]].
 
 Путь колбэка: проп `onContainerChange` у `DashboardProvider` / `FeatureCardProvider` → контекст → `useWidgetContext` → `PagesContainer` кладёт его в `getRenderElement({ onChange })` → движок передаёт каждому контейнеру пропом `onChange`. Поскольку `GetRenderElementProps extends Omit<ContainerProps, "renderElement">`, поле появилось в параметрах `getRenderElement` автоматически.
 
@@ -433,7 +433,7 @@ interface BgImageLayerProps {
 
 ## Публичная поверхность сетки
 
-Модуль `grid/` отдаётся наружу через `grid/index.ts` — только листовые модули: типы, константы, утилиты треков и дерева, фабрика id. Компоненты и сессия редактирования из пакета **не экспортируются**: вход в сетку один — [[containers#Режим сетки grid|`ContainersGroup` с `options.grid`]]. Баррель `utils` оттуда не тянут — иначе цикл `getRenderElement → registry → контейнеры → grid` уронил бы инициализацию в TDZ.
+Модуль `grid/` отдаётся наружу через `grid/index.ts` — только листовые модули: типы, константы, утилиты треков и дерева, фабрика id. Компоненты и сессия редактирования из пакета **не экспортируются**: вход в сетку один — [[containers#Режим сетки (grid)|`ContainersGroup` с `options.grid`]]. Баррель `utils` оттуда не тянут — иначе цикл `getRenderElement → registry → контейнеры → grid` уронил бы инициализацию в TDZ.
 
 ### Хостовые пропсы `ContainerProps`
 
@@ -570,7 +570,7 @@ interface ConfigChartAxisOptions {
 | `ConfigFilterValueType` | `"single" \| "range" \| "array" \| "tree" \| "features"` | Вид значения фильтра, объявленный в конфиге. Дискриминатор для type guard-ов |
 | `TreeFilterValue` | `Record<"l{N}", Array<string \| number>>` | Значение иерархического фильтра: «уровень → массив id». Плейсхолдеры `%name.lN` |
 | `FeaturesFilterValue` | `FeatureCollection<null, Record<string, FeatureAttributeValue>>` | Значение фильтра `"features"` — строки [[containers#StructuredDataContainer\|StructuredDataContainer]]. `geometry` всегда `null` |
-| `SelectedFilter` | `value`, `min?`, `max?` | Выбранное значение фильтра в состоянии виджета |
+| `SelectedFilter` | `value: string \| number \| boolean \| string[] \| number[] \| Date \| Date[] \| TreeFilterValue \| FeaturesFilterValue`, `min?`, `max?` | Выбранное значение фильтра в состоянии виджета; `min` / `max` — `string \| number \| Date` |
 | `ScalarFilterValue` | `SelectedFilter["value"]` без `TreeFilterValue` и `FeaturesFilterValue` | Значение скалярных/массивных фильтров |
 
 **Куда подставляется значение.** `single`/`range`/`array` — и в `condition` источника, и в `parameters`. `tree` — в `condition` через `applyTreeFilterToCondition` (`%name.lN`) и в `parameters`. `features` — **только** в `parameters` (питон-таска, url-источник); в `condition` не попадает никогда: там значение прошло бы через `formatConditionValue` и выродилось в `[object Object]`.
@@ -634,3 +634,76 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 ## Связанные разделы
 
 [[options|Опции]] | [[architecture|Архитектура]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[headers|Шапки]]
+
+## Типы Actions
+
+Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по четырём `type`; сценарии — [[actions|Actions]].
+
+### Определения и вызовы
+
+| Тип | Контракт |
+|---|---|
+| `ActionEvent` | `"click"` |
+| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal"` |
+| `ActionParameters` | `Record<string, unknown>` |
+| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`; `setFilters`: `filters`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?` |
+| `ConfigActionDefinition` | Обязательные `id`, `type`, `options`; необязательные `event`, `callback` |
+| `ConfigActionInline` | `type`, `options`, `event?`, `callback?`; `id?: never` |
+| `ConfigActionReference` | `id`, `event?`, `options?: ActionParameters`, `callback?`; `type?: never` |
+| `ConfigActionInvocation` | `ConfigActionInline \| ConfigActionReference` |
+| `ConfigActionCallback` | Один вызов либо `{ [condition: string]: ConfigActionInvocation }`; `else` — необязательная запасная ветка |
+| `ConfigActionScope` / `ActionScopes` | `readonly ConfigActionDefinition[]` / readonly-массив реестров от внешнего к внутреннему |
+| `ResolvedAction` | Действие после разрешения ссылки: дискриминированные `type`/`options`, обязательный `event`, необязательные `id`, `callback` |
+
+`ConfigContainer.actions`, `ConfigModal.actions`, `PageChild.actions` содержат определения. У поддерживаемых `<Name>Config` массив `actions` содержит вызовы. Базовый `ConfigContainerChild.actions` допускает оба варианта, поэтому форму в конкретном месте JSON проверяет [[utils#validateDashboardActions|validateDashboardActions]]. `actions` находятся на узле, вне `options`.
+
+```ts
+const definition: ConfigActionDefinition = {
+  id: "details", type: "openModal", options: { modalId: "details_modal" },
+};
+const reference: ConfigActionInvocation = { id: "details" };
+const inline: ConfigActionInvocation = {
+  type: "setFilters", options: { filters: { enabled: { value: true } } },
+};
+```
+
+### Контекст и исполнение
+
+| Тип | Поля |
+|---|---|
+| `ActionEventData` | `[key: string]: unknown`, `nodeId?`, `recordId?: string \| number`, `sourceKey?` |
+| `ActionExecutionContext` | `sources: ConfigStringSources`, `event?`, `parameters?`, `taskResponse?: unknown` |
+| `ActionBindingOptions` | `type?`, `elementConfig?`, `attributes?`, `eventData?`, `sourceKey?`, `disabled?` |
+| `ActionBindingResult` | `hasActions`, `trigger`, `onClick?`, `onKeyDown?`, `role?: "button"`, `tabIndex?` |
+| `ActionCancelReason` | `"restart" \| "user" \| "lifecycle"` |
+| `ActionExecutionControl` | `signal`, `runId`, `scopes`, `sourceKey` |
+| `ActionRunHandle` | Контроль + `completion: Promise<ActionRunResult>`, `cancel(reason?)` |
+| `ActionRunResult` | `status: "completed" \| "cancelled" \| "failed"`, `context`, `error?` |
+| `ActionNavigation` / `ActionNavigationFactory` | `{ open(url, target?), dispose() }` / `(reserve: boolean) => ActionNavigation` |
+| `ActionValidationIssue` | `path`, `code`, `message`, `ownerId?`, `severity: "error" \| "warning"` |
+
+`FilterItem` и `PieChartDisplayedData` дополнены `eventData?`, `rawName?`, `syntheticOther?`. Исходная запись и имя сохраняются для клика и фильтра, а суммарная запись «Другое» отличается от обычной одноимённой записи. Формирование — [[utils#getDataFromRelatedFeatures|getDataFromRelatedFeatures]], обработка — [[hooks#useChartActions (internal)|useChartActions]].
+
+`ElementButtonProps`, `ElementImageProps`, `ElementLinkProps`, `ElementModalProps` принимают `attributes?: ClientFeatureAttribute[]`, чтобы повторяемый элемент использовал атрибуты строки, а не всего виджета.
+
+### Модальные окна
+
+| Тип | Контракт |
+|---|---|
+| `WidgetModalSnapshot` | `modalId: string`, `revision: number`, `context: ActionExecutionContext` |
+| `WidgetModalEntry` | Snapshot + `scopes: ActionScopes`, `signal: AbortSignal` |
+| `WidgetModalManager` | `openedModals`, `openModal(modalId, context, scopes, parameters?)`, `closeModal(modalId)` |
+| `ModalDataOverlay` | `type: WidgetType`, `dataSources: WidgetDataSource[]`, `configDataSources: ConfigDataSource[]`, `isLoading: boolean` |
+
+Snapshot передаётся хосту через `onModalContextChange`; entry живёт внутри менеджера окна. `ModalDataContext` меняет только источники и loading своего виджета; запись открытия берётся из `ActionContext`. Контракт интеграции — [[setup#Подключение Actions|Подключение Actions]].
+
+### Python-задачи
+
+| Тип | Контракт |
+|---|---|
+| `PythonExecutionRequest` | `taskName?`, `tasks?: ConfigTask[]`, `resourceId?`, `parameters?: Record<string, unknown>`, `script?`, `fileName?`, `methodName?`, `title?`, `useNotifications?`, `statusColors?` |
+| `PythonExecutionHandle` | `runId`, `completion: Promise<Record<string, unknown>>`, `getSnapshot`, `subscribe`, `stop` |
+| `PythonExecutionSnapshot` | `taskId`, `status`, `log`, `lastMessage`, `error`, `loading`, `executionTime`, `result` |
+| `TaskExecutionContextValue` | `runTask`, `entries`, `openLog`, `closeLog`, `dismissTask`, `logRunId` |
+
+У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` теперь имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
