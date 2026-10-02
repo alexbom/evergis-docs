@@ -420,7 +420,8 @@ interface ConfigLayer {
 | `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности) |
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
 | `TaskContainer` | `button` — кнопка запуска `type: "button"` (`TaskButtonChild`): вид — из слота, поведение и статусы — от контейнера; без слота — встроенная кнопка |
-| `VoteContainer` | собственных слотов **нет** — экран рисует сам контейнер; допустимы только универсальные `title`/`titleIcon`/`bgImage`. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
+| `ExportPdfContainer` | `button` — `type: "button"`; без слота кнопка экспорта не рисуется |
+| `VoteContainer` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — `type: "button"`; без соответствующего слота кнопка не рисуется. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` (логотип; при отсутствии — иконка `logo` и `options.title` страницы) |
@@ -487,7 +488,7 @@ interface ConfigLayer {
 Типизация slot-id — литеральные string'и в parent-specific child-типах (`ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, ...). См. [[types#Slot-id — НЕ branded|Slot-id]].
 
 > [!info] Что из таблицы проверяет клиентский валидатор
-> `CONTAINER_SLOT_MAP` (`client-new/src/components/Dashboard/utils/constants.ts`) — зеркало этой таблицы; мастер-источник — документация, при правке обновляй обе стороны.
+> Таблица выше описывает слоты текущих компонентов библиотеки. Клиентский `CONTAINER_SLOT_MAP` должен зеркалить их; текущее расхождение для Vote и ExportPdf описано в [[setup#Проверка конфигурации в client-new|Подключении]]. При изменении компонентов сверяйте таблицу с их исходниками и карту валидатора с таблицей.
 >
 > - Универсальные слоты (`title`, `titleIcon`, `bgImage` — `UNIVERSAL_SLOT_IDS`) пропускаются у всех контейнеров: ни в набор слотов, ни в требование `filterName` они не входят.
 > - Слот `bgImage` у `Divider` — ошибка `unexpected-slot`: единственный контейнер, который фон не поддерживает (`NO_BG_IMAGE_TEMPLATE`).

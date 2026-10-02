@@ -71,18 +71,19 @@
 
 ### AddFeatureContainer
 
-**Назначение:** Отображает кнопки добавления объектов на слой карты. При нажатии активирует инструмент рисования для указанного слоя и типа геометрии.
+**Назначение:** Отображает кнопки добавления объектов через [[elements#ElementButton|ElementButton]]. Собственных опций у контейнера нет; все поля принадлежат дочерним элементам `button`.
+
+> [!warning] Добавление объекта пока не подключено
+> Обработчик клика остаётся пустым, как в прежнем `AddFeatureButton`. Восстановление инструмента рисования — отдельная задача; `layerName` и `geometryType` сохранены в типе конфигурации.
 
 **Типы:** `templateName = "AddFeature"` · `AddFeatureContainerOptions` (Record<string, never>) · `AddFeatureContainerProps`. Дети — `AddFeatureButtonChild` (`type: "button"`, `AddFeatureButtonOptions`).
 
-**Props:** `ContainerProps` (использует `elementConfig.children` с `type === "button"`)
+**Дети:** кнопки с уникальными `id` и явным `type: "button"`. Без таких детей кнопки не рисуются. Подпись берётся **только из `value`**; прежнее `options.title` больше не используется.
 
-**Опции дочерних элементов (`AddFeatureButtonOptions`):**
+**Опции дочерних элементов (`AddFeatureButtonOptions`):** все [[elements#ElementButton|опции button]] (`variant`, `color`, цветовые флаги, `size`, `shape`, `radius`, `icon`, `iconRight`) плюс:
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `icon` | `IconTypesKeys` | Иконка кнопки |
-| `title` | `string` | Подпись кнопки |
 | `layerName` | `string` | Имя слоя, на который добавляется объект (см. [[types#Branded types\|LayerName]]) |
 | `geometryType` | `OgcGeometryType \| EditGeometryType` | Тип геометрии: `"Point"`, `"LineString"`, `"Polygon"`, ... |
 
@@ -92,14 +93,12 @@
   templateName: "AddFeature",
   children: [
     {
-      id: "add_building_polygon",
-      type: "button",
-      options: { icon: "feature_add", title: "Добавить здание", layerName: "buildings", geometryType: "Polygon" }
+      id: "add_building_polygon", type: "button", value: "Добавить здание",
+      options: { icon: "feature_add", variant: "outline", size: "large", layerName: "buildings", geometryType: "Polygon" }
     },
     {
-      id: "add_road_line",
-      type: "button",
-      options: { icon: "feature_add", title: "Добавить дорогу", layerName: "roads", geometryType: "LineString" }
+      id: "add_road_line", type: "button", value: "Добавить дорогу",
+      options: { icon: "feature_add", shape: "round", layerName: "roads", geometryType: "LineString" }
     }
   ]
 }
@@ -673,17 +672,24 @@
 
 ### ExportPdfContainer
 
-**Назначение:** Кнопка экспорта текущего виджета в PDF-файл. Использует [[hooks|хук]] `useExportPdf` с `getRootElementId(type)`.
+**Назначение:** Экспорт текущего виджета в PDF-файл. Использует [[hooks|хук]] `useExportPdf` с `getRootElementId(type)`.
 
-**Опции:**
+**Типы:** `templateName = "ExportPdf"` · `ExportPdfContainerOptions` (Record<string, never>) · `ExportPdfContainerProps`.
 
-| Опция | Тип | Описание |
-|---|---|---|
-| `icon` | `IconTypesKeys` | Иконка кнопки (default: `"download"`) |
-| `title` | `string` | Подпись кнопки (default: из локализации) |
+**Слот (`children`):** `button` — элемент с `id: "button"` и `type: "button"`. Только он рисует кнопку экспорта через [[elements#ElementButton|ElementButton]]. **Без слота кнопка не рисуется**; узел другого типа с таким `id` кнопкой не считается.
+
+Текст берётся **только из `button.value`**, оформление — из всех стандартных опций button. Собственные `options.icon` / `options.title` контейнера и встроенная подпись больше не используются. В конфигурации нужно явно задать текст и, если нужна, иконку.
+
+**Поведение:** обработчик экспорта передаёт контейнер; на время экспорта кнопка недоступна (`disabled`).
 
 ```tsx
-{ id: "pdf_export", templateName: "ExportPdf", options: { icon: "download", title: "Скачать PDF" } }
+{
+  id: "pdf_export",
+  templateName: "ExportPdf",
+  children: [
+    { id: "button", type: "button", value: "Скачать PDF", options: { icon: "download", variant: "soft", shape: "round" } }
+  ]
+}
 ```
 
 ---
@@ -1294,7 +1300,16 @@
 
 **Props:** `ContainerProps`
 
-**Слоты (`children`):** собственных нет — экран целиком рисует контейнер. Допустимы только универсальные `title` / `titleIcon` (заголовок) и `bgImage` (фон).
+**Слоты (`children`):** кнопки с явным `type: "button"` и фиксированным `id`:
+
+| Slot-id | Кнопка | Условия отображения |
+|---|---|---|
+| `submitButton` | Отправить ответ | экран голосования; недоступна без выбранного варианта и во время отправки |
+| `createButton` | Создать голосование | экран создания; недоступна при невалидной форме и во время запроса |
+| `saveButton` | Сохранить | правка существующего голосования; те же ограничения формы |
+| `deleteButton` | Удалить голосование | правка, нет ответов; недоступна во время запроса |
+
+**Нет соответствующего элемента button — нет кнопки**, без встроенных замен. Подпись берётся **только из `value`**, оформление — из всех [[elements#ElementButton|опций ElementButton]]. Переводы подписей кнопок внутри компонента больше не используются. Доступны также универсальные `title` / `titleIcon` (заголовок) и `bgImage` (фон).
 
 **Свойство узла:** `attributeName` — имя атрибута объекта, в котором лежит `question_id` голосования. Живёт **на самом узле**, а не в `options`, как у элементов, привязанных к атрибуту. Обязательно: без него контейнеру не за что зацепиться.
 
@@ -1325,6 +1340,17 @@
 
 Голосования нет и создавать его посетитель не вправе — контейнер не рисует ничего, включая заголовок: пустой озаглавленный блок в карточке хуже его отсутствия.
 
+**Миграция конфигурации:** добавьте нужные элементы кнопок в `children`; создание, сохранение и удаление имеют независимые слоты. Ссылки «Редактировать» и «Отмена», удаление чипса варианта остаются встроенными контролами. Например:
+
+```tsx
+children: [
+  { id: "submitButton", type: "button", value: "Отправить ответ", options: { variant: "outline", size: "large" } },
+  { id: "createButton", type: "button", value: "Создать голосование", options: { icon: "plus" } },
+  { id: "saveButton", type: "button", value: "Сохранить", options: { shape: "round" } },
+  { id: "deleteButton", type: "button", value: "Удалить голосование", options: { error: true, variant: "ghost" } }
+]
+```
+
 **Форма создания** требует категорию, текст вопроса и минимум два варианта. Недобавленный черновик варианта считается вариантом наравне с чипсами: последний вариант часто набирают и жмут «Создать», не нажав Enter, — такой текст уходит в голосование, а не пропадает. Пока условия не выполнены, кнопка неактивна, и под ней стоит подпись, называющая причину: сама по себе погасшая кнопка не объясняет, чего не хватает. Та же форма открывается по ссылке «Редактировать» — с заполненными значениями и кнопкой «Сохранить».
 
 **Авторизация обязательна.** Текущий пользователь — `api.account.getUserInfo()`. Публичный аккаунт портала (`public_user` в `username` или в ролях) авторизацией **не считается**: под ним ходят все анонимные посетители шаренного проекта, и «мой голос» опознался бы у них общим на всех — первый же голос закрыл бы голосование сразу всем. Такому посетителю доступны только результаты. Имя публичного аккаунта — константа `PUBLIC_USER_NAME` контейнера, конфигом не задаётся.
@@ -1351,7 +1377,11 @@
     expanded: true
   },
   children: [
-    { id: "title", type: "text", value: "Голосование" }
+    { id: "title", type: "text", value: "Голосование" },
+    { id: "submitButton", type: "button", value: "Отправить ответ", options: { variant: "outline", size: "large" } },
+    { id: "createButton", type: "button", value: "Создать голосование", options: { icon: "plus" } },
+    { id: "saveButton", type: "button", value: "Сохранить", options: { shape: "round" } },
+    { id: "deleteButton", type: "button", value: "Удалить голосование", options: { error: true, variant: "ghost" } }
   ]
 }
 ```

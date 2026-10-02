@@ -37,7 +37,8 @@
 | `EditGroup` | `alias`, `tooltip`, `units`, `icon` |
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
 | `Task` | `button` — кнопка запуска `type: "button"` (вид — из слота, поведение и статусы — контейнер); без слота — встроенная кнопка |
-| `Vote` | собственных слотов нет — только универсальные `title`/`titleIcon`/`bgImage`; на узле обязателен `attributeName` |
+| `ExportPdf` | `button` — только `type: "button"`; без слота кнопки нет |
+| `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. На узле обязателен `attributeName` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` |
@@ -85,7 +86,7 @@
 | Контейнер | Дети | Доп. требование |
 |---|---|---|
 | `Tabs` | табы с уникальным `id` (тип `TabId`) | — |
-| `AddFeature` | кнопки с уникальным `id` | — |
+| `AddFeature` | кнопки с уникальным `id` | `type: "button"`, текст в `value`, оформление в опциях button |
 | `Filters` | фильтры с уникальным `id` | у каждого обязателен `options.filterName` |
 | `ContainersGroup` с `options.grid` | строки `GridRow` с уникальным `id` | см. раздел про сетку ниже |
 | `GridRow` | ячейки `ContainersGroup` с уникальным `id` | у каждой — `options.width` в `fr` |
@@ -239,6 +240,7 @@
 - [ ] У **каждого** контейнера (узел с `templateName`) есть уникальный `id`.
 - [ ] У **каждого** элемента (узел с `type`) есть `id`, равный корректному slot-id родителя (см. таблицу).
 - [ ] У **каждой** перечисляемой сущности (таб / кнопка / фильтр) есть уникальный `id`.
+- [ ] У кнопок AddFeature, ExportPdf и Vote явно задан `type: "button"`, подпись находится в `value`, оформление — в `options` дочерней кнопки. У ExportPdf есть слот `button`, у Vote — слоты всех нужных операций: без соответствующего слота кнопки нет.
 - [ ] У **каждого** фильтра дополнительно есть `options.filterName`.
 - [ ] У **каждого** `DataSource` / `DataSourceProgress` задан `options.innerTemplateName`, а slot-id детей соответствуют этому внутреннему шаблону.
 - [ ] Слот `bgImage` (если он есть) стоит у контейнера, а не у `Divider`, и не продублирован внутрь записей DataSource-хоста.

@@ -244,6 +244,19 @@ import { replaceObject } from "find-and";
 
 ---
 
+## Проверка конфигурации в client-new
+
+**useValidateDashboardConfig** вызывается клиентским DashboardProvider и в dev-сборке проверяет реальный `projectInfo.content.dashboardConfiguration` через `validateDashboardConfig`; подменный `config` превью не проверяет. В production хук ничего не делает. Проверка слотов использует `src/components/Dashboard/utils/constants.ts` (`CONTAINER_SLOT_MAP`), а не реестр компонентов библиотеки; проблемы выводятся в консоль, рендер не блокируется.
+
+После перехода кнопок на [[components#ContainerButton (internal)|ContainerButton]] карта пока отстаёт от `@evergis/react@4.0.168`:
+
+- Для `Vote` в ней по-прежнему записан пустой набор слотов: корректные `submitButton` / `createButton` / `saveButton` / `deleteButton` могут получить `unexpected-slot`, хотя библиотека их рендерит.
+- Для `ExportPdf` записи нет: валидатор не проверяет фиксированный слот `button`. Библиотека ищет узел с `id: "button"` и `type: "button"`; без него кнопки экспорта нет.
+
+При авторинге сверяйте кнопки с [[authoring|Правилами генерации]] и [[containers|Контейнерами]]; предупреждение текущего валидатора не является поводом удалять новые слоты Vote.
+
+---
+
 ## Ленивые источники модалок (client-new)
 
 Этот клиентский путь обслуживает окна, которые вызывают `onModalToggle` без metadata `managed`. Штатный [[elements#ElementModal|ElementModal]] использует библиотечный modal host: см. [[setup#Подключение Actions|Подключение Actions]].

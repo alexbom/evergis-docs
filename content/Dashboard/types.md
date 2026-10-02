@@ -214,7 +214,7 @@ const child: StrictConfigContainerChild = {
 
 | Component | `templateName` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `icon`, `title`, `layerName`, `geometryType`) |
+| `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `ElementButtonOptions` + `layerName`, `geometryType`; текст — `value`) |
 | `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
 | `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `ChartContainer` | `Chart` | `twoColumns`, `legendInline`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
@@ -235,7 +235,7 @@ const child: StrictConfigContainerChild = {
 | `EditCheckboxContainer` | `EditCheckbox` | `controls` |
 | `EditDateContainer` | `EditDate` | `withTime`, `controls` |
 | `EditAttachmentContainer` | `EditAttachment` | `parentResourceId`, `fileExtensions`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` |
-| `ExportPdfContainer` | `ExportPdf` | `icon`, `title` |
+| `ExportPdfContainer` | `ExportPdf` | — (кнопка — обязательный слот `button`, `ElementButtonConfig`; без слота кнопки нет) |
 | `FiltersContainer` | `Filters` | `padding`, `bgColor`, `fontColor`, `fontSize`, `expandable`, `expanded` + `ContainerBoxOptions` (+ `FilterChildOptions` — см. [[containers#FiltersContainer\|полный список]]) |
 | `IconContainer` | `Icon` | — |
 | `ImageContainer` | `Image` | `ContainerBoxOptions` (собственных полей нет) |
@@ -405,7 +405,7 @@ interface BgImageLayerProps {
 | `containers/DataSourceContainer/constants.ts` | константы раскладки плиток источника |
 | `containers/TaskContainer/types.ts` | `TaskButtonProps` (`title`, `icon?`, `status`, `statusColors?`, `isWaiting`, `isDisabled`, `onClick`) — пропсы кнопки запуска; `TaskSlotButtonProps` — то же + `type?`, `buttonConfig: TaskButtonChild` для кнопки из слота `button` |
 | `elements/ElementButton/constants.ts` | `ELEMENT_BUTTON_APPEARANCE_KEYS` — опции внешнего вида, переводящие кнопку-ссылку на `IconButton`; `ELEMENT_BUTTON_COLOR_FLAGS`; `DEFAULT_ELEMENT_BUTTON_VARIANT` (`"solid"`) |
-| `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps` |
+| `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps`; `VoteButtonSlotId` — `submitButton` / `createButton` / `saveButton` / `deleteButton`, `VoteButtonConfigs` — опциональные конфиги этих кнопок, `VoteButtonProps` — тип виджета и конфиги кнопок |
 | `containers/VoteContainer/constants.ts` | имена атрибутов таблиц голосования и лимиты формы |
 | `elements/ElementTable/types.ts` | `SortDirection`, `TableSort` (одна колонка за раз, `null` — исходный порядок), `CellMode` (`"idle" \| "focused" \| "editing"`), `TableCellProps`, `TableHeadRowProps`, `TableColumnResizerProps`, `AttachmentsCellState` — состояние колонки вложений целиком (список, вид поп-апа, галерея, загрузка, удаление) и `AttachmentsCellPopupProps` |
 | `elements/ElementTable/constants.ts` | геометрия ячейки и шапки, `ATTACHMENTS_INLINE_LIMIT` / `ATTACHMENTS_SHOWN_ITEMS` / `ATTACHMENTS_VIEW_MODE`, `EMPTY_LIST_OPTION` (`{ text: "—", value: "" }` — пустой пункт списка, снимающий значение) |

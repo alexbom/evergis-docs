@@ -172,7 +172,7 @@ interface ConfigOptions
 | `shape` | `IconButtonShape` | `"square"` — скругление по размеру, `"round"` — пилюля/круг |
 | `iconRight` | `boolean` | Иконка справа от текста |
 
-**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`), а через него — слот `button` у [[containers#TaskContainer|TaskContainer]].
+**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`), а через него — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. У AddFeature, ExportPdf и Vote текст задаётся в `value` дочернего элемента; опции оформления принадлежат кнопке, а не контейнеру.
 
 ---
 
@@ -192,7 +192,7 @@ interface ConfigOptions
 | `big` | `boolean` | Большой размер компонента |
 | `tagView` | `boolean` | Отображать в виде «тэга» |
 
-**Используется в:** `ElementButton` (`icon`), `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `AddFeatureButton`, `ExportPdfContainer`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`icon`, в том числе дочерние кнопки AddFeature, ExportPdf и Vote), `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`. У ExportPdf нет собственной опции `icon`: задавайте её в `options` элемента слота `button`.
 
 ---
 
@@ -213,7 +213,7 @@ interface ConfigOptions
 | `separator` | `string` | Разделитель элементов (Chips) |
 | `lineBreak` | `string` | Кастомный перевод строки |
 
-**Используется в:** `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `AddFeatureButton`, `ExportPdfContainer`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`.
+**Используется в:** `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`. У дочерних кнопок AddFeature, ExportPdf и Vote подпись задаётся в `value`, а не в `options.title`.
 
 ---
 
@@ -256,7 +256,7 @@ interface ConfigOptions
 | `position` | `PositionDc` | Координаты центра |
 | `resolution` | `number` | Разрешение |
 
-**Используется в:** `AddFeatureButton` (`layerName`, `geometryType`), `LayersContainer` (`layerNames`).
+**Используется в:** `AddFeatureButtonChild` (`layerName`, `geometryType` сохранены в типе конфигурации; обработчик [[containers#AddFeatureContainer|AddFeatureContainer]] пока пустой), `LayersContainer` (`layerNames`).
 
 ---
 

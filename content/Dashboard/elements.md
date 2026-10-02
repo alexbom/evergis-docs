@@ -38,7 +38,9 @@
 
 ## ElementButton
 
-**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Также служит слотом `button` у контейнеров-хозяев (например, [[containers#TaskContainer|TaskContainer]]): вид задаёт слот, поведение — контейнер.
+**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Также используется внутри [[containers#AddFeatureContainer|AddFeatureContainer]], в слоте `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и в слотах `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]: вид задаёт элемент, обработчик — контейнер. У AddFeature, ExportPdf и Vote отсутствие соответствующего элемента означает отсутствие кнопки; текст берётся только из `value`.
+
+Подписи кнопок AddFeature, ExportPdf и Vote поддерживают стандартные [[concepts#Подстановки в строках конфига|подстановки]] (`%project`, `$dashboard:`, `{attr}`, …); внутри строки DataSource атрибуты берутся из текущей записи.
 
 **Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
 

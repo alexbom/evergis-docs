@@ -70,6 +70,21 @@ const attr = getAttributeByName("name", attributes);
 
 ---
 
+### getButtonSlot (internal)
+
+**Назначение:** Поиск дочерней кнопки по фиксированному slot-id. Используется в [[containers#ExportPdfContainer|ExportPdfContainer]] (`button`) и [[containers#VoteContainer|VoteContainer]] (`submitButton`, `createButton`, `saveButton`, `deleteButton`). Файл `utils/getButtonSlot.ts` не реэкспортируется через `utils/index.ts`.
+
+`(children: ConfigContainerChild[] | undefined, id: string) => ElementButtonConfig | undefined`
+
+Возвращает первый узел, у которого одновременно совпадают `id` и явный `type: "button"`. При отсутствии детей, совпадения или нужного типа возвращает `undefined`: встроенная кнопка взамен не создаётся.
+
+```ts
+const buttonConfig = getButtonSlot(elementConfig?.children, "button");
+// { id: "button", type: "text" } не является слотом кнопки
+```
+
+---
+
 ### getChartAxes
 
 `(chartElement: ConfigContainerChild) => ConfigRelatedDataSource[]`
@@ -362,6 +377,24 @@ Resolves контейнер из реестра — через `getContainerComp
 ```ts
 const configStringSources = useConfigStringSources(type);
 const renderElement = getRenderElement({ type, config, elementConfig, attributes, configStringSources });
+```
+
+---
+
+### resolveElementStrings
+
+**Назначение:** Подставляет значения в текстовые поля узла конфига. Экспортируется из `utils/configString`; используется в **getRenderElement** и [[components#ContainerButton (internal)|ContainerButton]].
+
+`(element: ConfigContainerChild | undefined, sources?: ConfigStringSources) => ConfigContainerChild | undefined`
+
+Обрабатывает `value`, `defaultValue`, `options.label`, `options.placeholder`, `options.title` через `resolveConfigString` (см. [[concepts#Подстановки в строках конфига|подстановки]]). Имена атрибутов, слотов и источников данных не изменяет. Без узла или источников, а также когда подстановки ничего не изменили, возвращает исходный объект. При изменениях создаёт копию узла и при необходимости — его `options`; исходный конфиг не мутирует.
+
+```ts
+const resolved = resolveElementStrings(
+  { id: "button", type: "button", value: "Скачать %project" },
+  { projectName: "Москва" },
+);
+// resolved?.value === "Скачать Москва"
 ```
 
 ---

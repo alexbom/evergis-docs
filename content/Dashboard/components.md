@@ -22,7 +22,7 @@
 
 ## AddFeatureButton
 
-**Назначение:** Кнопка добавления нового объекта на карту-слой.
+**Назначение:** Прежняя кнопка добавления объекта на слой карты. Пока остаётся в публичном барреле `components/index.tsx`, но [[containers#AddFeatureContainer|AddFeatureContainer]] её больше не использует: дочерние конфиги кнопок рендерятся через **ContainerButton**.
 
 **Props:**
 | Prop | Тип | Default |
@@ -122,6 +122,36 @@
   <ExpandableTitle ... />
   <ContainerChildren ... />
 </ContainerRoot>
+```
+
+---
+
+## ContainerButton (internal)
+
+**Назначение:** Кнопка действия контейнера с оформлением [[elements#ElementButton|ElementButton]] и стандартными [[concepts#Подстановки в строках конфига|подстановками строк конфига]]. Используется в [[containers#AddFeatureContainer|AddFeatureContainer]], [[containers#ExportPdfContainer|ExportPdfContainer]] и [[containers#VoteContainer|VoteContainer]]. Лежит в `components/ContainerButton/index.tsx`; в публичном барреле `components/index.tsx` не экспортируется.
+
+**Props:** `ElementButtonProps` (см. [[elements#ElementButton|ElementButton]]). Основные:
+
+| Prop | Тип | Описание |
+|---|---|---|
+| `type` | `WidgetType?` | Виджет; по умолчанию `WidgetType.Dashboard` |
+| `elementConfig` | `ElementButtonConfig?` | Конфиг дочерней кнопки: `id`, `type: "button"`, `value`, `options` |
+| `attributes` | `ClientFeatureAttribute[]?` | Явные атрибуты для подстановок и Actions |
+| `onClick` | `VoidFunction?` | Обработчик действия контейнера |
+| `disabled` | `boolean?` | Блокировка кнопки на время операции или при невалидной форме |
+
+Перед рендером вызывает [[utils#resolveElementStrings|resolveElementStrings]] с источниками [[hooks#useConfigStringSources|useConfigStringSources]]. Приоритет атрибутов: явно переданные `attributes` → атрибуты текущего Action-узла → атрибуты виджета. Поэтому `{name}` внутри записи DataSource подставляет имя записи, а не объекта карточки. Текст берётся из `value`; `options.title` не становится подписью кнопки.
+
+Далее применяется поведение [[elements#ElementButton|ElementButton]]: настроенные `elementConfig.actions` имеют приоритет над переданным `onClick`. Для штатного экспорта или голосования оставляйте Actions у кнопки незаданными.
+
+```tsx
+// Внутренний код библиотеки, внутри провайдера виджета
+<ContainerButton
+  type={type}
+  elementConfig={{ id: "button", type: "button", value: "Скачать {name}", options: { icon: "download" } }}
+  disabled={loading}
+  onClick={onExport}
+/>
 ```
 
 ---
