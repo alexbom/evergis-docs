@@ -42,7 +42,7 @@
 | `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` |
-| `FeatureCardDefaultHeader` | — кастомных детей нет, структура фиксирована |
+| `FeatureCardDefaultHeader` | `title`, `description` — авторские слоты; при их отсутствии используется штатный текст |
 | Модалка (`config.modals[]`) | `titleIcon` — иконка перед заголовком, `bgImage` — картинка фона шапки (геометрия и якорь — `options.header`); оба только **прямыми** детьми модалки. Остальные дети — обычное содержимое. См. [[elements#ElementModal\|ElementModal]] |
 
 ### Универсальные слоты
@@ -55,7 +55,10 @@
 | `titleIcon` | иконка заголовка | там же |
 | `bgImage` | отдельный слой фона **под** содержимым (`ContainerBackground`) | у любого контейнера, **кроме `Divider`** |
 
-Ни один из трёх не рендерится в теле контейнера и не занимает трек сетки (`NON_TRACK_SLOT_IDS`). Слот `icon` на уровне контейнера тоже уходит в заголовок, но, в отличие от этих трёх, входит в наборы слотов конкретных контейнеров.
+Ни один из трёх не рендерится в теле контейнера и не занимает трек сетки (`NON_TRACK_SLOT_IDS`). Библиотечный `NON_TRACK_SLOT_IDS` также исключает `icon` из общего рендера детей; его размещение определяется конкретным шаблоном, который рендерит слот явно (см. [[types#Slot-id — НЕ branded|Типы]]).
+
+> [!warning] Проверка слотов Vote в client-new
+> Библиотечный `Vote` поддерживает перечисленные выше кнопочные слоты. В текущем `client-new/src/components/Dashboard/utils/constants.ts` у `CONTAINER_SLOT_MAP.Vote` список слотов пуст, поэтому `validateDashboardConfig` помечает эти кнопки ошибкой `unexpected-slot`. Это расхождение клиентского валидатора с библиотекой; рабочие слоты конфигурации описаны в [[containers#VoteContainer|Контейнерах]].
 
 `bgImage` — это обычный элемент `type: "image"` (URL в корневом `value`, `attributeName` или `options.resourceId`). Слоя нет в DOM вовсе, пока слот не объявлен в конфиге: пустой абсолютный `div` не создаётся. По умолчанию картинка растягивается `object-fit: cover`; перебить можно `options.fit` у самого элемента.
 
@@ -240,7 +243,7 @@
 - [ ] У **каждого** контейнера (узел с `templateName`) есть уникальный `id`.
 - [ ] У **каждого** элемента (узел с `type`) есть `id`, равный корректному slot-id родителя (см. таблицу).
 - [ ] У **каждой** перечисляемой сущности (таб / кнопка / фильтр) есть уникальный `id`.
-- [ ] У кнопок AddFeature, ExportPdf и Vote явно задан `type: "button"`, подпись находится в `value`, оформление — в `options` дочерней кнопки. У ExportPdf есть слот `button`, у Vote — слоты всех нужных операций: без соответствующего слота кнопки нет.
+- [ ] У кнопок AddFeature, ExportPdf и Vote явно задан `type: "button"`, подпись находится в `value` или в `options.title` при отсутствии / `null` в `value`, оформление — в `options` дочерней кнопки. Корневой `style`, `noMargin` и `withDivider` применяются к узлу кнопки. У ExportPdf есть слот `button`, у Vote — слоты всех нужных операций: без соответствующего слота кнопки нет.
 - [ ] У **каждого** фильтра дополнительно есть `options.filterName`.
 - [ ] У **каждого** `DataSource` / `DataSourceProgress` задан `options.innerTemplateName`, а slot-id детей соответствуют этому внутреннему шаблону.
 - [ ] Слот `bgImage` (если он есть) стоит у контейнера, а не у `Divider`, и не продублирован внутрь записей DataSource-хоста.
@@ -250,7 +253,10 @@
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 - [ ] Реестры `actions` корня/страницы/модалки содержат определения с `id`, `type`, `options`; привязки визуальных узлов содержат ссылки или inline-вызовы. `actions` не помещены в `options`.
 - [ ] `runTask.options.taskName` ссылается на `name` задачи текущей страницы; `openModal.options.modalId` — на существующую модалку. Callback имеет форму вызова либо непустого объекта условий, `event` — `click`.
+- [ ] У `runTask` поля `fileName` и `methodName`, если заданы в задаче страницы или `options` действия, являются непустыми строками и содержат хотя бы один непробельный символ. Общий файл/метод можно задать в задаче страницы, а `options` действия переопределяют каждое поле отдельно. Для ресурса без `importMethod` оба поля должны быть известны из задачи/действия; аргументы задаются явно в `ConfigTask.params` или `options.parameters`. Пример — [[actions#Одна задача, разные методы|одна задача, разные методы]].
 - [ ] Для настроенных Actions выполнен [[utils#validateDashboardActions|validateDashboardActions]]; клиентский `validateDashboardConfig` включает его диагностику.
+- [ ] В [[conditional-formatting|условном форматировании]] ветки `conditions` переопределяют только `options`, `style` и `visibility`; action-подстановки `#result`, `$event` и `$params` не используются в выражениях. Значения override буквальные, без строковых подстановок.
+- [ ] Для узлов с `conditions` выполнен [[conditional-formatting#Проверка конфигурации|validateDashboardConditionalFormatting]]; клиентский `validateDashboardConfig` включает его диагностику с кодом `invalid-conditional-formatting`.
 
 ## Для TS-авторинга — строгие типы
 
@@ -263,7 +269,7 @@
 
 ## Связанные разделы
 
-[[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[headers|Шапки]] | [[types|Типы]]
+[[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[headers|Шапки]] | [[types|Типы]] | [[conditional-formatting|Условное форматирование]]
 
 ## Реестры и вызовы Actions
 

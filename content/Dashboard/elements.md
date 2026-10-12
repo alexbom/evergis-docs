@@ -7,7 +7,9 @@
 
 Элементы — «листовые» компоненты, отображающие отдельные значения внутри контейнеров. Регистрируются в `elements/registry.ts` (типобезопасно через `as const satisfies ElementComponentRegistry`) по строковому ключу (`type`). Рендерятся через [[utils|утилиту]] `getRenderElement`.
 
-Все принимают `ContainerProps` (`type`, `elementConfig`, `renderElement`). Каждый элемент имеет тройку типов `<Name>Options` / `<Name>Config` / `<Name>Props` (см. [[types#Элементы|сводную таблицу]]). В карточках ниже указан литерал `type` и поля, реально читаемые из `<Name>Options`.
+Все принимают `ContainerProps` (`type`, `elementConfig`, `renderElement`, `style?`). Каждый элемент имеет тройку типов `<Name>Options` / `<Name>Config` / `<Name>Props` (см. [[types#Элементы|сводную таблицу]]). В карточках ниже указан литерал `type` и поля, реально читаемые из `<Name>Options`.
+
+При рендере с `wrap: false` пайплайн передаёт авторский `elementConfig.style` и условное скрытие через `style?: CSSProperties` на существующий корень элемента. Для скалярного содержимого стиль применяется к существующему владельцу слота, если он предусмотрен шаблоном. При `wrap: true` оформление несёт общая обёртка значения. Подробности — [[conditional-formatting|Условное форматирование]].
 
 **Каждый элемент обязан иметь поле `id`** — это **slot** (зарезервированное место) внутри parent-контейнера. Контейнер рендерит конкретный slot через `renderElement({ id: "<slot>" })` и ожидает фиксированные ключи (`alias`, `value`, `chart`, `legend`, `title`, `description`, `bgImage`, `icon`, `units`, ...). Если `id` элемента не совпадает с ожидаемым slot-id контейнера — элемент не отрисуется. Три slot-id универсальны и допустимы у любого контейнера: `title` и `titleIcon` уходят в заголовок, `bgImage` — в слой фона под содержимым (см. [[containers#Универсальные слоты|Контейнеры]]); единственное исключение — `Divider`, у которого фона нет. Таблица slot-id по контейнерам и шапкам — в [[concepts#ID контейнеров и элементов|разделе про id]]. В примерах ниже slot-id выбран под типовой контейнер-родитель.
 
@@ -38,17 +40,17 @@
 
 ## ElementButton
 
-**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Также используется внутри [[containers#AddFeatureContainer|AddFeatureContainer]], в слоте `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и в слотах `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]: вид задаёт элемент, обработчик — контейнер. У AddFeature, ExportPdf и Vote отсутствие соответствующего элемента означает отсутствие кнопки; текст берётся только из `value`.
+**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Также используется внутри [[containers#AddFeatureContainer|AddFeatureContainer]], в слоте `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и в слотах `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]: вид задаёт элемент, обработчик — контейнер. У AddFeature, ExportPdf и Vote отсутствие соответствующего элемента означает отсутствие кнопки; текст берётся из `value`, а при `null` или отсутствии значения — из `options.title`.
 
-Подписи кнопок AddFeature, ExportPdf и Vote поддерживают стандартные [[concepts#Подстановки в строках конфига|подстановки]] (`%project`, `$dashboard:`, `{attr}`, …); внутри строки DataSource атрибуты берутся из текущей записи.
+Подписи кнопок AddFeature, ExportPdf, Vote и Task поддерживают стандартные [[concepts#Подстановки в строках конфига|подстановки]] (`%project`, `$dashboard:`, `{attr}`, …); внутри строки DataSource атрибуты берутся из текущей записи.
 
-**Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
+**Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Props:** `ContainerProps` (без `elementConfig`/`onClick`) + `elementConfig?: ElementButtonConfig` + **`ElementButtonOverrides`** — поведение, которое передаёт контейнер-хозяин:
 
 | Prop | Тип | Описание |
 |---|---|---|
-| `title` | `string` | Текст кнопки; перекрывает `value` |
+| `title` | `string` | Текст кнопки; перекрывает `value` и `options.title` |
 | `icon` | `ReactNode` | Готовая иконка (например, спиннер ожидания) |
 | `color` | `string` | Цвет; перекрывает `options.color` |
 | `disabled` | `boolean` | Кнопка недоступна |
@@ -59,11 +61,11 @@
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `value` | `string` | Текст кнопки |
+| `value` | `string` / `number` | Текст кнопки; `null` или отсутствие значения позволяет использовать `options.title` |
 | `attributeName` | `string` | Имя атрибута, содержащего URL для открытия |
 | `actions` | `ConfigActionInvocation[]` | Click-вызовы на узле, вне `options`; кнопка с Actions видна и без URL |
 
-**Опции (`options`):** поля [[options#ConfigButtonOptions|ConfigButtonOptions]] + `icon`, `radius`.
+**Опции (`options`):** поля [[options#ConfigButtonOptions|ConfigButtonOptions]] + `icon`, `radius`, `title`, `noMargin`, `withDivider`.
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -75,8 +77,13 @@
 | `radius` | `number` | Скругление вручную, px |
 | `icon` | `IconTypesKeys` | Иконка кнопки |
 | `iconRight` | `boolean` | Иконка справа от текста |
+| `title` | `string` | Подпись при отсутствии `value` или при `value: null`; поддерживает подстановки |
+| `noMargin` | `boolean` | Убрать нижний отступ обёртки узла |
+| `withDivider` | `boolean` | Разделитель после узла кнопки |
 
 **Поведение:**
+- Приоритет подписи: внешний prop `title` → `value` → `options.title`. Явное `value: ""` сохраняет кнопку без подписи, `value: 0` выводится как «0».
+- Общий рендерер применяет корневой `style`, `noMargin` и `withDivider`. Для нативных слотов AddFeature, ExportPdf, Vote и Task это делает [[components#ContainerButton (internal)|ContainerButtonView]]; без явных настроек обёртка не добавляется, раскладка сохраняется.
 - Приоритет клика: обработчик Actions → внешний `onClick` → `window.open(url)` из `attributeName`. Без обработчика и строковой ссылки кнопка **не рендерится**.
 - Без обработчика и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`) — прежняя кнопка-ссылка `ImageContainerButton`.
 - Если задана хоть одна опция внешнего вида или есть обработчик Actions/`onClick` — `IconButton` из `@evergis/uilib-gl` (пропсы собирает `getElementButtonProps` из `elements/ElementButton/utils/`).
@@ -107,7 +114,15 @@
 
 **Назначение:** Галерея снимков с камеры видеонаблюдения. Асинхронно подгружает снимки и таймлайн.
 
-**Props:** `CameraAttributeProps` (`type, elementConfig, renderElement, field?`)
+**Props (`CameraAttributeProps`):**
+
+| Prop | Тип | Описание |
+|---|---|---|
+| `type` | `WidgetType?` | Виджет |
+| `elementConfig` | `ElementCameraConfig?` | Конфиг камеры |
+| `renderElement` | `RenderElementFunction?` | Рендер слотов |
+| `style` | `CSSProperties?` | Стиль существующего `AttributeGalleryContainer` |
+| `field` | `ReactElement?` | Дополнительный элемент над галереей, внутри `AttributeLabel` |
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
@@ -507,6 +522,8 @@ SVG-ресурс отображается как обычная картинка
 
 **Открытие:** ElementModal и openModal Action используют общий WidgetModalHost: один диалог на modalId. Повторное открытие обновляет атрибуты/результат задачи/параметры. Заголовок, содержимое и запросы получают контекст этого открытия. При закрытии/смене контекста дальнейшие callback модалки прекращаются.
 
+**Условное скрытие:** `WidgetModalHost` передаёт `isOpen={visible}` в `Dialog` из `@evergis/uilib-gl`. Видимость из conditional formatting управляет открытием и закрытием окна вместе с подложкой.
+
 **Источники модалки (`dataSources`):** библиотека лениво загружает их в области окна и обновляет по фильтрам, карте и autoSync. Запросы прежнего открытия не могут перезаписать новое. Источники страницы/корня с таким же именем сохраняют приоритет. Новые окна передают onModalToggle metadata managed:true, чтобы client-new не выполнял второй запрос без контекста. Подробнее: [[actions]] и [[setup#Подключение Actions]].
 
 **Загрузка:** общий host показывает `DashboardLoading`, когда собственные источники окна ещё загружаются и ни один их результат не пришёл (`isLoading && !loaded.length` у [[hooks#useModalSources / useModalAutoSync (internal)|useModalSources]]). Загрузка страницы не блокирует окно. При наличии результатов содержимое остаётся; данные обновляются по ключу резолвленного запроса, `debounce` и autoSync. Поздние ответы закрытого/заменённого открытия не применяются.
@@ -602,6 +619,16 @@ modals: [
 **Назначение:** Слайдшоу изображений с поддержкой полноэкранного просмотра. Может использовать источник данных или атрибут объекта.
 
 **Типы:** `type = "slideshow"` · `ElementSlideshowOptions` · `ElementSlideshowProps`. Локальный тип — `DashboardSlideshowProps` (Pick от `ElementSlideshowProps`) в `elements/ElementSlideshow/types.ts`.
+
+**Props (`DashboardSlideshowProps`):**
+
+| Prop | Тип | Описание |
+|---|---|---|
+| `config` | `ConfigContainer?` | Конфиг виджета |
+| `elementConfig` | `ElementSlideshowConfig?` | Конфиг слайдшоу |
+| `type` | `WidgetType?` | Виджет |
+| `renderElement` | `RenderElementFunction?` | Рендер слотов |
+| `style` | `CSSProperties?` | Стиль существующего `SmallPreviewContainer` |
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 

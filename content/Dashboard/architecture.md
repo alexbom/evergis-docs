@@ -108,7 +108,7 @@ useWidgetPage() → currentPage (активная страница)
   ↓
 currentPage.dataSources → useDataSources()
   ↓
-Promise.allSettled(...) → getUpdatedDataSources() → dispatch(setProjectDataSources)
+Promise.allSettled(...) → getUpdatedDataSources() → dispatch(mergeProjectDataSources(...))
   ↓
 useWidgetContext() → dataSources
   ↓
@@ -120,6 +120,8 @@ getRenderElement() → ElementComponent
 ```
 
 Изменение фильтров — только затронутые источники данных перезагружаются (умная инвалидация через `getUpdatingDataSources()`).
+
+В client-new результаты запроса объединяются с актуальным стором через `mergeProjectDataSources`, сохраняя данные соседних источников при частичной загрузке. `setProjectDataSources(null)` отдельно сбрасывает данные при смене контекста загрузки.
 
 Источники модалок (`config.modals[].dataSources`) в `currentPage.dataSources` не пишутся и грузятся лениво через `WidgetModalHost` → [[hooks#useModalSources / useModalAutoSync (internal)|useModalSources]] → внутренний `useDataSourceRequests`. `ModalDataContext` перекрывает источники и loading своего окна в [[hooks#useWidgetContext|useWidgetContext]], а [[hooks#useConfigDataSources|useConfigDataSources]] внутри окна видит страницу и источники этой модалки. Страничный источник с тем же именем сохраняет приоритет. При открытии `onModalToggle(..., { managed: true })` исключает повторную клиентскую загрузку; интеграция — [[setup#Подключение Actions|Подключение Actions]].
 
@@ -144,3 +146,5 @@ getRenderElement() → ElementComponent
 `TaskExecutionProvider` внутри `GlobalProvider` наблюдает независимые Python-задачи дольше жизни страницы. `usePythonTask` и Actions используют один сервис, сборку параметров ресурса и уведомления. Уход из контекста отменяет продолжения; повторный клик или ручная остановка дополнительно запрашивают остановку серверной задачи. Смена страницы сама по себе её не останавливает.
 
 `WidgetModalsProvider` и `WidgetModalHost` хранят одно окно на ID и контекст каждой ревизии открытия. `ActionContextProvider` несёт данные клика/задачи/параметров, `ActionScopeProvider` — реестры и сигнал отмены, `ModalDataContext` — данные источников окна. Загрузка учитывает резолвленные параметры, условия, `debounce` и autoSync; закрытие либо смена ревизии исключает применение поздних ответов. Поиск визуального узла через [[utils#findDashboardNode|findDashboardNode]] обходит только `children`, `header`, `modals` и пропускает реестры Actions.
+
+Для окна [[elements#ElementModal|ElementModal]] store дополнительно отслеживает `ownerKey` / `ownerVisible`; скрытие владельца меняет показ окна без удаления записи открытия. Окна Actions без владельца следуют видимости самой модалки — см. [[conditional-formatting#Скрытие и состояние|Скрытие и состояние]].

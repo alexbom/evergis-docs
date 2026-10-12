@@ -310,6 +310,32 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ---
 
+### isProxyService
+
+`(value?: unknown) => value is ProxyServiceInfoDc`
+
+Проверяет, что объект является сервисом слоя и содержит `sourceType`. Type guard для нормализации прокси-сервиса в **getProxyService**; публично экспортируется вместе с **getLayerInfo**.
+
+```ts
+if (isProxyService(layer)) {
+  const sourceUrl = layer.sourceUrl;
+}
+```
+
+---
+
+### getProxyService
+
+`(layer?: QueryLayerServiceInfoDc) => ProxyServiceInfo`
+
+Возвращает описание прокси: `layers`, `sourceUrl`, `sourceType`, `legend.layers`. Отсутствующие массивы заменяет на `[]`, строки — на `""`; для обычного слоя или отсутствующего входа возвращает те же пустые значения. Используется в **getLayerInfo**.
+
+```ts
+const proxy = getProxyService(layer);
+```
+
+---
+
 ### getLayerInfoAttribute
 
 `(layerInfo?: QueryLayerServiceInfoDc, name?: string) => AttributeConfigurationDc | undefined`
@@ -371,6 +397,8 @@ Resolves контейнер из реестра — через `getContainerComp
 `(props: GetRenderElementProps) => RenderElementFunction`
 
 Фабрика функции `renderElement({ id?, index?, wrap? })` для рендера дочерних элементов контейнера. Находит ребёнка по `id` через **findDashboardNode** или по `index`; резолвит ссылки `containerId` на визуальный узел конфига; рекурсивно строит вложенный `renderElement`; делегирует значение `getElementValue`; скрывает пустые элементы (`isHiddenEmptyValue`) и форматирует результат через `formatElementValue`. Контейнеры оборачиваются в `ActionNodeProvider`, который передаёт путь и атрибуты для [[actions|Actions]]. Ключевая утилита registry-рендера — см. [[architecture#Поток данных|Поток данных]]. Парный хук — [[hooks|`useRenderElement`]].
+
+**Условное оформление и видимость.** До рендера разрешает [[conditional-formatting|условное форматирование]] конфига и текущего узла; при `configStringSources.isDataLoading` использует базовое оформление. Результат, являющийся React-элементом, получает `ConditionalVisibilityProvider`, чтобы потомки учитывали скрытого родителя. При `wrap: false` авторский `element.style` и условный `display: "none"` передаются в `getElementValue` через проп `style` для существующего корня компонента. Дополнительная `span` не создаётся; скрытый контейнер без обёртки и скрытые примитивные значения возвращают `null`.
 
 **Подстановки в строках узла.** С пропом `configStringSources` (источники от [[hooks|хука]] `useConfigStringSources`) каждый найденный узел проходит через **resolveElementStrings**: `value`, `defaultValue`, `options.label`, `options.placeholder`, `options.title` получают подставленные значения `%filter`, `$dashboard:`, `{attr}`, `%project` и т.д. (см. [[concepts#Подстановки в строках конфига|Основные понятия]]). Атрибуты рендера (строки `DataSource`) перекрывают атрибуты виджета. Проп пробрасывается во вложенные `renderElement`. Без него строки выводятся как есть.
 
@@ -594,7 +622,24 @@ const openedModalDataSources = getModalsDataSources(config, openedModalIds);
 
 ### formatElementValue
 
-Форматирует значение элемента для отображения (с учётом `stringFormat`, типа атрибута).
+**Назначение:** Форматирует значение элемента для отображения (с учётом `stringFormat`, типа атрибута), подставляет `defaultValue` для пустого значения и применяет оформление обёртки.
+
+**Параметры:** объект
+
+| Параметр | Тип | Назначение |
+|---|---|---|
+| `t` | `i18n["t"]` | Перевод при форматировании значения атрибута |
+| `value` | `RenderElementValue` | Значение для отображения |
+| `elementConfig` | `ConfigContainerChild` | Тип, атрибут, значение по умолчанию, опции и стиль элемента |
+| `attributes` | `ClientFeatureAttribute[]` | Атрибуты текущего объекта |
+| `wrap` | `boolean?` | Создавать обёртку значения; **getRenderElement** передаёт `true` по умолчанию |
+| `hasOwnRoot` | `boolean?` | Контейнер сам владеет единственным корнем с идентификаторами и стилем |
+
+**Возвращает:** `ReactNode | string`. При `wrap: false` возвращает значение без дополнительной `span`; если узел скрыт, для значения, не являющегося React-элементом, а также для типов `attributeAlias` / `attributeValue` возвращает `null`. Стили компонентного значения уже переданы его корню фабрикой **getRenderElement**. При `wrap: true` применяет авторский `style` и условный `display: "none"` к `ElementValueWrapper` или чипу `tagView`; контейнер с `hasOwnRoot` не дублирует обёрткой, кроме режима `tagView`. Опция `withDivider` добавляет разделитель только в режиме с обёрткой.
+
+```ts
+const content = formatElementValue({ t, value, elementConfig, attributes, wrap: false });
+```
 
 ---
 

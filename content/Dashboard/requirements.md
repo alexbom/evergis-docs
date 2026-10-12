@@ -5,6 +5,8 @@
 Хуки:
 `useWidgetPage`, `useWidgetContext`, `useWidgetConfig`, `useWidgetFilters`, `useGlobalContext`, `useDataSources`, `useDataSourceLoading`, `useChartData`, `useChartChange`, `useChartAxisAttributes`, `useChartAxisTickFormat`, `useChartAxisTitles`, `useDashboardHeader`, `useUpdateDataSource`, `useExportPdf`, `useFetchWithAuth`, `useFetchImageWithAuth`, `useGetConfigLayer`, `useHeaderRender`, `useHideIfEmptyDataSource`, `useRelatedDataSourceAttributes`, `useRenderElement`, `useShownOtherItems`, `useExpandableContainers`, `useAutoCompleteControl`, `useDiffPage`, `useProjectDashboardInit`, `useServerNotificationsContext`, `useAttachmentItems`, `useAttachmentPreviewImages`, `useContainerAttributes`, `useContainerRoot`, `useEditGroupAttributes`, `useEqualTileWidth`, `useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`, `useResizeBox`, `useWrapperSize`, `useBgImageHost`, `useResizeDrag`, `useConfigDataSources`, `useConfigStringSources`, `useDashboardFilterStore`, `useAttachmentDownload`, `useAttachmentsView`, `useActionBindings`, `useWidgetActions`, `useActionContext`, `useActionScope`, `useActionNode`, `useWidgetModals`, `useTaskExecution`, `useOptionalTaskExecution`, `usePythonTask`
 
+[[conditional-formatting|Условное форматирование]]: публичные хуки `useConditionalConfig`, `useConditionalHeader`, `useConditionalVisibility` разрешают визуальное дерево, шапку текущей страницы и видимость с учётом родителя. Контракты — [[hooks|Хуки]].
+
 Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerItem`, `useDataSourceRequests`, `useChartActions`, `useModalSources`, `useModalAutoSync` используются внутри библиотеки и не реэкспортируются публичными баррелями. Контракты — [[hooks|Хуки]].
 
 Компоненты и провайдеры:
@@ -84,7 +86,9 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 
 ## Actions
 
-Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает Python-ресурсы (`taskType: "pythonService"` или `"PythonTask"`). Условия callback вычисляются локально; EQL источников продолжает исполняться сервером. Новая вкладка подчиняется правилам пользовательского жеста браузера; при блокировке отображается ссылка. [[actions|Ограничения и проверка]].
+Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает ресурсы с `taskResourceSubType: "PythonTask"` независимо от `taskType`, а также прежние `taskType: "pythonService"` или `"PythonTask"`. Необязательные строки `fileName` и `methodName` задаются в `ConfigTask` и переопределяются `runTask.options`. Чтение схемы сохраняется; ответ 400 `Python importMethod is required` допускает запуск только при наличии обоих полей из действия/запроса или задачи страницы. Тогда доступны только явно переданные аргументы задачи и запуска; схема и `userConfiguration` не используются. Подробности — [[actions#Четыре действия|runTask]].
+
+Условия callback вычисляются локально; EQL источников продолжает исполняться сервером. Новая вкладка подчиняется правилам пользовательского жеста браузера; при блокировке отображается ссылка. [[actions|Ограничения и проверка]].
 
 Публичные entry points:
 
@@ -92,6 +96,7 @@ Actions используют существующие React, API, SignalR и у�
 |---|---|
 | `@evergis/react` | Штатные провайдеры, хуки и типы Actions/задач/модалок |
 | `@evergis/react/dist/dashboardActions` | Общие типы и проверка Actions; клиентский валидатор использует этот entry point |
+| `@evergis/react/dist/dashboardConditionalFormatting` | Чистый валидатор `validateDashboardConditionalFormatting` и типы `ConfigConditions`, `ConfigConditionalOverride`, `ConditionalFormattingValidationIssue` для JSON-конфигов; см. [[conditional-formatting\|Условное форматирование]] |
 | `@evergis/react/dist/taskParameters` | `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` и типы схемы; общий код формы и исполнения задачи |
 
 Нужны `GlobalProvider` с `api` для задач и Dashboard/FeatureCard-провайдер для областей Actions и модалок. Уведомления подключаются через `GlobalProvider.notification`, политика autoSync модального окна — через `isModalNotificationAllowed` хоста. Подключение client-new описано только в [[setup|Подключении]].

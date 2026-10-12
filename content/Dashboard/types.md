@@ -64,13 +64,13 @@ Slot-id обязателен у каждого элемента — без не�
 
 Литеральные slot-id (`"alias"`, `"chart"`, `"legend"`, `"title"`, `"value"`, `"units"`, ...) — это не entity-id, а ключи фиксированного набора. Они сужаются через literal `id` в parent-specific child-типах (см. `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `TaskButtonChild` в `componentTypes.ts`).
 
-Три slot-id универсальны и в parent-specific child-типах не перечисляются — их наборы задаются константами: `TITLE_SLOT_IDS` (`title`, `titleIcon`), `BG_IMAGE_SLOT_ID` (`bgImage`) и их объединение `NON_TRACK_SLOT_IDS` — узлы, которые контейнер читает по `id` сам и не отдаёт ни в рендер тела, ни в треки сетки (см. [[containers#Универсальные слоты|Контейнеры]]).
+Универсальные slot-id клиентского валидатора — `title`, `titleIcon` и `bgImage` (см. [[containers#Универсальные слоты|Контейнеры]]). В библиотеке `TITLE_SLOT_IDS` содержит **`title`, `icon`, `titleIcon`**, `BG_IMAGE_SLOT_ID` равен `bgImage`, а их объединение `NON_TRACK_SLOT_IDS` исключает все четыре узла из общего рендера тела и треков сетки. Размещение `icon` определяется конкретным шаблоном, который рендерит слот явно; клиентский валидатор проверяет его по набору слотов этого шаблона.
 
 ---
 
 ## Дискриминированный union `DashboardChild`
 
-`DashboardChild` — union из 51 ветви: 16 `<Name>ElementConfig` и 35 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
+`DashboardChild` — union из 52 ветвей: 16 `<Name>ElementConfig` и 36 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
 
 - **элементы** — поле `type` (`"button"`, `"camera"`, `"chart"`, ...);
 - **контейнеры** — поле `templateName` (`"AddFeature"`, `"Attachment"`, `"Chart"`, ...).
@@ -193,7 +193,7 @@ const child: StrictConfigContainerChild = {
 
 | Component | `type` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`) + `icon`, `radius` |
+| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`) + `icon`, `radius`, `title`, `noMargin`, `withDivider` |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
 | `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
@@ -214,7 +214,7 @@ const child: StrictConfigContainerChild = {
 
 | Component | `templateName` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `ElementButtonOptions` + `layerName`, `geometryType`; текст — `value`) |
+| `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `ElementButtonOptions` + `layerName`, `geometryType`, `defaultAttributes`; текст — `value` или `options.title`) |
 | `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
 | `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `ChartContainer` | `Chart` | `twoColumns`, `legendInline`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
@@ -358,11 +358,13 @@ const RoundedBackgroundContainerTyped =
 
 Корневая обёртка контейнера типизирована `ContainerRootProps` (`Dashboard/styled.ts`) — её собирают [[hooks|`useWrapperSize`]] и [[hooks|`useContainerRoot`]] (там тип называется `WrapperRootProps`).
 
+Общий контракт рендера `ContainerProps` также содержит `style?: CSSProperties`: при `wrap: false` [[utils#getRenderElement|getRenderElement]] передаёт авторский стиль узла и условный `display: "none"` существующему корню элемента. Это позволяет сохранить оформление без дополнительной обёртки значения.
+
 | Поле | Тип | Назначение |
 |---|---|---|
 | `id` / `data-id` | `string?` | идентификатор узла и его дубль для внешних селекторов |
 | `data-templatename` | `string?` | шаблон контейнера — точка зацепки для внешних стилей |
-| `style` | `CSSProperties?` | авторский `style` из конфига, остаётся inline |
+| `style` | `CSSProperties?` | авторский `style` из конфига, остаётся inline; при `visibility: false` поверх него добавляется `display: "none"` |
 | `$sizeCss` | `CSSObject?` | размеры из `options` — уходят классом, а не inline, поэтому перебиваются без `!important` |
 | `$noMargin` | `boolean?` | снять базовый отступ обёртки |
 | `$hasBgImage` | `boolean?` | узел несёт слот `bgImage` — корень становится хостом фонового слоя |
@@ -581,6 +583,43 @@ interface ConfigChartAxisOptions {
 
 ---
 
+## Типы создания объектов
+
+Экспортируются из `@evergis/react`, определены в `packages/react/src/hooks/featureCreation/types.ts`. Используются [[hooks#useFeatureCreator|useFeatureCreator]], [[hooks#createLayerFeature|createLayerFeature]] и `GlobalProvider.onCreateFeature`.
+
+```ts
+interface FeatureCreationOptions {
+  layerName: string;
+  geometryType?: OgcGeometryType | EditGeometryType;
+  defaultAttributes?: Record<string, unknown>;
+}
+
+type FeatureCreationHandler = (options: FeatureCreationOptions) => void | Promise<void>;
+
+interface FeatureCreator {
+  startCreation: FeatureCreationHandler;
+  isAvailable: boolean;
+  isStarting: boolean;
+}
+
+type FeatureCreationCoordinates = PositionDc | PositionDc[] | PositionDc[][] | PositionDc[][][];
+
+interface CreateLayerFeatureOptions {
+  layerName: string;
+  properties: Record<string, unknown>;
+  geometryType: OgcGeometryType | EditGeometryType | null;
+  coordinates?: FeatureCreationCoordinates;
+}
+
+interface FeatureCreationApi {
+  layers: Pick<Api["layers"], "createFeatures">;
+}
+```
+
+`FeatureCreationOptions` описывает запуск редактора: геометрию можно определить по слою, пресеты остаются редактируемыми. `CreateLayerFeatureOptions` описывает запись готового объекта: тип геометрии уже известен, атрибуты содержат правки пользователя. Для непространственного слоя используется `geometryType: null` или `OgcGeometryType.Unknown`. Сервис возвращает `Promise<LayerUpdateInfoDc>`.
+
+---
+
 ## Типы серверных хуков сохранения
 
 Типы для механизма `beforeSave`/`afterSave` (см. [[concepts#Серверные хуки сохранения (beforeSave / afterSave)|Основные понятия]] и [[hooks|хук]] `useFeatureSaveHooks`). Определены в `types.ts`.
@@ -646,7 +685,7 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 | `ActionEvent` | `"click"` |
 | `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal"` |
 | `ActionParameters` | `Record<string, unknown>` |
-| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`; `setFilters`: `filters`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?` |
+| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?` |
 | `ConfigActionDefinition` | Обязательные `id`, `type`, `options`; необязательные `event`, `callback` |
 | `ConfigActionInline` | `type`, `options`, `event?`, `callback?`; `id?: never` |
 | `ConfigActionReference` | `id`, `event?`, `options?: ActionParameters`, `callback?`; `type?: never` |
@@ -701,9 +740,21 @@ Snapshot передаётся хосту через `onModalContextChange`; entr
 
 | Тип | Контракт |
 |---|---|
+| `ConfigTask` | Запись задачи страницы; `fileName?: string`, `methodName?: string` задают файл и метод по умолчанию, `params?: Record<string, unknown>` — аргументы задачи |
 | `PythonExecutionRequest` | `taskName?`, `tasks?: ConfigTask[]`, `resourceId?`, `parameters?: Record<string, unknown>`, `script?`, `fileName?`, `methodName?`, `title?`, `useNotifications?`, `statusColors?` |
 | `PythonExecutionHandle` | `runId`, `completion: Promise<Record<string, unknown>>`, `getSnapshot`, `subscribe`, `stop` |
 | `PythonExecutionSnapshot` | `taskId`, `status`, `log`, `lastMessage`, `error`, `loading`, `executionTime`, `result` |
 | `TaskExecutionContextValue` | `runTask`, `entries`, `openLog`, `closeLog`, `dismissTask`, `logRunId` |
 
-У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` теперь имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
+`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Четыре действия|Actions]].
+
+У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
+
+
+## Типы условного форматирования
+
+`ConfigContainer`, `ConfigContainerChild`, `ConfigContainerHeader` и `ConfigModal` поддерживают `conditions?: ConfigConditions<Options>` и `visibility?: boolean`. `ConfigConditions` — объект выражений; специальный ключ `else` задаёт fallback. Значения имеют тип `ConfigConditionalOverride<Options>`: только рекурсивные `options`, `style` и булева `visibility`. `ConfigConditionalPartial<Value>` допускает частичные вложенные объекты и явный `null`, массивы заменяются целиком.
+
+Per-component конфиги и union `DashboardChild` сужают `conditions` тем же `<Name>Options`, что и базовое поле options. Например, `ElementIconConfig.conditions` принимает только опции иконки; остальные ключи не проходят authoring-проверку. `ConfigStringSources.isDataLoading?: boolean` сообщает полную загрузку виджета: пока флаг установлен, используется базовое оформление. Дополнительный `ModalDataOverlay.isDataLoading` включает локальную загрузку окна.
+
+Чистые API `resolveConditionalFormatting`, `isConditionallyVisible`, `getConditionalVisibilityStyle` и `validateDashboardConditionalFormatting` экспортируются из библиотеки. Диагностика валидатора: `{ path: string; ownerId?: string; message: string; severity: "error" | "warning" }`. Формат, примеры и семантика — [[conditional-formatting|Условное форматирование]].

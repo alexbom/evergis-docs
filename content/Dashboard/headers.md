@@ -22,7 +22,7 @@ Union типов конфигов шапок: `DashboardHeaderConfig` (см. [[t
 
 Shared-компоненты в `headers/components/`:
 - **HeaderLayerIcon** — кликабельная иконка слоя с тултипом «приблизить к объекту»; используется во всех `FeatureCard*Header`.
-- **HeaderTitle** — заголовок карточки (значение `titleAttribute` или `feature.id`) + описание слоя; используется в `FeatureCardDefaultHeader`.
+- **HeaderTitle** — заголовок и описание `FeatureCardDefaultHeader`: авторские слоты `title`/`description`, а при отсутствии соответствующего слота — значение `titleAttribute` или `feature.id` и описание слоя.
 
 ---
 
@@ -82,7 +82,8 @@ DefaultHeaderContainer (image, isDark)
 **Props:** `noFeature?: boolean`
 
 **Зависимости:**
-- [[hooks|хук]] `useWidgetConfig(WidgetType.FeatureCard)` — конфиг карточки
+- [[hooks|хук]] `useConditionalHeader(WidgetType.FeatureCard)` — шапка текущей страницы с разрешёнными условиями
+- [[hooks|хук]] `useHeaderRender(header, WidgetType.FeatureCard)` — рендер авторских слотов
 - [[utils|утилита]] `getThemeByName(themeName)` — применение темы к шапке
 
 **Опции:**
@@ -97,7 +98,16 @@ DefaultHeaderContainer (image, isDark)
 
 **Дочерние элементы:**
 
-Кастомные дети не используются — структура фиксирована.
+| id | Описание |
+|---|---|
+| `title` | Авторский заголовок, рендерится через `useHeaderRender` с `wrap: false`. При отсутствии слота сохраняется штатный `titleAttribute` с форматированием или `feature.id` |
+| `description` | Авторское описание. При отсутствии слота сохраняется `layerInfo.configuration.alias`, затем `name` |
+
+Заданность слота определяется его наличием, а не непустым результатом: скрытый или пустой авторский `title`/`description` не заменяется штатным текстом. У скалярного содержимого `style` дочернего узла применяется к существующей обёртке слота; у React-элемента стиль уже находится на его собственном корне. `visibility: false` скрывает обёртку слота в обоих случаях; правила `conditions` разрешаются тем же механизмом [[conditional-formatting|условного форматирования]].
+
+При `noFeature` авторские слоты не используются: заголовок остаётся «Объектов не найдено», описание — «Все слои». Для выбранного объекта клик по заголовку по-прежнему приближает карту к нему; tooltip приближения скрывается вместе с заголовком или его предком. Иконка слоя и кнопки карточки сохраняют штатное поведение.
+
+`header.style` и условная `header.visibility` применяются к `DefaultHeaderWrapper`. Скрытая шапка остаётся смонтированной.
 
 **Структура:**
 ```
@@ -110,7 +120,16 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 ```
 
 ```tsx
-{ header: { templateName: "Default", options: { themeName: "light", withPadding: true } } }
+{
+  header: {
+    templateName: "Default",
+    options: { themeName: "light", withPadding: true },
+    children: [
+      { id: "title", type: "text", value: "{name}" },
+      { id: "description", type: "text", value: "{category}" }
+    ]
+  }
+}
 ```
 
 ---
@@ -246,6 +265,14 @@ ThemeProvider(getThemeByName(themeName))
   }
 }
 ```
+
+---
+
+## Условное оформление шапок
+
+Шапка и её авторские слоты поддерживают `conditions` с override `options`/`style`/`visibility`. Стиль и скрытие шапки применяются к её корневой обёртке. Стиль скалярного содержимого назначается существующей обёртке слота, а стиль React-элемента — его собственному корню; скрытие применяется к обёртке слота. Дополнительная DOM-обёртка для форматирования не создаётся. Сама шапка остаётся смонтированной. Подробнее — [[conditional-formatting|Условное форматирование]].
+
+У `FeatureCardDefaultHeader` появились авторские `title` и `description`, при этом сохраняются описанные выше fallback и `noFeature`. У `FeatureCardBackgroundHeader` и `FeatureCardSlideshowHeader` прежняя семантика их слотов и fallback не меняется. `DashboardDefaultHeader` по-прежнему не рендерит слот `description`.
 
 ---
 

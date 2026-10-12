@@ -12,6 +12,8 @@
 |---|---|---|
 | `useProject()` | `src/hooks` | `projectInfo`, `updateProject` |
 | `useDialog()` | `src/hooks` | `openDialog` — открытие диалога каталога ресурсов |
+| `useEwktGeometry()` | `src/hooks` | EWKT геометрического фильтра для ключа контекста загрузки |
+| `useDataSourceLoading(type, contextKey, inputsKey)` | `components/Dashboard/hooks` | `isDataLoading` — состояние текущих запросов своего виджета; ключи учитывают проект, страницу, геометрию и фильтры |
 | `useExpandableContainers()` | `@evergis/react` | `expandedContainers`, `expandContainer` |
 | `useSelectedTab()` | `components/Dashboard/hooks/useSelectTab` | `selectedTabId`, `setSelectedTabId` |
 | `useProjectModals()` | `components/Dashboard/hooks/useProjectModals` | `[openedModalIds, onModalToggle]` — открытые модалки в слайсе `dashboard` (`toggleProjectModal`); `onModalToggle` уходит в базовый провайдер |
@@ -20,7 +22,7 @@
 | `useModalNotifications(config, pageIndex)` | `components/Dashboard/hooks` | `isModalNotificationAllowed(senderName, source, layerName)` — политика autoSync для источников модального окна; использует конфиг именно этого виджета |
 | `useDashboardPages()` | `components/Dashboard/hooks` | `nextPage`, `prevPage`, `changePage` |
 | `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
-| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider`, `options.outflow` без этого слота (`orphan-option`) и ошибки [[actions\|Actions]] (`invalid-action`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
+| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider`, `options.outflow` без этого слота (`orphan-option`) и ошибки [[actions\|Actions]] (`invalid-action`) и [[conditional-formatting\|условного форматирования]] (`invalid-conditional-formatting`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
 | `useLayersListVisibility()` | `components/MainPanel/hooks` | `isVisible`, `toggleVisibility` |
 
 Колбэк `selectAttachmentsFromCatalog` открывает диалог `DIALOGS.RESOURCE_CATALOG` (`ResourceCatalogOptions`) и передаёт выбранные `CatalogResourceDc[]` через `onApply`.
@@ -32,7 +34,6 @@
 | `getProjectPageIndex` | `dashboard` |
 | `getProjectDataSources` | `dashboard` |
 | `getProjectDataSourcesAreLoading` | `dashboard` |
-| `getProjectOpenedModalIds` | `dashboard` |
 | `getProjectGeometryFilter` | `project` |
 | `getReferenceLayerInfos` | `dashboard` |
 
@@ -79,6 +80,7 @@
 | `dataSources` | `WidgetDataSource[]` | Загруженные источники данных |
 | `geometryFilter` | `boolean` | Геометрический фильтр активен |
 | `loading` | `boolean` | Идёт загрузка данных |
+| `isDataLoading` | `boolean` | Флаг текущих запросов для [[conditional-formatting#Загрузка и область вычисления\|условного форматирования]]; не меняет поведение спиннеров. В client-new ожидание debounce страничного источника Dashboard не отслеживается как запрос |
 | `editMode` | `boolean` | Режим редактирования **атрибутов объекта** (в контейнерах — `isEditing`). К раскладке отношения не имеет |
 | `onContainerChange` | `(config: ConfigContainerChild) => void` | Контейнер изменил свой конфиг — см. раздел ниже |
 | `onModalToggle` | `(modalId: string, isOpen: boolean, metadata?: { managed: boolean }) => void` | Событие открытия/закрытия. Общий modal host при открытии передаёт `{ managed: true }`; его источники загружает библиотека |
@@ -165,6 +167,7 @@ import { replaceObject } from "find-and";
 | `setSelectedTabId` | `(id) => void` | Выбрать вкладку |
 | `dataSources` | `WidgetDataSource[]` | Источники данных карточки |
 | `loading` | `boolean` | Идёт загрузка данных |
+| `isDataLoading` | `boolean` | Флаг текущих запросов для [[conditional-formatting#Загрузка и область вычисления\|условного форматирования]]; не меняет поведение спиннеров |
 | `filters` | `SelectedFilters` | Активные фильтры |
 | `getActionFilters` | `() => SelectedFilters` | Синхронный getter фильтров карточки |
 | `actionContextKey` | `string` | Идентификатор слоя/объекта/страницы; отменяет продолжения прежнего контекста |
@@ -199,6 +202,7 @@ import { replaceObject } from "find-and";
 | `projectAlias` | `string` | Алиас открытого проекта — плейсхолдер `%project.alias`, при пустом значении используется `projectName` |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
+| `onCreateFeature` | `FeatureCreationHandler` | Необязательный обработчик запуска создания: `(options: FeatureCreationOptions) => void \| Promise<void>`. Подключает рисование и карточку приложения |
 | `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`): прогресс и ошибки задач, остановка цепочек [[actions\|Actions]], заблокированные переходы, серверные [[hooks\|хуки]] `beforeSave`/`afterSave` |
 
 ```tsx
@@ -208,6 +212,24 @@ import { replaceObject } from "find-and";
   </DashboardProvider>
 </GlobalProvider>
 ```
+
+### Подключение создания объектов
+
+[[containers#AddFeatureContainer|AddFeatureContainer]] и публичный [[hooks#useFeatureCreator|useFeatureCreator]] передают запрос в `onCreateFeature`. Его параметры — [[types#Типы создания объектов|FeatureCreationOptions]]: обязательное имя слоя, необязательные тип геометрии и `defaultAttributes`.
+
+```tsx
+<GlobalProvider api={api} t={t} onCreateFeature={handleCreateFeature}>
+  <DashboardProvider config={config} ...>
+    ...
+  </DashboardProvider>
+</GlobalProvider>
+```
+
+`handleCreateFeature` — обработчик хоста. Он разрешает слой и тип геометрии, проверяет права до сброса текущего интерфейса, создаёт отдельный черновик, запускает рисование и открывает карточку. Слой без геометрии сразу открывает карточку. Значения `defaultAttributes` — редактируемые константы, которые перекрывают дефолты, в том числе `0`, `false`, пустую строку и `null`; при отмене пресеты очищаются.
+
+Обработчик завершает запрос после запуска редактора. Запись в API происходит только по «Сохранить» через [[hooks#createLayerFeature|createLayerFeature]] с итоговыми атрибутами пользователя. Порядок `beforeSave`/`afterSave`, обновление карты и выделения остаются у хоста. Ошибка сохранения оставляет черновик для исправления или повторной попытки.
+
+Без `onCreateFeature` хук возвращает `isAvailable: false`, а нативные кнопки AddFeature недоступны. Уже настроенные Actions дочерних кнопок сохраняют собственное поведение и приоритет.
 
 ### Кто заполняет свойства карты (client-new)
 
@@ -245,6 +267,9 @@ import { replaceObject } from "find-and";
 ---
 
 ## Проверка конфигурации в client-new
+
+`validateDashboardConfig` также вызывает адаптер `validateConditionalFormatting`, который импортирует общий pure-валидатор из `@evergis/react/dist/dashboardConditionalFormatting`. Его диагностика получает клиентский код `invalid-conditional-formatting`, `ownerId` преобразуется в `parentId`. Проверяются правила корня, children, header и modals; опции, метаданные источников и значения override не обходятся как конфиговые узлы. Подробнее — [[conditional-formatting#Проверка конфигурации|проверка условий]].
+
 
 **useValidateDashboardConfig** вызывается клиентским DashboardProvider и в dev-сборке проверяет реальный `projectInfo.content.dashboardConfiguration` через `validateDashboardConfig`; подменный `config` превью не проверяет. В production хук ничего не делает. Проверка слотов использует `src/components/Dashboard/utils/constants.ts` (`CONTAINER_SLOT_MAP`), а не реестр компонентов библиотеки; проблемы выводятся в консоль, рендер не блокируется.
 
@@ -307,6 +332,8 @@ import { replaceObject } from "find-and";
 
 Модальные источники загружаются библиотекой в изолированном `ModalDataContext`. При открытии вызываются `onModalContextChange(id, snapshot)` и `onModalToggle(id, true, { managed: true })`, при закрытии — `onModalToggle(id, false)` и `onModalContextChange(id, null)`. Смена записи увеличивает `revision`, отменяет область прошлого открытия и защищает от поздних ответов. Данные живут в окне: повторное открытие загружает их заново; кэш прежнего клиентского пути на этот host не распространяется.
 
+В отличие от страничного загрузчика Dashboard, локальный `isDataLoading` модального окна учитывает ожидание debounce его источников, а также загрузку виджета. Окно [[elements#ElementModal|ElementModal]] дополнительно следует видимости владельца через `ownerKey` / `ownerVisible`; изменение видимости не создаёт новую ревизию открытия и не вызывает событие закрытия. Правила — [[conditional-formatting#Скрытие и состояние|Скрытие и состояние]].
+
 `isModalNotificationAllowed` заполняется `useModalNotifications(config, pageIndex)`. Дашборд передаёт `config` превью либо `projectInfo.content.dashboardConfiguration`, карточка — `layerInfo.configuration.cardConfiguration`. Явный аргумент `notificationsOverride` у `useNotificationsFilter` задаёт `config.options.notifications` и слои именно этой страницы: фильтрация уведомлений карточки не берёт настройки соседнего дашборда.
 
 Клиентская обёртка `validateActions` вызывает публичный `validateDashboardActions` из `@evergis/react/dist/dashboardActions` и переводит диагностику в `ConfigIssue`: `code: "invalid-action"`, `parentId: issue.ownerId`, сохранённые `path`, `severity`, `message`. Её вызывает `validateDashboardConfig`; превью редактора также показывает ошибки Actions.
@@ -314,3 +341,10 @@ import { replaceObject } from "find-and";
 Параметры Python-ресурса собираются общими утилитами `@evergis/react/dist/taskParameters`. Клиентские `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` в форме запуска инструмента переэкспортируют библиотечную реализацию; форма и [[actions|runTask]] используют одну обработку схемы и дефолтов.
 
 Для тестовых хостов доступен `actionNavigation(reserve)` — фабрика `{open(url,target), dispose()}` вместо настоящей навигации; production использует браузер по умолчанию. [[actions|Полный контракт]].
+
+
+## Подключение условного форматирования
+
+Хост передаёт `isDataLoading` в DashboardProvider/FeatureCardProvider наряду с существующими loading-флагами. Флаг отражает текущие запросы, первичную загрузку и автообновление. В client-new ожидание debounce страничного источника Dashboard не отслеживается как запрос; внутри модального окна локальный флаг учитывает ожидание debounce его источников и загрузку виджета. Подавлять прежние спиннеры ради условий не требуется; подробности — [[conditional-formatting#Загрузка и область вычисления|Загрузка и область вычисления]].
+
+Библиотечный `useConditionalConfig(type, node)` собирает источники через `useConfigStringSources` и разрешает оформление перед рендером. Для собственных render-поверхностей используйте его результат и `getConditionalVisibilityStyle` на существующих корнях; сохранение локального состояния при `visibility: false` не гарантируется. Authoring-конфиг остаётся исходным; временный render-результат не сохраняйте в проект. Схема и поведение — [[conditional-formatting|Условное форматирование]].

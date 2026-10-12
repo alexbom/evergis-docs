@@ -374,7 +374,7 @@ interface ConfigLayer {
   - `ElementModal.options.modalId` → `id` модала в `config.modals[]` (тип `ModalId`)
   - `ElementLegend.options.chartId` → `id` `ChartContainer` либо `id` дочернего элемента-чарта внутри него (тип `ChartId`)
   - `TitleContainer.options.downloadById` → `id` `ExportPdfContainer`
-- **Управление состоянием:** `expandedContainers: ContainerId[]`, `expandContainer(id)`, `selectedTabId`.
+- **Управление состоянием:** `expandedContainers: Record<string, boolean>`, `expandContainer(id)`, `selectedTabId`.
 - **Утилиты:** `getRootElementId(type)` строит `${type}-root` для PDF-экспорта.
 
 Типизация — branded types (см. [[types#Branded types|Branded types]]).
@@ -808,3 +808,14 @@ export const elementComponents = {
 `ActionExecutionContext` фиксирует `sources`, `event`, `parameters`, `taskResponse` для цепочки. Разные строки имеют разные `sourceKey`, поэтому одинаковый ID переиспользуемого действия не объединяет их запуски. Ответ задачи принадлежит цепочке и переносится в открытое ею окно; общего «последнего ответа» виджета нет.
 
 При открытии модалки создаётся `WidgetModalEntry`: `modalId`, `revision`, `context`, `scopes`, `signal`. Повторное открытие того же ID заменяет снимок, увеличивает ревизию и отменяет прежнюю область. `ActionContextProvider` передаёт подстановки, `ActionScopeProvider` — реестры и сигнал, `ModalDataContext` — локальные источники и загрузку. Страничные фильтры остаются живыми, данные модального источника не записываются в стор страницы. Контракты — [[types#Типы Actions|Типы Actions]].
+
+У окна с владельцем дополнительно есть `ownerKey` и `ownerVisible`: видимость [[elements#ElementModal|ElementModal]] и его предков управляет показом окна, сохраняя запись открытия и её ревизию. Окно Actions без владельца учитывает видимость самой модалки. Подробнее — [[conditional-formatting#Скрытие и состояние|Скрытие и состояние]].
+
+
+## Условное форматирование визуальных узлов
+
+`conditions` — объект «выражение → override» у Dashboard/FeatureCard, контейнеров, элементов, шапок, модалок и слотов. Выигрывает первая истинная ветка в порядке записи; `else` используется только если остальные не подошли. Override меняет только `options`, `style` и `visibility`, используя рекурсивный merge Actions: объекты объединяются, массивы заменяются, явный null сохраняется.
+
+Выражения используют parser/evaluator Actions и обычные конфиговые подстановки (`%filter`, `$dashboard`, `$card`, `{attribute}`, системные значения). Action-only `#result`, `$event`, `$params` запрещены; строки override остаются буквальными. Пока `isDataLoading` истинно (включая выполняющиеся запросы autoSync), действует базовый конфиг. Учёт ожидания debounce зависит от загрузчика — см. [[conditional-formatting#Загрузка и область вычисления|Загрузку и область вычисления]]. DataSource-хост разрешает дерево до рендера записей; правила удаляются из render-конфига и не вычисляются для каждой строки. `visibility: false` скрывает узел вместе с его местом в раскладке через существующий корень либо исключение из вывода; сохранение локального состояния при скрытии не гарантируется.
+
+Полный контракт и интерактивный пример: [[conditional-formatting|Условное форматирование]].

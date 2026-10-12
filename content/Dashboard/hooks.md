@@ -6,6 +6,8 @@
 
 Публичные экспорты — см. `hooks/index.ts`. Internal-хуки (`useEditControl`, `useRenderContainer`, `useRenderContainerItem`) используются внутренними контейнерами и не экспортируются наружу.
 
+Общий API создания объектов находится в `packages/react/src/hooks/featureCreation/` и также экспортируется из `@evergis/react`: `useFeatureCreator`, сервис `createLayerFeature` и [[types#Типы создания объектов|типы запросов]].
+
 Серверные хуки сохранения (`useFeatureSaveHooks`, `useBeforeSave`, `useAfterSave`, `useSavePrototypeBuilder`) реализуют механизм `beforeSave`/`afterSave` python-скриптов — концептуально описан в [[concepts#Серверные хуки сохранения (beforeSave / afterSave)|Основных понятиях]].
 
 ---
@@ -307,6 +309,48 @@ const configDataSource = configDataSources.find(({ name }) => name === relatedDa
 
 ---
 
+## useConditionalConfig
+
+**Назначение:** Разрешает [[conditional-formatting|условное форматирование]] визуального дерева до расчёта раскладки. Берёт источники через **useConfigStringSources**; пока `isDataLoading` установлен, оставляет базовое оформление. Правила применяются на границе виджета, поэтому записи источника получают уже разрешённое дерево.
+
+**Параметры:** `type: WidgetType`, `node: Node` — узел или дерево конфига
+
+**Возвращает:** `Node` — конфиг того же типа с выбранным оформлением и удалёнными `conditions`; исходное дерево не мутирует
+
+```ts
+const resolvedConfig = useConditionalConfig(type, elementConfig);
+```
+
+---
+
+## useConditionalHeader
+
+**Назначение:** Возвращает шапку текущей страницы после разрешения [[conditional-formatting|условного форматирования]] через **useConditionalConfig**.
+
+**Параметры:** `type?: WidgetType` (default `Dashboard`). Generic `Header extends ConfigContainerHeader` по умолчанию равен `ConfigContainerHeader`.
+
+**Возвращает:** `Header | undefined` — разрешённую шапку или `undefined`, если шапки нет
+
+```ts
+const header = useConditionalHeader(WidgetType.FeatureCard);
+```
+
+---
+
+## useConditionalVisibility
+
+**Назначение:** Проверяет видимость узла с учётом родительского `ConditionalVisibilityContext`. Возвращает `false`, если скрыт родитель или у самого узла `visibility: false`.
+
+**Параметры:** `node?: unknown` — узел с уже разрешённым [[conditional-formatting|условным форматированием]]
+
+**Возвращает:** `boolean`. Отсутствующий узел сам по себе видимость не отключает.
+
+```ts
+const isVisible = useConditionalVisibility(elementConfig);
+```
+
+---
+
 ## useContainerRoot
 
 **Назначение:** Пропсы двух узлов контейнера с заголовком — корня (`ContainerRoot`) и тела. Надстройка над **useWrapperSize**: тот же расчёт размеров, но результат разложен на две части. Используется почти всеми контейнерами, у которых есть `ExpandableTitle`.
@@ -345,7 +389,7 @@ return (
 
 ## useDashboardHeader
 
-**Назначение:** Данные для шапки дашборда (заголовок, иконка, изображение, тема).
+**Назначение:** Данные для шапки дашборда (заголовок, иконка, изображение, тема). Шапку получает через **useConditionalHeader**; условная видимость слота `image` учитывается отдельно.
 
 **Параметры:** нет
 
@@ -353,6 +397,7 @@ return (
 | Поле | Тип |
 |---|---|
 | `pageId` | `string` |
+| `header` | `ConfigContainerHeader \| undefined` — шапка после разрешения условного форматирования |
 | `image` | `string \| null` |
 | `icon` | `ReactNode` |
 | `title` | `ReactNode` |
@@ -538,6 +583,57 @@ const { loading, onExport } = useExportPdf(getRootElementId(type));
 
 ---
 
+## useFeatureCreator
+
+**Назначение:** Публичный запуск создания объекта через `GlobalProvider.onCreateFeature`. Используется [[containers#AddFeatureContainer|AddFeatureContainer]] и может вызываться другими компонентами. Передаёт запрос хосту; рисование, карточка и явное сохранение находятся в приложении. Нового типа [[actions|Action]] не регистрирует.
+
+**Параметры:** нет.
+
+**Возвращает:** `FeatureCreator`:
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `startCreation` | `FeatureCreationHandler` | Принимает `{ layerName, geometryType?, defaultAttributes? }`. Пресеты передаются копией, без подстановок |
+| `isAvailable` | `boolean` | В глобальном контексте есть обработчик `onCreateFeature` |
+| `isStarting` | `boolean` | Хост ещё обрабатывает запрос запуска. Это состояние запуска, а не сохранения карточки |
+
+Повторный запуск во время ожидающего запроса блокируется. Ошибки запуска передаются вызывающему коду для отображения. Проверка доступности конкретного слоя, прав и совместимости геометрии — обязанность хоста. Контракт и подключение — в [[setup#Подключение создания объектов|Подключении]].
+
+```tsx
+const { startCreation, isAvailable, isStarting } = useFeatureCreator();
+
+// Из обработчика кнопки; ошибки запуска обрабатывает вызывающий компонент.
+await startCreation({
+  layerName: "buildings",
+  geometryType: OgcGeometryType.Polygon,
+  defaultAttributes: { category: "residential", floors: 0, approved: false, note: null },
+});
+```
+
+### createLayerFeature
+
+Публичный сервис сохранения нового объекта, вызываемый после подтверждения карточки. Сигнатура: `createLayerFeature(api: FeatureCreationApi, options: CreateLayerFeatureOptions): Promise<LayerUpdateInfoDc>`.
+
+| Поле `options` | Тип | Описание |
+|---|---|---|
+| `layerName` | `string` | Целевой слой |
+| `properties` | `Record<string, unknown>` | Итоговые атрибуты после редактирования |
+| `geometryType` | `OgcGeometryType \| EditGeometryType \| null` | Обязательный, уже разрешённый тип геометрии слоя; `null` и `OgcGeometryType.Unknown` означают слой без геометрии |
+| `coordinates` | `FeatureCreationCoordinates` | Необязательные координаты GeoJSON в WGS84; для пространственного типа обязательны |
+
+Сервис подготавливает обычную или multi-геометрию с `srId: 4326`, вызывает `api.layers.createFeatures` и возвращает результат API, включая `createdIds`. Для непространственного слоя геометрия в запрос не включается. Ошибки подготовки или API передаются вызывающему коду. Сервис не открывает карточку и не выполняет серверные save-хуки: их порядок остаётся у вызывающего сценария (`beforeSave` → создание → `afterSave`).
+
+```ts
+const result = await createLayerFeature(api, {
+  layerName: "places",
+  properties: { name: "Новый объект", approved: false },
+  geometryType: OgcGeometryType.Point,
+  coordinates: [37.62, 55.75],
+});
+```
+
+---
+
 ## useFeatureSaveHooks
 
 **Назначение:** Orchestrator-хук серверных `beforeSave` / `afterSave` python-скриптов. Читает их описание из `layerInfo.configuration.editConfiguration.options` (тип [[types|EditConfigurationOptions]]) текущего слоя FeatureCard и собирает готовые к вызову функции через **useBeforeSave** / **useAfterSave** и билдер из **useSavePrototypeBuilder**.
@@ -658,7 +754,7 @@ const { api, t, ewktGeometry, ewktExtent, zoomLevel } = useGlobalContext();
 
 ## useHeaderRender
 
-**Назначение:** Создаёт функцию `renderElement` для шапок (header) дашборда / FeatureCard. Аналог `getRenderElement` для `ConfigContainerHeader`.
+**Назначение:** Создаёт функцию `renderElement` для шапок (header) дашборда / FeatureCard. Аналог [[utils#getRenderElement|getRenderElement]] для `ConfigContainerHeader`. Предварительно разрешает [[conditional-formatting|условное форматирование]] шапки через **useConditionalConfig** и передаёт источники **useConfigStringSources** в фабрику рендера.
 
 **Параметры:** `elementConfig: ConfigContainerHeader`, `type?: WidgetType` (default `Dashboard`)
 
@@ -740,7 +836,7 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 ## useRenderElement
 
-**Назначение:** Хук, возвращающий `renderElement` функцию для рендеринга дочерних элементов по `id`. Собирает контекст (config, layerInfo, attributes, табы, страница) из **useWidgetContext** / **useWidgetConfig** / **useWidgetPage** и передаёт в `getRenderElement`.
+**Назначение:** Хук, возвращающий `renderElement` функцию для рендеринга дочерних элементов по `id`. Собирает контекст (config, layerInfo, attributes, табы, страница) из **useWidgetContext** / **useWidgetConfig** / **useWidgetPage**, разрешает [[conditional-formatting|условное форматирование]] узла через **useConditionalConfig** и передаёт результат вместе с источниками **useConfigStringSources** в [[utils#getRenderElement|getRenderElement]].
 
 **Параметры:** `type?: WidgetType` (default `Dashboard`), `elementConfig: ConfigContainerChild`
 
@@ -935,6 +1031,8 @@ const { pageIndex, currentPage } = useWidgetPage(type);
 
 **Возвращает:** `ConfigStringSources`. Передаётся в `getRenderElement({ configStringSources })`, который резолвит `value` / `defaultValue` / подписи каждого узла. Атрибуты строки `DataSource` подменяют атрибуты карточки; в модалке `ActionContext` задаёт атрибуты записи открытия и `layerInfo`, а также `taskResponse` (`#field`), `event` (`$event`) и `parameters` (`$params`).
 
+`isDataLoading` остаётся `true`, пока виджет загружается или хотя бы один источник текущей страницы ещё отсутствует в `dataSources`. Для FeatureCard дополнительно учитывает загрузку и отсутствующие источники текущей страницы Dashboard. Пока флаг установлен, **useConditionalConfig** применяет базовое оформление; это предотвращает выбор условной ветки по ещё не загруженным данным.
+
 ```ts
 const sources = useConfigStringSources(type);
 const title = resolveConfigString("Показатели за $dashboard:year год", sources);
@@ -963,7 +1061,7 @@ const title = resolveConfigString("Показатели за $dashboard:year г�
 
 **Возвращает:** `WrapperRootProps` — `{ id, "data-id", "data-templatename", style, $sizeCss, $noMargin, $hasBgImage, $innerPadding }`
 
-Размеры уходят styled-пропом `$sizeCss` (класс), а не inline-стилем, поэтому перебиваются снаружи обычной специфичностью (`#id`, `[data-templatename]`) — без `!important`. Авторский `style` остаётся inline: у него приоритет по замыслу автора конфига. Ширина по умолчанию — `FILL_SIZE` (`"100%"`), поэтому контейнер занимает всю ширину ячейки, пока `options.width` не задан явно. Вычисление делегируется [[utils|утилите]] `getWrapperSizeStyle`.
+Размеры уходят styled-пропом `$sizeCss` (класс), а не inline-стилем, поэтому перебиваются снаружи обычной специфичностью (`#id`, `[data-templatename]`) — без `!important`. Авторский `style` остаётся inline: у него приоритет по замыслу автора конфига. При `visibility: false` хук добавляет поверх него `display: "none"`; сам `conditions` здесь не вычисляет, поэтому принимает уже разрешённый узел от **useConditionalConfig**. Ширина по умолчанию — `FILL_SIZE` (`"100%"`), поэтому контейнер занимает всю ширину ячейки, пока `options.width` не задан явно. Вычисление делегируется [[utils|утилите]] `getWrapperSizeStyle`.
 
 `data-id` и `$noMargin` раньше жили на внешней обёртке `ElementValueWrapper`; она вешала их на второй узел поверх этого корня, дублируя стили, и для контейнеров из `ROOT_OWNING_TEMPLATES` больше не создаётся.
 

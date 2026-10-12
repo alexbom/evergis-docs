@@ -52,6 +52,7 @@
 | `elementConfig` | `ConfigContainerChild` |
 | `type` | `WidgetType` |
 | `renderElement` | `RenderElementFunction` |
+| `style` | `CSSProperties?` — стиль существующего корня графика: `ChartWrapper` вне fill, `ChartFillMeasure` при fill |
 
 **Зависимости внутренних хуков:** [[hooks|хуки]] `useChartData`, `useChartChange`, `useChartAxisTitles`, `useChartAxisTickFormat`, `useWidgetContext`, `useGlobalContext`, `useResizeBox` (в fill-режиме — ячейка; при вертикальных подписях осей — тело между ними). `useChartActions` объединяет Actions и прежнюю фильтрацию; событие сохраняет исходное имя и запись независимо от форматированной подписи.
 
@@ -73,7 +74,7 @@
 
 ### ChartWrapper
 
-Обёртка с loading skeleton и позиционированием (width, height, column). Принимает также `onClick?: MouseEventHandler<HTMLDivElement>`: кликабельный график останавливает всплытие до Action родительского контейнера.
+Обёртка с loading skeleton и позиционированием (width, height, column). Принимает также `style?: CSSProperties`, применяемый к `ChartWrapperContainer` поверх рассчитанных `width`/`height`, и `onClick?: MouseEventHandler<HTMLDivElement>`: кликабельный график останавливает всплытие до Action родительского контейнера.
 
 ---
 
@@ -91,6 +92,7 @@
 | `column` | `boolean?` — записи столбиком (`true`) или в ряд (`false`); не задано — раскладку выбирает контейнер |
 | `fontSize` | `string \| number` |
 | `type` | `WidgetType` |
+| `style` | `CSSProperties?` — стиль корневого `Flex` легенды |
 
 **Клики:** использует [[hooks#useChartActions (internal)|useChartActions]] того же `chartElement`, что и сегменты графика. Один сегмент и его запись легенды имеют один источник цепочки. `rawName` сохраняет ключ фильтра при форматировании подписи; `syntheticOther` не кликабелен. Легенда `line` остаётся без новых Actions. Собственное поле `actions` элемента `legend` не создаёт отдельной привязки: исполняются действия связанного графика.
 
@@ -140,7 +142,9 @@
 | `onClick` | `VoidFunction?` | Обработчик действия контейнера |
 | `disabled` | `boolean?` | Блокировка кнопки на время операции или при невалидной форме |
 
-Перед рендером вызывает [[utils#resolveElementStrings|resolveElementStrings]] с источниками [[hooks#useConfigStringSources|useConfigStringSources]]. Приоритет атрибутов: явно переданные `attributes` → атрибуты текущего Action-узла → атрибуты виджета. Поэтому `{name}` внутри записи DataSource подставляет имя записи, а не объекта карточки. Текст берётся из `value`; `options.title` не становится подписью кнопки.
+Внутренний хук `hooks/useContainerButtonConfig.ts` вызывает [[utils#resolveElementStrings|resolveElementStrings]] с источниками [[hooks#useConfigStringSources|useConfigStringSources]]. Приоритет атрибутов: явно переданные `attributes` → атрибуты текущего Action-узла → атрибуты виджета. Поэтому `{name}` внутри записи DataSource подставляет имя записи, а не объекта карточки. Текст берётся из `value`, а при `null` или отсутствии значения — из `options.title`. Хук также используется кнопкой Task до вычисления текста и иконки по статусу.
+
+`ContainerButtonView.tsx` рисует уже обработанную кнопку и применяется всеми четырьмя нативными контейнерами. Он использует общую утилиту `formatElementValue` для корневого `style`, `options.noMargin` и `options.withDivider`. Обёртка добавляется только при явном `style` / `noMargin` или `withDivider: true`; без этих настроек раскладка прежних слотов сохраняется. Task передаёт сюда свои текст, иконку, цвет и блокировку по статусу.
 
 Далее применяется поведение [[elements#ElementButton|ElementButton]]: настроенные `elementConfig.actions` имеют приоритет над переданным `onClick`. Для штатного экспорта или голосования оставляйте Actions у кнопки незаданными.
 
@@ -218,7 +222,7 @@
 
 **Назначение:** Заглушка при ошибке загрузки датасорса (features === null).
 
-**Props:** `{ name: string }`
+**Props:** `{ name: string, style?: CSSProperties }`. Стиль применяется к существующему `DataSourceErrorContainer`.
 
 ---
 
@@ -252,7 +256,16 @@
 
 **Назначение:** Заголовок и описание в шапке FeatureCard. Заголовок разрешается из пропса `title`, иначе из значения `titleAttribute` (источник или layer definition), иначе `feature.id`.
 
-**Props:** `{ title: string, description: string }`
+**Props (`FeatureCardTitleProps`):**
+
+| Prop | Тип | Описание |
+|---|---|---|
+| `title` | `string` | Заголовок объекта |
+| `description` | `string` | Описание; для видимого поля при пустом значении используется `layerInfo.configuration.alias`, затем `name` |
+| `titleConfig` | `ConfigContainerChild?` | Конфиг авторского слота `title` со стилем и видимостью |
+| `descriptionConfig` | `ConfigContainerChild?` | Конфиг авторского слота `description` со стилем и видимостью |
+
+У скалярного содержимого `style` соответствующего конфига применяется к существующей обёртке поля. У React-элемента стиль уже находится на его собственном корне. `visibility: false` скрывает обёртку поля и не включает fallback-текст; правила разрешаются механизмом [[conditional-formatting|условного форматирования]].
 
 ---
 
@@ -269,6 +282,8 @@
 ### ContainerLoading
 
 **Назначение:** Скелетон-лоадер для контейнеров данных.
+
+**Props:** `{ style?: CSSProperties }`. Стиль применяется к существующему корневому `Flex`.
 
 ### ChartLoading
 

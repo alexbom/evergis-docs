@@ -172,7 +172,7 @@ interface ConfigOptions
 | `shape` | `IconButtonShape` | `"square"` — скругление по размеру, `"round"` — пилюля/круг |
 | `iconRight` | `boolean` | Иконка справа от текста |
 
-**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius">`), а через него — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. У AddFeature, ExportPdf и Vote текст задаётся в `value` дочернего элемента; опции оформления принадлежат кнопке, а не контейнеру.
+**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`), а через него — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. Текст задаётся в `value` дочернего элемента или в `options.title`, если `value` отсутствует или равен `null`; опции оформления принадлежат кнопке, а не контейнеру.
 
 ---
 
@@ -213,7 +213,7 @@ interface ConfigOptions
 | `separator` | `string` | Разделитель элементов (Chips) |
 | `lineBreak` | `string` | Кастомный перевод строки |
 
-**Используется в:** `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`. У дочерних кнопок AddFeature, ExportPdf и Vote подпись задаётся в `value`, а не в `options.title`.
+**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`. У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
 
 ---
 
@@ -245,6 +245,7 @@ interface ConfigOptions
 | `layerName` | `string` | ⚠️ entity-ref на `[[concepts#Слои\|ConfigLayer]]` (см. `[[types#Branded types\|LayerName]]`) |
 | `layerNames` | `string[]` | ⚠️ entity-ref на несколько слоёв |
 | `geometryType` | `OgcGeometryType \| EditGeometryType` | Тип геометрии (Point/Polygon/LineString/...) |
+| `defaultAttributes` | `Record<string, unknown>` | Начальные редактируемые атрибуты новой фичи для кнопки AddFeature. Константы без подстановок; перекрывают дефолты, включая `0`, `false`, пустую строку и `null` |
 | `baseMapName` | `string` | Имя базовой карты |
 | `baseMapSettings` | `Record<string, BaseMapSettings>` | Настройки базовых карт (opacity, showBuildings) |
 | `expandedLayers` | `boolean` | Раскрытое состояние дерева слоёв |
@@ -256,7 +257,7 @@ interface ConfigOptions
 | `position` | `PositionDc` | Координаты центра |
 | `resolution` | `number` | Разрешение |
 
-**Используется в:** `AddFeatureButtonChild` (`layerName`, `geometryType` сохранены в типе конфигурации; обработчик [[containers#AddFeatureContainer|AddFeatureContainer]] пока пустой), `LayersContainer` (`layerNames`).
+**Используется в:** `AddFeatureButtonChild` (`layerName`, `geometryType`, `defaultAttributes` задаются отдельно для каждой кнопки [[containers#AddFeatureContainer|AddFeatureContainer]]), `LayersContainer` (`layerNames`). Для AddFeature имя слоя обязательно, а тип геометрии по умолчанию берётся из метаданных слоя.
 
 ---
 
