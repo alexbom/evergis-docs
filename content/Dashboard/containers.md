@@ -79,7 +79,7 @@
 
 **Дети:** кнопки с уникальными `id` и явным `type: "button"`. Без таких детей кнопки не рисуются. Подпись берётся из `value`, а при `null` или отсутствии значения — из `options.title`. Поддерживаются подстановки в обеих подписях, корневой `style` кнопки и общие опции `noMargin` / `withDivider`.
 
-**Опции дочерних элементов (`AddFeatureButtonOptions`):** все [[elements#ElementButton|опции button]] (`variant`, `color`, цветовые флаги, `size`, `shape`, `radius`, `icon`, `iconRight`) плюс:
+**Опции дочерних элементов (`AddFeatureButtonOptions`):** все [[elements#ElementButton|опции button]] (`variant`, `color`, цветовые флаги, `size`, `shape`, `radius`, `icon`, `iconRight`, `iconTop`) плюс:
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -200,8 +200,9 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `twoColumns` | `boolean` | Разместить легенду и график в две колонки |
+| `twoColumns` | `boolean` | Легенда сбоку от графика, а не под ним. Ширина слотов — см. [[#Легенда сбоку (twoColumns)]] |
 | `legendInline` | `boolean` | Легенда встаёт в одну строку справа от подписи оси X. Игнорируется при `twoColumns`, при незаданной подписи оси X и у нелинейных графиков (подписи оси X у них нет) |
+| `align` | `"left" \| "center" \| "right" \| "stretch"` | Только при `twoColumns`: положение пары «график + легенда» в строке, по умолчанию `center`. `stretch` растягивает слот графика на свободное место, тело центрируется в нём |
 | `hideEmpty` | `boolean` | Скрыть контейнер при отсутствии данных |
 | `fill` | `boolean` | Вписать **тело графика** в контейнер (аналог `object-fit: contain`): по ширине — всегда, по высоте — только если задана `height` контейнера |
 
@@ -228,6 +229,22 @@
 
 Подписи самих осей Y рисует элемент `chart` — см. [[elements#ElementChart|ElementChart]].
 
+#### Легенда сбоку (`twoColumns`)
+
+График и легенда стоят в одной строке. Ширина слотов зависит от `fill`:
+
+- **без `fill`** — слоты по содержимому: слот графика шириной в тело (`options.width` элемента `chart` или дефолт типа), легенда — по записям, при нехватке места сжимается. Пара стоит по центру строки, `align` сдвигает её влево или вправо. Без легенды слот графика тоже по содержимому.
+- **тело шириной в процентах** — `stack` по умолчанию или `width` вида `"100%"`. Слот по содержимому такому телу не подходит: процент считался бы от него самого. Поэтому слот забирает свободное место строки, но не меньше половины. Так же действует `align: "stretch"`.
+- **`fill`** — легенда по своим записям, слот графика забирает остаток строки, но не меньше половины; без легенды — строку целиком. Ширина слота от тела не зависит (`flex: 1 1 0` и явный `min-width`), иначе тело, которое меряет слот, и слот, который растёт по телу, кормили бы друг друга. Слот тянется на всю высоту строки (`align-self: stretch`), поэтому при заданной `height` контейнера тело вписывается в высоту ячейки так же, как при легенде снизу. Круг вписывается по короткой стороне слота и стоит по центру: если короче ширина, лишняя высота уходит поровну над кругом и под ним.
+
+`align` сдвигает пару, только пока у строки есть свободное место. В `fill` и у тела шириной в процентах слот графика забирает его целиком, и все значения выглядят одинаково. Все значения рядом — история Storybook **Containers/Chart → Align**.
+
+> [!warning] Высота слота при легенде сбоку
+> Строка (`ContainerValue`) центрирует детей по вертикали (`align-items: center`), и проп `alignItems` эту декларацию не перебивает: styled-system эмитит его в базовом классе `Flex`, а правила `styled(Flex)` идут позже. Растяжение по высоте задаётся самому слоту (`align-self`) — иначе он сжимается до содержимого, и тело в fill меряет само себя и застывает на размере первого кадра.
+
+> [!warning] Выравнивание строки по горизонтали
+> Колонка `Container` (`isColumn`) задаёт прямым детям `justify-content: flex-start` правилом `&&& > *` (три класса). Строка `ContainerValue` — прямой ребёнок тела контейнера, поэтому её собственное `justify-content` проигрывает, и `align` поднят над правилом колонки (`&&&&`).
+
 #### Как работает `fill`
 
 Элемент `chart` рендерится через `renderElement({ id: "chart" })` и опций контейнера не видит, поэтому `ChartContainer` передаёт режим через контекст `FillContext` (`{ fill, fitHeight }`, где `fitHeight = fill && height != null`), а компонент `Chart` читает его через `useContext`.
@@ -235,7 +252,7 @@
 - **По ширине** обёртка растягивается на `100%`, а телу графика отдаётся реально измеренная ширина ячейки: d3-графики требуют пиксельное число, а не CSS `100%`. Измерение — [[hooks|хук]] `useResizeBox` (ResizeObserver) на внешней обёртке `ChartFillMeasure`; без `fill` наблюдение отключено и лишних ре-рендеров нет.
 - **По высоте** фит включается только при заданной `height` контейнера. Тогда `chartHeight` означает не «высоту тела», а **всю доступную высоту ячейки**, из которой вычитается обвес: подписи оси X и внешний отступ у BarChart, строка итога у StackBar (её высота не прибавляется, а забирается флексом), строка горизонтальных подписей осей у линейного графика. Круглый график (`pie`) вписывается по короткой стороне и центрируется.
 - **Выступы подписей шкал.** `ChartFillMeasure` режет всё, что выходит за SVG (`overflow: hidden`), поэтому у линейного графика под выступающие подписи резервируются поля: снизу под подписи оси X (`LINE_CHART_LABEL_MARGIN`), сверху под верхнее деление шкал, которое d3 центрирует на верхней линии сетки (`Y_AXIS_LABEL_OVERHANG`). Без верхнего резерва значения верхнего деления обеих осей срезались наполовину.
-- Без `fill` поведение прежнее: `options.width`/`options.height` элемента `chart` задают фиксированную геометрию.
+- Без `fill` геометрию задают `options.width`/`options.height` элемента `chart` — см. [[elements#ElementChart|ElementChart]].
 
 ```tsx
 {
@@ -254,7 +271,7 @@
 {
   id: "types_chart",
   templateName: "Chart",
-  options: { twoColumns: true },
+  options: { twoColumns: true, align: "left" },
   children: [
     { id: "alias", value: "Распределение по типам" },
     {
@@ -607,7 +624,7 @@
 
 **Props:** `ContainerProps`
 
-**Слоты (`children`):** `alias`, `value`. У **подтипов** `Edit*` набор другой — `alias` и `tooltip`: контрол (инпут, свитч, дропдаун, календарь) встроен в сам контейнер, поэтому слота `value` у них нет. `EditAttachment` рендерит только `alias`, а `EditGroup` клонирует своих детей в разрешённый по типу атрибута `Edit*`-шаблон (плюс `units`/`icon` из [[hooks|`useRenderContainerItem`]]).
+**Слоты (`children`):** `alias`, `value`. У **подтипов** `Edit*` набор другой — `alias` и `tooltip`: контрол (инпут, свитч, дропдаун, календарь) встроен в сам контейнер, поэтому слота `value` у них нет. Атрибут поля подтип берёт из `attributeName` самого узла (`EditGroup` проставляет его каждому полю). Ребёнок `{ id: "value", attributeName }` тоже поддерживается и приоритетнее узла. Без атрибута поля контейнер правит атрибут первого контрола из `options.controls`. `EditAttachment` рендерит только `alias`, а `EditGroup` клонирует своих детей в разрешённый по типу атрибута `Edit*`-шаблон (плюс `units`/`icon` из [[hooks|`useRenderContainerItem`]]).
 
 **Типы EditContainer:** `templateName = "Edit"` · `EditContainerOptions` (Record<string, never>) · `EditContainerProps`.
 
@@ -625,6 +642,7 @@
 | `EditGroupContainer` | `EditGroup` | `controls`, `useProjectHiddenAttributes`, `expandable`, `expanded` | Группа edit-полей (использует [[hooks\|`useEditGroupAttributes`]] для фильтрации) |
 | `EditNumberContainer` | `EditNumber` | `controls` | Числовой инпут |
 | `EditStringContainer` | `EditString` | `controls` | Строковый текстовый инпут |
+| `EditTextContainer` | `EditText` | `controls` | Многострочное поле (`Textarea` из uilib-gl) с авто-высотой и пределами высоты (см. ниже) |
 | `EditAttachmentContainer` | `EditAttachment` | `parentResourceId`, `fileExtensions`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` | Редактируемый список вложений (см. ниже) |
 
 **Общие опции для полей редактирования:**
@@ -637,19 +655,65 @@
 | `required` | `boolean` | Обязательное поле |
 | `placeholder` | `string` | Placeholder для текстовых полей |
 
-**Опции EditDropdown / EditChips:**
+**Варианты EditDropdown / EditChips** задаются в контроле `options.controls[i]` (`ConfigControl`). Контейнер находит свой контрол по `targetAttributeName`, равному атрибуту поля (`attributeName` узла), а без атрибута поля берёт первый контрол.
 
-| Опция | Тип | Описание |
+| Поле контрола | Тип | Описание |
 |---|---|---|
+| `targetAttributeName` | `string` | Атрибут объекта, значение которого правится |
 | `relatedDataSource` | `string` | Источник данных для вариантов выбора |
-| `items` | `{ text, value }[]` | Статический список вариантов |
+| `attributeName` | `string` | Атрибут записи источника с текстом варианта (он же значение) |
+| `variants` | `IOption[] \| ChipOption[]` | Статический список вариантов вместо источника |
+| `iconAttribute` | `string` | Атрибут записи `relatedDataSource` с иконкой варианта (`EditDropdown`). У `variants` иконка берётся из их собственного поля `icon` |
+| `icon` | `string` | Иконка варианта без своей иконки (`EditDropdown`) |
+| `placeholder` | `string` | Placeholder |
+| `defaultValue` | `EditAttributeValue` | Значение, если у объекта атрибут пустой |
+
+Значение иконки (`iconAttribute`, `icon`, `variants[].icon`) — имя иконки шрифта дизайн-системы, адрес или идентификатор ресурса картинки. Имя иконки рисуется шрифтом, SVG — инлайном с перекраской в цвет иконок темы, растровый файл — картинкой как есть. Иконка видна и в списке, и в поле у выбранного значения.
 
 ```tsx
 {
-  id: "status_dropdown",
+  id: "object_type_edit",
   templateName: "EditDropdown",
-  options: { attributeName: "status", relatedDataSource: "statuses_ds" },
-  children: [{ id: "alias", value: "Статус" }]
+  attributeName: "object_type",
+  options: {
+    controls: [{
+      type: "dropdown",
+      targetAttributeName: "object_type",
+      relatedDataSource: "object_types",
+      attributeName: "name",
+      iconAttribute: "icon",
+      icon: "star"
+    }]
+  },
+  children: [{ id: "alias", value: "Тип объекта" }]
+}
+```
+
+**Многострочное поле EditText** включается контролом `type: "text"`: `getControlTemplateName` переводит его в шаблон `EditText`, поэтому в `EditGroup` достаточно указать контрол. Вместо однострочного `Input` поле рендерит `Textarea`. `relatedDataSource` и `variants` у `text` не действуют — автокомплита, как у `string`, нет.
+
+| Поле контрола | Тип | Описание |
+|---|---|---|
+| `autoResize` | `boolean` | Высота поля растёт под текст, ручной resize отключается |
+| `minHeight` | `number` | Минимальная высота в пикселях. С `autoResize` по умолчанию 36 |
+| `maxHeight` | `number` | Максимальная высота в пикселях: дальше текст прокручивается внутри поля |
+
+Без `autoResize` поле держит стандартную высоту `Textarea`, а `minHeight`/`maxHeight` только ограничивают её.
+
+```tsx
+{
+  id: "description_edit",
+  templateName: "EditText",
+  attributeName: "description",
+  options: {
+    controls: [{
+      type: "text",
+      targetAttributeName: "description",
+      autoResize: true,
+      minHeight: 60,
+      maxHeight: 200
+    }]
+  },
+  children: [{ id: "alias", value: "Описание" }]
 }
 ```
 
@@ -746,7 +810,7 @@
 
 Тип фильтра задаётся полем `type` дочернего элемента (один из **FilterType**), не через опции.
 
-Набор `FilterChildOptions` — объединение того, что реально читают все восемь реализаций фильтра: `dropdown` берёт `variants`/`noEmptyOption`, `text` — `searchFilterName` и `multiSelect`, `chips` — цвета и иконку, `rangeNumber` — `step` и границы, `rangeDate` — `withTime`, `barChart` — геометрию столбцов и палитру.
+Набор `FilterChildOptions` — объединение того, что реально читают все восемь реализаций фильтра: `dropdown` берёт `variants`/`noEmptyOption` и иконку, `text` — `searchFilterName` и `multiSelect`, `chips` — цвета и иконку, `rangeNumber` — `step` и границы, `rangeDate` — `withTime`, `barChart` — геометрию столбцов и палитру.
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -769,8 +833,8 @@
 | `height` | `CssSize` | Высота контрола фильтра |
 | `align` | `"left" \| "center" \| "right"` | Выравнивание содержимого |
 | `maxTextWidth` | `number` | Максимальная ширина текста в px |
-| `icon` | `IconTypesKeys` | Иконка (`chips`) |
-| `iconAttribute` | `string` | Атрибут, из которого брать иконку |
+| `icon` | `IconTypesKeys` | Иконка варианта без своей иконки (`chips`, `dropdown`). В `dropdown` пустой опции-плейсхолдеру не ставится |
+| `iconAttribute` | `string` | Атрибут записи `relatedDataSource` с иконкой варианта (`chips`, `dropdown`). У `variants` иконка берётся из их собственного поля `icon`. Значение — имя иконки шрифта, адрес или идентификатор ресурса картинки; в `dropdown` иконка видна и в списке, и в поле у выбранного значения |
 | `colorAttribute` | `string` | Атрибут, определяющий цвет |
 | `fontColor` | `string` | Цвет текста |
 | `backgroundColor` | `string` | Цвет фона |

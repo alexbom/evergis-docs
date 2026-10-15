@@ -74,7 +74,7 @@
 
 ### ChartWrapper
 
-Обёртка с loading skeleton и позиционированием (width, height, column). Принимает также `style?: CSSProperties`, применяемый к `ChartWrapperContainer` поверх рассчитанных `width`/`height`, и `onClick?: MouseEventHandler<HTMLDivElement>`: кликабельный график останавливает всплытие до Action родительского контейнера.
+Обёртка с loading skeleton и размерами (`width`, `height`). Принимает также `style?: CSSProperties`, применяемый к `ChartWrapperContainer` поверх рассчитанных `width`/`height`, и `onClick?: MouseEventHandler<HTMLDivElement>`: кликабельный график останавливает всплытие до Action родительского контейнера.
 
 ---
 
@@ -226,6 +226,27 @@
 
 ---
 
+## DropdownResultOptions
+
+**Назначение:** Значение в поле `Dropdown` из uilib-gl — передаётся в его проп `renderResultOptions`. Повторяет встроенную отрисовку uilib и добавляет к ней `prefix` опции. Встроенная показывает у выбранного значения только шрифтовую `icon`, поэтому иконка-картинка из `prefix` без этого компонента видна лишь в раскрытом списке. Используется в [[containers#FiltersContainer|`dropdown`-фильтре]], [[containers#EditContainer|EditDropdown]] и [[elements#ElementControl|ElementControl]] вместе с [[utils#withOptionIcons|утилитой]] `withOptionIcons`.
+
+**Props (`DropdownResultOptionsProps`):**
+- `items: IJSXOption[]` — выбранные опции, то, что Dropdown передаёт в `renderResultOptions`. Пустой список — `Placeholder` с `placeholder`. Опция без `value` тоже рисуется плейсхолдером, а при пустом `placeholder` — своим `text`
+- `placeholder?: string` — текст пустого поля
+
+Несколько выбранных опций выводятся через запятую: `prefix`, затем шрифтовая `icon` в `DropdownOptionIcon`, затем `text`.
+
+```tsx
+const renderResultOptions = useCallback(
+  (items: IJSXOption[]) => <DropdownResultOptions items={items} placeholder={placeholder} />,
+  [placeholder],
+);
+
+<Dropdown options={withOptionIcons(options, icon)} renderResultOptions={renderResultOptions} />
+```
+
+---
+
 ## ExpandableTitle
 
 **Назначение:** Заголовок с возможностью раскрытия/сворачивания контейнера. Рендерит `TitleContainer`.
@@ -306,6 +327,20 @@
 | `className` | `string?` |
 | `styles` | `CSSProperties?` |
 | `terminalOptions` | `ITerminalOptions & ITerminalInitOnlyOptions?` |
+
+---
+
+## OptionIcon
+
+**Назначение:** Иконка-картинка опции выпадающего списка по адресу. SVG (адрес на `.svg` или файл каталога `/sp/resources/file/…`, см. [[utils#isIconKind · isSvgIconUrl · resolveIconValue|isSvgIconUrl]]) рисуется инлайном через `SvgImage` и перекрашивается в цвет иконок темы (`theme.palette.icon`). Растровый файл загружается с токеном через [[hooks#useFetchImageWithAuth|хук]] `useFetchImageWithAuth` и выводится картинкой как есть; пока она не загружена, компонент ничего не рендерит. Сторона иконки — `OPTION_ICON_SIZE` (16 px), как у шрифтовой иконки опции. Обёртка — строчный flex, чтобы в поле иконка стояла в одной строке с текстом значения.
+
+Напрямую обычно не используется: его создаёт [[utils#getOptionIcon|утилита]] `getOptionIcon` и кладёт в `prefix` опции, когда значение иконки — не имя иконки шрифта.
+
+**Props (`OptionIconProps`):** `url: string` — готовый адрес картинки, уже после `getResourceUrl`.
+
+```tsx
+<OptionIcon url={getResourceUrl("icons/building.svg")} />
+```
 
 ---
 

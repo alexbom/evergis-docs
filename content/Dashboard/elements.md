@@ -77,6 +77,7 @@
 | `radius` | `number` | Скругление вручную, px |
 | `icon` | `IconTypesKeys` | Иконка кнопки |
 | `iconRight` | `boolean` | Иконка справа от текста |
+| `iconTop` | `boolean` | Иконка над текстом, текст по центру с переносом по словам; перекрывает `iconRight` |
 | `title` | `string` | Подпись при отсутствии `value` или при `value: null`; поддерживает подстановки |
 | `noMargin` | `boolean` | Убрать нижний отступ обёртки узла |
 | `withDivider` | `boolean` | Разделитель после узла кнопки |
@@ -85,7 +86,7 @@
 - Приоритет подписи: внешний prop `title` → `value` → `options.title`. Явное `value: ""` сохраняет кнопку без подписи, `value: 0` выводится как «0».
 - Общий рендерер применяет корневой `style`, `noMargin` и `withDivider`. Для нативных слотов AddFeature, ExportPdf, Vote и Task это делает [[components#ContainerButton (internal)|ContainerButtonView]]; без явных настроек обёртка не добавляется, раскладка сохраняется.
 - Приоритет клика: обработчик Actions → внешний `onClick` → `window.open(url)` из `attributeName`. Без обработчика и строковой ссылки кнопка **не рендерится**.
-- Без обработчика и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`) — прежняя кнопка-ссылка `ImageContainerButton`.
+- Без обработчика и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`, `iconTop`) — прежняя кнопка-ссылка `ImageContainerButton`.
 - Если задана хоть одна опция внешнего вида или есть обработчик Actions/`onClick` — `IconButton` из `@evergis/uilib-gl` (пропсы собирает `getElementButtonProps` из `elements/ElementButton/utils/`).
 
 ```tsx
@@ -160,7 +161,6 @@
 | `chartType` | `"bar" \| "line" \| "pie" \| "stack"` | Тип графика (`ChartType` union) |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Источники данных для серий: `{ dataSourceName, attributeName, attributeTitle, alias, axis }`. Настройки оси — во вложенном `axis`, см. ниже |
 | `axis` | `ConfigChartAxisOptions` | Общие настройки осей линейного графика: `titlePosition` (`"side"` \| `"top"`) и `x` (`title`, `align`) |
-| `column` | `boolean` | Вертикальная раскладка |
 | `markers` | `BarChartMarker[] \| string` | Маркеры на барчарте (массив или имя датасорса) |
 | `showLabels` | `boolean` | Подписи столбцов |
 | `showMarkers` | `number` | Шаг показа маркеров |
@@ -171,7 +171,7 @@
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 | `defaultColor` | `string` | Цвет по умолчанию (PieChart-секторов) |
 | `dotSnapping` | `boolean` | Привязка точек LineChart |
-| `height`, `width` | `number` | Размеры |
+| `height`, `width` | `number` | Размеры тела графика в пикселях (без `fill` контейнера). Дефолты по типу — ниже |
 | `radius` | `number` | Радиус PieChart |
 | `padding` | `number` | Внутренние отступы |
 | `fontColor` | `string` | Цвет текста |
@@ -195,6 +195,19 @@
   }
 }
 ```
+
+#### Геометрия тела по типу
+
+Без `fill` контейнера размеры тела берутся из `width`/`height`, а если они не заданы — из дефолтов типа:
+
+| Тип | Ширина без `width` | Высота |
+|---|---|---|
+| `pie` | 154 (`DEFAULT_CHART_WIDTH`) | Равна диаметру. `height` на круг не влияет и пустой бокс под ним не создаёт |
+| `bar` | По числу столбцов: `столбцы × (barWidth + padding)`, но не меньше 154. Пока данных нет — 300 (`MAX_CHART_WIDTH`) | `height`, по умолчанию 90 |
+| `line` | 154 | `height` плюс строка горизонтальных подписей осей |
+| `stack` | `100%` слота | Толщина полосы — `height` |
+
+С `fill` контейнера ширина и высота измеряются по ячейке — см. [[containers#Как работает `fill`|Как работает fill]].
 
 #### Оси линейного графика
 
@@ -295,9 +308,11 @@
 | `label` | `string` | Подпись элемента управления |
 | `width` | `string \| number` | Ширина элемента |
 | `placeholder` | `string` | Placeholder |
-| `control` | `ConfigControl` | Конфиг контрола: `{ type, targetAttributeName, attributeName }` |
+| `control` | `ConfigControl` | Конфиг контрола: `{ type, targetAttributeName, attributeName, variants, iconAttribute, icon }` |
 
-`ConfigControl.type`: `"dropdown"` \| `"chips"` \| `"checkbox"` \| `"string"`.
+`ConfigControl.type`: `"dropdown"` \| `"chips"` \| `"checkbox"` \| `"string"` \| `"text"` (`text` — многострочное поле [[containers#Подтипы EditContainer\|`EditText`]], у элемента `control` не используется).
+
+**Иконки вариантов.** `control.iconAttribute` — атрибут записи `relatedDataSource` с иконкой варианта. У `control.variants` иконка берётся из их собственного поля `icon`. `control.icon` — запасная иконка для варианта без своей. Значение — имя иконки шрифта, адрес или идентификатор ресурса картинки (см. [[utils#getOptionIcon|`getOptionIcon`]]). Иконка видна и в списке, и в поле у выбранного значения.
 
 **Поведение:** загружает items из `dataSource`, по выбору вызывает `changeControls({ [targetAttributeName]: value })`. Проверяет `isEditable` из `layerInfo`.
 
@@ -421,10 +436,9 @@ SVG-ресурс отображается как обычная картинка
 | `twoColumns` | `boolean` | Отображать легенду в две колонки |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Источники данных (для line-чарта — оси Y). Имя записи в легенде берётся из `alias`, цвет метки — из `axis.color` |
 | `fontSize` | `string \| number` | Размер шрифта элементов легенды |
-| `chartType` | `ChartType` | Тип привязанного чарта (`bar` \| `line` \| `pie` \| `stack`) |
 | `column` | `boolean` | Направление записей: `false` — в ряд, `true` — столбиком. Не задано — легенда сама по себе идёт столбиком, а внутри [[containers#ChartContainer\|ChartContainer]] раскладку выбирает контейнер (под графиком — в ряд, сбоку — столбиком). Явная опция перебивает выбор контейнера |
 
-**Поведение:** для line-чарта — показывает оси Y как элементы легенды; для bar/pie — items из `data[0].items` с alias из атрибутов.
+**Поведение:** для line-чарта — показывает оси Y как элементы легенды; для bar/pie — items из `data[0].items` с alias из атрибутов. Тип графика легенда берёт у элемента, на который указывает `chartId`, — своей опции типа у неё нет.
 
 **Actions:** клики записей использует связанный элемент `chart`, а не собственное поле `actions` легенды. Действия элемента графика перекрывают действия его `ChartContainer`; пустой `chart.actions: []` отключает наследование. Для `line` клики Actions не добавляются. Синтетическая запись «Другое» не кликабельна; обычная одноимённая запись работает. См. [[actions#Поверхности клика и совместимость|Поверхности клика]].
 

@@ -493,7 +493,7 @@ const response = await load(source, undefined, 0);
 
 ## useEditControl
 
-**Назначение:** Логика для edit-контролов. Находит контрол по `targetAttributeName`, разрешает текущее значение (из `controls` или `attributes`, с фоллбэком на `defaultValue`), собирает список вариантов (из `variants` контрола или features связанного источника) и обработчик изменения. При наличии `defaultValue` и отсутствии значения проставляет его в `controls`. Internal-хук (не экспортируется).
+**Назначение:** Логика для edit-контролов. Находит контрол по `targetAttributeName`, равному атрибуту поля: `attributeName` ребёнка `{ id: "value" }`, если он есть, иначе `attributeName` самого узла. Без атрибута поля берёт первый контрол. Разрешает текущее значение (из `controls` или `attributes`, с фоллбэком на `defaultValue`), собирает список вариантов (из `variants` контрола или features связанного источника) и обработчик изменения. При наличии `defaultValue` и отсутствии значения проставляет его в `controls`. Internal-хук (не экспортируется).
 
 **Параметры:**
 | Параметр | Тип |
@@ -501,11 +501,12 @@ const response = await load(source, undefined, 0);
 | `type` | `WidgetType` |
 | `elementConfig` | `ConfigContainerChild` |
 
-**Возвращает:** `{ control, value, dataSource, items, onChange }`
+**Возвращает:** `{ control, value, dataSource, items, itemIcons, onChange }`
 - `control` — найденный `ConfigControl | undefined`
 - `value` — текущее значение атрибута (с учётом `defaultValue`)
 - `dataSource` — связанный источник данных контрола
 - `items` — `string[]` варианты значений
+- `itemIcons` — сырые иконки вариантов, по индексу совпадают с `items`: `icon` из `variants` или атрибут `iconAttribute` записей источника
 - `onChange` — `(value: EditAttributeValue) => void`
 
 ---

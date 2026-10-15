@@ -30,15 +30,15 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 
 ## @evergis/uilib-gl
 
-Контролы и ввод: `AutoComplete`, `Checkbox`, `ColorPicker`, `DatePicker`, `Dropdown`, `DropdownField`, `Input`, `NumberInput`, `NumberRangeSlider`, `RangeNumberInput`, `Slider`, `Switch`, `TreeDropdown`, `TreeId`, `TreeItemProps`, `MultiSelectContainer`, `ComplexOptionText`, `PartialLoadData`, `useAsyncAutocomplete`.
+Контролы и ввод: `AutoComplete`, `Checkbox`, `ColorPicker`, `DatePicker`, `Dropdown`, `DropdownField`, `Input`, `NumberInput`, `NumberRangeSlider`, `Radio`, `RadioGroup`, `RangeNumberInput`, `Slider`, `Switch`, `Textarea`, `TreeDropdown`, `TreeId`, `TreeItemProps`, `MultiSelectContainer`, `ComplexOptionText`, `PartialLoadData`, `useAsyncAutocomplete`.
 
 Кнопки и действия: `ActionsGroup`, `FlatButton`, `IconButton`, `IIconButtonProps`, `IconButtonVariant`, `IconButtonSize`, `IconButtonShape`, `IconButtonButton`, `IconButtonInnerChild`, `IconToggle`, `IconToggleButton`, `RaisedButton`, `Menu`, `Popover`, `Popup`.
 
-Раскладка и типографика: `Blank`, `Chip`, `Description`, `Divider`, `Flex`, `FlexSpan`, `H2`, `Icon`, `IconTypesKeys`, `LegendToggler`, `Tooltip`, `Dialog`, `DialogActions`, `DialogContent`, `DialogTitle`.
+Раскладка и типографика: `Blank`, `Chip`, `Description`, `Divider`, `DropdownOptionIcon`, `Flex`, `FlexSpan`, `H2`, `Icon`, `IconTypesKeys`, `LegendToggler`, `Placeholder`, `Tooltip`, `Dialog`, `DialogActions`, `DialogContent`, `DialogTitle`.
 
 Загрузка и файлы: `CircularProgress`, `LinearProgress`, `Preview`, `IPreviewImage`, `Uploader`, `UploaderItemArea`, `UploaderItemProps`, `UploaderTitleWrapper`.
 
-Тема и утилиты: `ITheme`, `ThemeProvider`, `defaultTheme`, `darkTheme`, `shadows`, `transition`, `getLocale`, `dateFormat`, `IOption`, `IJSXOption`, `INotificationItem`, `DraggableTreeContainer`, `useDragAndDropEffect`.
+Тема и утилиты: `ITheme`, `ThemeProvider`, `defaultTheme`, `darkTheme`, `shadows`, `transition`, `getLocale`, `dateFormat`, `iconTypes`, `IOption`, `IJSXOption`, `INotificationItem`, `DraggableTreeContainer`, `useDragAndDropEffect`.
 
 ## @evergis/charts
 

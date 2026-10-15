@@ -330,6 +330,7 @@ interface SelectedFilter {
 ```ts
 interface ConfigLayer {
   name: string;          // идентификатор слоя в ГИС
+  clientStyle?: ClientStyle; // стиль слоя только на этой странице, см. ниже
   opacity: number;       // прозрачность 0–1
   condition?: string;    // EQL-фильтр для отображения объектов
   query?: string;        // EQL-запрос
@@ -343,6 +344,8 @@ interface ConfigLayer {
   notifications?: ConfigNotifications; // "all" | "my" | string[] — чьи изменения слоя применять, см. [[#Фильтр уведомлений по автору — notifications]]
 }
 ```
+
+`clientStyle` задаёт стиль слоя на этой странице дашборда, не меняя `configuration.clientStyle` ресурса каталога. Стиль применяется везде, где виден слой: карта, 3D-модели, кликабельность объектов, подсветка выделенного объекта, легенда, иконка в списке слоёв. Приоритет: предпросмотр стилизации слоя → `clientStyle` страницы → стиль каталога. `{ "items": [] }` скрывает слой с карты и из легенды; пустой объект `{}` равносилен отсутствию поля. В клиенте стиль страницы подмешивается хуком `useLayerTempStyle`, итоговый стиль слоя отдаёт `useActualLayerStyle`.
 
 `query` и `parameters` слоя проходят ту же подстановку, что и условия источников данных: фильтры страницы (`%name`, `%name.min` / `.max`, `%name.lN`), атрибуты карточки (`{attributeName}`, `$card:<layer>:<field>`), системные значения карты `%geometry` / `%extent` / `%zoom` (см. [[#Системные фильтры карты]]) и значения проекта `%project` / `%project.name` / `%project.alias` (см. [[#Текущий проект]]). В UI значение параметра переключается на подстановку кнопкой «%» в панели фильтров слоя — список предлагает фильтры текущей страницы плюс шесть системных плейсхолдеров.
 
@@ -412,7 +415,7 @@ interface ConfigLayer {
 | `UploadContainer` | `uploader` |
 | `AttachmentContainer` | `alias`; `value` — источник вложений, если не задан `relatedDataSource` |
 | `EditContainer` (базовый, `templateName: "Edit"`) | `alias`, `value` |
-| Подтипы `Edit*` (`EditString`, `EditNumber`, `EditBoolean`, `EditDropdown`, `EditChips`, `EditCheckbox`, `EditDate`) | `alias`, `tooltip` — контрол встроен в контейнер, слота `value` у них **нет** |
+| Подтипы `Edit*` (`EditString`, `EditText`, `EditNumber`, `EditBoolean`, `EditDropdown`, `EditChips`, `EditCheckbox`, `EditDate`) | `alias`, `tooltip` — контрол встроен в контейнер, слота `value` у них **нет** |
 | `EditAttachmentContainer` | `alias` |
 | `EditGroupContainer` | `alias`, `tooltip` (+ `units`, `icon` — их читает [[hooks\|`useRenderContainerItem`]]); дети клонируются в разрешённый по типу атрибута `Edit*`-шаблон |
 | `DataSourceContainer`, `DataSourceProgressContainer` | slot-id **внутреннего шаблона** `options.innerTemplateName`, а не собственные слоты хоста — см. раздел «[[concepts#Рендеринг записей источника — innerTemplateName\|Рендеринг записей источника]]» |

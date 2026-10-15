@@ -57,7 +57,7 @@ interface ConfigOptions
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
 | `legendInline` | `boolean` | `ChartContainer`: легенда в одной строке справа от подписи оси X. Игнорируется при `twoColumns`, без подписи оси X и у нелинейных графиков |
 | `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
-| `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце |
+| `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце. У `ChartContainer` с легендой сбоку (`twoColumns`) — положение пары «график + легенда» в строке (по умолчанию `center`); `stretch` растягивает слот графика на свободное место, см. [[containers#ChartContainer\|ChartContainer]] |
 | `columns` | `number` | Число плиток в строке ряда плиточного контейнера (включает grid-режим) |
 | `gap` | `number` | Отступ **между плитками**, px. Читает `DataSourceContainer`. Дефолт `8` (в ряду без `columns` — `0.5rem`). В сетке (`grid`) — зазор между треками: у сетки между строками, у `GridRow` между ячейками, дефолт `0` |
 | `innerGap` | `number` | Отступ **между элементами внутри плитки** (иконка ↔ значение ↔ подпись, значение ↔ единицы), px. Читает `RoundedBackgroundContainer`. Не задан — исторические значения (`0.25rem` над подписью и до единиц в строку, `0.5rem` в режиме `big` между блоком иконки и значением; под иконкой и под значением у единиц зазора нет) |
@@ -171,6 +171,7 @@ interface ConfigOptions
 | `size` | `IconButtonSize` | `"small"` \| `"medium"` \| `"large"` \| `"xlarge"` — высота 24 / 32 / 40 / 48. По умолчанию `"medium"` |
 | `shape` | `IconButtonShape` | `"square"` — скругление по размеру, `"round"` — пилюля/круг |
 | `iconRight` | `boolean` | Иконка справа от текста |
+| `iconTop` | `boolean` | Иконка над текстом, текст по центру с переносом по словам, шеврон — под текстом; перекрывает `iconRight` |
 
 **Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`), а через него — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. Текст задаётся в `value` дочернего элемента или в `options.title`, если `value` отсутствует или равен `null`; опции оформления принадлежат кнопке, а не контейнеру.
 
@@ -281,7 +282,7 @@ interface ConfigOptions
 | `fileExtensions` | `string` | Допустимые расширения файлов (например, `".pdf,.png"`) |
 | `editOnly` | `boolean` | Оставить таблице ([[elements#ElementTable\|`table`]]) только правку существующих строк: кнопки «Добавить» и колонки удаления не будет. Поверх `editMode` контейнера. Опция объявлена у представления, а читает её [[containers#StructuredDataContainer\|контейнер]] — кнопка добавления его |
 
-**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild`, `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`).
+**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditTextContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild`, `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`).
 
 ---
 

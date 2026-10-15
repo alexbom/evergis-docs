@@ -116,6 +116,7 @@ Slot-id обязателен у каждого элемента — без не�
 | `EditGroupContainerConfig` | `ContainerTemplate.EditGroup` |
 | `EditBooleanContainerConfig` | `ContainerTemplate.EditBoolean` |
 | `EditStringContainerConfig` | `ContainerTemplate.EditString` |
+| `EditTextContainerConfig` | `ContainerTemplate.EditText` |
 | `EditNumberContainerConfig` | `ContainerTemplate.EditNumber` |
 | `EditDropdownContainerConfig` | `ContainerTemplate.EditDropdown` |
 | `EditChipsContainerConfig` | `ContainerTemplate.EditChips` |
@@ -193,14 +194,14 @@ const child: StrictConfigContainerChild = {
 
 | Component | `type` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`) + `icon`, `radius`, `title`, `noMargin`, `withDivider` |
+| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`, `iconTop`) + `icon`, `radius`, `title`, `noMargin`, `withDivider` |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
-| `ElementChart` | `"chart"` | `column`, `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
+| `ElementChart` | `"chart"` | `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
 | `ElementControl` | `"control"` | `relatedDataSource`, `label`, `width`, `control`, `placeholder` |
 | `ElementIcon` | `"icon"` | `fontSize`, `fontColor` |
 | `ElementImage` | `"image"` | `width`, `height`, `fit`, `resourceId`, `url` |
-| `ElementLegend` | `"legend"` | `twoColumns`, `chartId`, `relatedDataSources`, `fontSize`, `chartType`, `column` |
+| `ElementLegend` | `"legend"` | `twoColumns`, `chartId`, `relatedDataSources`, `fontSize`, `column` |
 | `ElementLink` | `"link"` | `simple`, `title` |
 | `ElementMarkdown` | `"markdown"` | `expandLength`, `noMargin`, `typography` |
 | `ElementModal` | `"modal"` | `modalId`, `icon` |
@@ -217,7 +218,7 @@ const child: StrictConfigContainerChild = {
 | `AddFeatureContainer` | `AddFeature` | — (опции у `AddFeatureButtonChild`: `ElementButtonOptions` + `layerName`, `geometryType`, `defaultAttributes`; текст — `value` или `options.title`) |
 | `AttachmentContainer` | `Attachment` | `expandable`, `expanded`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` + `ContainerBoxOptions` |
 | `CameraContainer` | `Camera` | `expandable`, `expanded` + `ContainerBoxOptions` |
-| `ChartContainer` | `Chart` | `twoColumns`, `legendInline`, `hideEmpty`, `fill` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
+| `ChartContainer` | `Chart` | `twoColumns`, `legendInline`, `hideEmpty`, `fill`, `align` + `ContainerBoxOptions` (+ дети: `ChartAliasChild`, `ChartChartChild`, `ChartLegendChild`, `ChartTitleChild`, `ChartTitleIconChild`) |
 | `ContainersGroupContainer` | `ContainersGroup` | `column`, `expandable`, `expanded`, `alignItems`, `grid`, `editMode`, `fixedHeight`, `autoHeight`, `gap` + `ContainerBoxOptions` |
 | `GridRowContainer` | `GridRow` | `gap`, `alignItems`, `autoHeight` + `ContainerBoxOptions` |
 | `DataSourceContainer` | `DataSource` | `column`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `columns`, `gap`, `innerGap`, `align`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
@@ -229,6 +230,7 @@ const child: StrictConfigContainerChild = {
 | `EditGroupContainer` | `EditGroup` | `controls`, `useProjectHiddenAttributes`, `expandable`, `expanded` |
 | `EditBooleanContainer` | `EditBoolean` | `controls` |
 | `EditStringContainer` | `EditString` | `controls` |
+| `EditTextContainer` | `EditText` | `controls` |
 | `EditNumberContainer` | `EditNumber` | `controls` |
 | `EditDropdownContainer` | `EditDropdown` | `controls` |
 | `EditChipsContainer` | `EditChips` | `controls` |
@@ -416,7 +418,7 @@ interface BgImageLayerProps {
 | `src/contexts/FillContext/index.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
 | `src/contexts/ChartPlotContext/index.ts` | `ChartPlotInsets` (`left`, `right`, `width`) и `ChartPlotContextValue` (`reportPlotInsets`) — обратный канал: `Chart` после отрисовки d3 сообщает `ChartContainer`, где лежит поле графика, и тот выравнивает по нему подпись оси X и легенду |
 | `hooks/useChartAxisTitles.ts` | `ChartAxisTitle` (`title`, `color?`) — подпись оси одной стороны; `color` задан, только если на стороне одна серия |
-| `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `column`, `loading`) |
+| `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `loading`) |
 | `components/ContainerBackground/types.ts` | `ContainerBackgroundProps` — `Pick<ContainerProps, "elementConfig" \| "renderElement">` |
 | `components/ContainerBackground/styled.ts` | `BgImageHostProps` (`$hasBgImage`), слой `ContainerBackgroundLayer`, миксин `bgImageHostMixin` |
 | `grid/types.ts` | Типы сетки: `GridAxis` (`"row"` \| `"column"`), `GridEditAction` (union операций `delete`/`merge`/`split`/`swap`/`addRow`/`addCell`), `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue` — значение контекста сессии редактирования |

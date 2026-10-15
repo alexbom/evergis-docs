@@ -32,7 +32,7 @@
 | `Upload` | `uploader` |
 | `Attachment` | `alias`; `value` — если не задан `relatedDataSource` |
 | `Edit` (базовый) | `alias`, `value` |
-| `EditString`, `EditNumber`, `EditBoolean`, `EditDropdown`, `EditChips`, `EditCheckbox`, `EditDate` | `alias`, `tooltip` (контрол встроен — слота `value` нет) |
+| `EditString`, `EditText`, `EditNumber`, `EditBoolean`, `EditDropdown`, `EditChips`, `EditCheckbox`, `EditDate` | `alias`, `tooltip` (контрол встроен — слота `value` нет) |
 | `EditAttachment` | `alias` |
 | `EditGroup` | `alias`, `tooltip`, `units`, `icon` |
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |

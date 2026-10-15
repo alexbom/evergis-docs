@@ -164,7 +164,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `(type?: ConfigControl["type"]) => ContainerTemplate`
 
-Маппинг типа контрола на `ContainerTemplate`: `chips` → `EditChips`, `checkbox` → `EditCheckbox`, `string` → `EditString`, иначе → `EditDropdown`.
+Маппинг типа контрола на `ContainerTemplate`: `chips` → `EditChips`, `checkbox` → `EditCheckbox`, `string` → `EditString`, `text` → `EditText`, иначе → `EditDropdown`.
 
 ---
 
@@ -299,6 +299,24 @@ Resolves контейнер из реестра — через `getContainerComp
 `({ elementConfig, attributes }) => string | null`
 
 Резолвит адрес картинки [[elements#ElementImage|ElementImage]] — первый непустой источник выигрывает: `options.resourceId` → `options.url` → `value` → `attributeName`. Читается **значение** атрибута объекта, настройки атрибута в слое не задействованы. Все источники проходят через `getResourceUrl`; из значения атрибута берётся первый адрес до `;`. Для атрибута с `subType === Attachments` возвращает `null` — вложения грузятся отдельным каналом в `useElementImage`.
+
+---
+
+### getOptionIcon
+
+`(iconValue: unknown) => Pick<IJSXOption, "icon" | "prefix">`
+
+Иконка опции Dropdown из значения конфига или атрибута. Значение приводится через `resolveIconValue`: имя иконки шрифта уходит в `icon`, адрес или идентификатор ресурса рисуется [[components#OptionIcon|компонентом]] `OptionIcon` в `prefix`. `OptionIcon` рисует SVG инлайном с перекраской в цвет иконок темы, растровый файл тянет с токеном (`useFetchImageWithAuth`). Пустое или нестроковое значение — `{}`.
+
+### withOptionIcons
+
+`(options, fallbackIcon?) => options`
+
+Разворачивает сырое поле `icon` каждой опции через `getOptionIcon`. Опция без своей иконки получает `fallbackIcon`, кроме пустой опции-плейсхолдера (`isEmptyValue(value)`). Используется в [[containers#FiltersContainer|`dropdown`-фильтре]], [[containers#EditContainer|EditDropdown]] и [[elements#ElementControl|ElementControl]]. Иконку у выбранного значения в поле рисует [[components#DropdownResultOptions|компонент]] `DropdownResultOptions` (проп `renderResultOptions` у Dropdown): встроенная отрисовка uilib показывает только шрифтовую `icon` и не показывает `prefix`.
+
+### isIconKind · isSvgIconUrl · resolveIconValue
+
+`isIconKind(value)` — значение есть имя иконки из `iconTypes` uilib-gl. `isSvgIconUrl(url)` — адрес ведёт на SVG или файл каталога (`/sp/resources/file/…`), то есть картинку можно перекрасить. `resolveIconValue(value)` — имя иконки шрифта возвращает как есть, адрес и идентификатор ресурса — через `getResourceUrl`, пустое или нестроковое значение — `undefined`. Через него же иконки разворачивает [[containers#FiltersContainer|фильтр-чипсы]]: без этой развилки имя иконки шрифта превращалось бы в путь к несуществующему файлу.
 
 ---
 
