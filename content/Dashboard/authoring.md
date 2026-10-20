@@ -39,10 +39,10 @@
 | `Task` | `button` — кнопка запуска `type: "button"` (вид — из слота, поведение и статусы — контейнер); без слота — встроенная кнопка |
 | `ExportPdf` | `button` — только `type: "button"`; без слота кнопки нет |
 | `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. На узле обязателен `attributeName` |
-| `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
-| `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
+| `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
+| `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` |
-| `FeatureCardDefaultHeader` | `title`, `description` — авторские слоты; при их отсутствии используется штатный текст |
+| `FeatureCardDefaultHeader` | `title`, `description`, `featureIcon` — авторские слоты; без `title`/`description` используется штатный текст, без `featureIcon` — значок слоя. См. [[headers#Иконка объекта, раскладка и строки текста\|Шапки]] |
 | Модалка (`config.modals[]`) | `titleIcon` — иконка перед заголовком, `bgImage` — картинка фона шапки (геометрия и якорь — `options.header`); оба только **прямыми** детьми модалки. Остальные дети — обычное содержимое. См. [[elements#ElementModal\|ElementModal]] |
 
 ### Универсальные слоты

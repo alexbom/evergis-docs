@@ -285,8 +285,10 @@ const renderResultOptions = useCallback(
 | `description` | `string` | Описание; для видимого поля при пустом значении используется `layerInfo.configuration.alias`, затем `name` |
 | `titleConfig` | `ConfigContainerChild?` | Конфиг авторского слота `title` со стилем и видимостью |
 | `descriptionConfig` | `ConfigContainerChild?` | Конфиг авторского слота `description` со стилем и видимостью |
+| `multilineTitle` | `boolean?` | Заголовок до двух строк вместо одной (`HEADER_MULTILINE_TEXT_LINES` / `HEADER_TEXT_LINES` → проп `$lines`) |
+| `multilineDescription` | `boolean?` | Описание до двух строк вместо одной |
 
-У скалярного содержимого `style` соответствующего конфига применяется к существующей обёртке поля. У React-элемента стиль уже находится на его собственном корне. `visibility: false` скрывает обёртку поля и не включает fallback-текст; правила разрешаются механизмом [[conditional-formatting|условного форматирования]].
+Шапки `FeatureCardBackgroundHeader` и `FeatureCardSlideshowHeader` передают сюда одноимённые опции шапки (см. [[headers#Иконка объекта, раскладка и строки текста|Шапки]]). У скалярного содержимого `style` соответствующего конфига применяется к существующей обёртке поля. У React-элемента стиль уже находится на его собственном корне. `visibility: false` скрывает обёртку поля и не включает fallback-текст; правила разрешаются механизмом [[conditional-formatting|условного форматирования]].
 
 ---
 

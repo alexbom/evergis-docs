@@ -70,7 +70,7 @@ Slot-id обязателен у каждого элемента — без не�
 
 ## Дискриминированный union `DashboardChild`
 
-`DashboardChild` — union из 52 ветвей: 16 `<Name>ElementConfig` и 36 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
+`DashboardChild` — union из 53 ветвей: 16 `<Name>ElementConfig` и 37 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
 
 - **элементы** — поле `type` (`"button"`, `"camera"`, `"chart"`, ...);
 - **контейнеры** — поле `templateName` (`"AddFeature"`, `"Attachment"`, `"Chart"`, ...).
@@ -260,9 +260,9 @@ const child: StrictConfigContainerChild = {
 | Component | `templateName` | `<Name>Options` (Pick полей) |
 |---|---|---|
 | `DashboardDefaultHeader` | `Default` (в `WidgetType.Dashboard`) | `url` |
-| `FeatureCardBackgroundHeader` | `Background` | `fontColor`, `bgColor`, `height`, `overlay`, `bigIcon`, `withPadding`, `bottomBlur`, `themeName`, `column` |
-| `FeatureCardDefaultHeader` | `Default` (в `WidgetType.FeatureCard`) | `themeName`, `withPadding`, `column`, `height`, `overlay` |
-| `FeatureCardSlideshowHeader` | `Slideshow` | `height`, `fontColor`, `withPadding`, `themeName`, `column`, `overlay` |
+| `FeatureCardBackgroundHeader` | `Background` | `fontColor`, `bgColor`, `height`, `overlay`, `bigIcon`, `withPadding`, `bottomBlur`, `themeName`, `column`, `bigFeatureIcon`, `multilineTitle`, `multilineDescription` |
+| `FeatureCardDefaultHeader` | `Default` (в `WidgetType.FeatureCard`) | `themeName`, `withPadding`, `column`, `height`, `overlay`, `bigFeatureIcon`, `multilineTitle`, `multilineDescription` |
+| `FeatureCardSlideshowHeader` | `Slideshow` | `height`, `fontColor`, `withPadding`, `themeName`, `column`, `overlay`, `bigFeatureIcon`, `multilineTitle`, `multilineDescription` |
 
 ---
 
@@ -275,7 +275,7 @@ export type ContainerTemplateToProps = {
   [ContainerTemplate.AddFeature]: AddFeatureContainerProps;
   [ContainerTemplate.Attachment]: AttachmentContainerProps;
   [ContainerTemplate.Chart]: ChartContainerProps;
-  // ... все 36 ключей
+  // ... все 38 ключей
 };
 
 export type ContainerComponentRegistry = {
@@ -400,7 +400,7 @@ interface BgImageLayerProps {
 |---|---|
 | `containers/ChartContainer/types.ts` | `ChartProps`, `ChartDataProps` (`BarChartData[]`, `PieChartData[]`, `FilterItem[]`, `axisSide` — сторона шкалы серии) |
 | `containers/DataSourceInnerContainer/types.ts` | `InnerContainerProps` — `ContainerProps + feature?: FeatureDc` |
-| `containers/FiltersContainer/types.ts` | `FilterOption` (`text`, `value`, `min`, `max`), `WidgetFilterProps` (`type`, `filter`, `config`) |
+| `containers/FiltersContainer/types.ts` | `FilterOption` (`text`, `value`, `min`, `max`, `icon?` — сырое значение атрибута-иконки: имя иконки, адрес или идентификатор ресурса), `WidgetFilterProps` (`type`, `filter`, `config`) |
 | `containers/FiltersContainer/constants.ts` | константы для рендера фильтров |
 | `containers/AttachmentContainer/types.ts` | `FileType` enum (`XLSX`, `PDF`, `CSV`, ... — 16 типов), `IMAGE_FILE_TYPES`, `AttachmentViewMode`, `Attachment` |
 | `containers/AttachmentContainer/constants.ts` | MIME-типы, лимиты, расширения |
@@ -413,6 +413,7 @@ interface BgImageLayerProps {
 | `containers/VoteContainer/constants.ts` | имена атрибутов таблиц голосования и лимиты формы |
 | `elements/ElementTable/types.ts` | `SortDirection`, `TableSort` (одна колонка за раз, `null` — исходный порядок), `CellMode` (`"idle" \| "focused" \| "editing"`), `TableCellProps`, `TableHeadRowProps`, `TableColumnResizerProps`, `AttachmentsCellState` — состояние колонки вложений целиком (список, вид поп-апа, галерея, загрузка, удаление) и `AttachmentsCellPopupProps` |
 | `elements/ElementTable/constants.ts` | геометрия ячейки и шапки, `ATTACHMENTS_INLINE_LIMIT` / `ATTACHMENTS_SHOWN_ITEMS` / `ATTACHMENTS_VIEW_MODE`, `EMPTY_LIST_OPTION` (`{ text: "—", value: "" }` — пустой пункт списка, снимающий значение) |
+| `headers/constants.ts` | `FEATURE_ICON_SLOT_ID` (`"featureIcon"`), `FEATURE_ICON_SIZE` (42) / `FEATURE_ICON_BIG_SIZE` (72, при `bigFeatureIcon`) — размер иконки объекта в px, `HEADER_TEXT_LINES` (1) / `HEADER_MULTILINE_TEXT_LINES` (2, при `multilineTitle` / `multilineDescription`) — см. [[headers#Иконка объекта, раскладка и строки текста\|Шапки]] |
 | `elements/ElementCamera/types.ts` | `SmallPreviewProps` (`images`, `totalCount`, `currentIndex`), `CameraAttributeProps` |
 | `elements/ElementSlideshow/types.ts` | `DashboardSlideshowProps` — Pick от `ElementSlideshowProps` |
 | `src/contexts/FillContext/index.ts` | `FillContextValue` (`fill`, `fitHeight`) — контекст вписывания графика; `ChartContainer` кладёт в него `options.fill`, `Chart` читает через `useContext` (опции контейнера до элемента `chart` иначе не доходят) |
@@ -757,6 +758,6 @@ Snapshot передаётся хосту через `onModalContextChange`; entr
 
 `ConfigContainer`, `ConfigContainerChild`, `ConfigContainerHeader` и `ConfigModal` поддерживают `conditions?: ConfigConditions<Options>` и `visibility?: boolean`. `ConfigConditions` — объект выражений; специальный ключ `else` задаёт fallback. Значения имеют тип `ConfigConditionalOverride<Options>`: только рекурсивные `options`, `style` и булева `visibility`. `ConfigConditionalPartial<Value>` допускает частичные вложенные объекты и явный `null`, массивы заменяются целиком.
 
-Per-component конфиги и union `DashboardChild` сужают `conditions` тем же `<Name>Options`, что и базовое поле options. Например, `ElementIconConfig.conditions` принимает только опции иконки; остальные ключи не проходят authoring-проверку. `ConfigStringSources.isDataLoading?: boolean` сообщает полную загрузку виджета: пока флаг установлен, используется базовое оформление. Дополнительный `ModalDataOverlay.isDataLoading` включает локальную загрузку окна.
+Per-component конфиги и union `DashboardChild` сужают `conditions` тем же `<Name>Options`, что и базовое поле options. Например, `ElementIconConfig.conditions` принимает только опции иконки; остальные ключи не проходят authoring-проверку. `ConfigStringSources.isDataLoading?: boolean` сообщает, что данные виджета ещё грузятся: пока флаг установлен, вычисляются только правила, чьи данные уже получены, остальные узлы сохраняют базовое оформление. Дополнительный `ModalDataOverlay.isDataLoading` включает локальную загрузку окна.
 
 Чистые API `resolveConditionalFormatting`, `isConditionallyVisible`, `getConditionalVisibilityStyle` и `validateDashboardConditionalFormatting` экспортируются из библиотеки. Диагностика валидатора: `{ path: string; ownerId?: string; message: string; severity: "error" | "warning" }`. Формат, примеры и семантика — [[conditional-formatting|Условное форматирование]].

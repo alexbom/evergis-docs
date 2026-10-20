@@ -204,6 +204,26 @@ Resolves контейнер из реестра — через `getContainerComp
 
 ---
 
+### getDataSourceAutoSyncLayers
+
+`(dataSource: ConfigDataSource) => string[]`
+
+Слои, за изменением объектов которых следит источник, без повторов (см. [[concepts#Real-time обновления|Real-time обновления]]). Свой слой (`layerName`) попадает в список по флагу `autoSyncLayer`, чужие — из `autoSyncLayers`. Оба поля складываются у источника любого вида.
+
+Единая точка правды для подписок дашборда (`useDataSourceSubscriptions`, client-new), карточки объекта (`useFeatureDataSourceSubscriptions`, client-new) и модалок (**useModalAutoSync**).
+
+```ts
+getDataSourceAutoSyncLayers({
+  name: "buildings",
+  layerName: "buildings_layer",
+  autoSyncLayer: true,
+  autoSyncLayers: ["apartments_layer", "buildings_layer"],
+});
+// → ["buildings_layer", "apartments_layer"]
+```
+
+---
+
 ### getDataSourceFilterValue
 
 `({ filterName, filterProp, attributeAlias, dataSource, selectedFilters }) => SelectedFilter["value"]`
@@ -416,7 +436,7 @@ const proxy = getProxyService(layer);
 
 Фабрика функции `renderElement({ id?, index?, wrap? })` для рендера дочерних элементов контейнера. Находит ребёнка по `id` через **findDashboardNode** или по `index`; резолвит ссылки `containerId` на визуальный узел конфига; рекурсивно строит вложенный `renderElement`; делегирует значение `getElementValue`; скрывает пустые элементы (`isHiddenEmptyValue`) и форматирует результат через `formatElementValue`. Контейнеры оборачиваются в `ActionNodeProvider`, который передаёт путь и атрибуты для [[actions|Actions]]. Ключевая утилита registry-рендера — см. [[architecture#Поток данных|Поток данных]]. Парный хук — [[hooks|`useRenderElement`]].
 
-**Условное оформление и видимость.** До рендера разрешает [[conditional-formatting|условное форматирование]] конфига и текущего узла; при `configStringSources.isDataLoading` использует базовое оформление. Результат, являющийся React-элементом, получает `ConditionalVisibilityProvider`, чтобы потомки учитывали скрытого родителя. При `wrap: false` авторский `element.style` и условный `display: "none"` передаются в `getElementValue` через проп `style` для существующего корня компонента. Дополнительная `span` не создаётся; скрытый контейнер без обёртки и скрытые примитивные значения возвращают `null`.
+**Условное оформление и видимость.** До рендера разрешает [[conditional-formatting|условное форматирование]] конфига и текущего узла; при `configStringSources.isDataLoading` вычисляет только правила, чьи данные уже получены, остальные узлы сохраняют базовое оформление. Разрешение идёт через internal-утилиту `resolveRenderingConditionalConfig` (`utils/`, публично не реэкспортируется): разрешённые конфиги она помечает в `WeakSet`, поэтому подготовленный конфиг хоста переиспользуется потомками, в том числе каждой записью DataSource, и правила не вычисляются повторно. Результат, являющийся React-элементом, получает `ConditionalVisibilityProvider`, чтобы потомки учитывали скрытого родителя. При `wrap: false` авторский `element.style` и условный `display: "none"` передаются в `getElementValue` через проп `style` для существующего корня компонента. Дополнительная `span` не создаётся; скрытый контейнер без обёртки и скрытые примитивные значения возвращают `null`.
 
 **Подстановки в строках узла.** С пропом `configStringSources` (источники от [[hooks|хука]] `useConfigStringSources`) каждый найденный узел проходит через **resolveElementStrings**: `value`, `defaultValue`, `options.label`, `options.placeholder`, `options.title` получают подставленные значения `%filter`, `$dashboard:`, `{attr}`, `%project` и т.д. (см. [[concepts#Подстановки в строках конфига|Основные понятия]]). Атрибуты рендера (строки `DataSource`) перекрывают атрибуты виджета. Проп пробрасывается во вложенные `renderElement`. Без него строки выводятся как есть.
 
@@ -691,7 +711,7 @@ const content = formatElementValue({ t, value, elementConfig, attributes, wrap: 
 
 ### getWrapperSizeStyle
 
-`({ style, width, height, overflow, defaults, defaultWidth, heightAsMin }) => CSSObject | undefined`
+`({ style, width, height, overflow, defaults, defaultWidth, heightAsMin }: WrapperSizeParams) => CSSObject | undefined`
 
 Собирает CSS-объект корневой обёртки контейнера: внутренние дефолты плюс размеры из `options` (см. [[containers#Размерная модель обёртки (ContainerBoxOptions)|размерную модель]]). Результат уходит в styled-проп, а не в inline-style, поэтому перебивается снаружи обычной специфичностью — без `!important`. Опции перекрывают одноимённые поля авторского `style`.
 
@@ -802,9 +822,9 @@ const content = formatElementValue({ t, value, elementConfig, attributes, wrap: 
 | `configDataSources` | источники конфига |
 | `filters` / `configFilters` | выбранные фильтры виджета и их конфиг |
 | `dashboard` | стор фильтров дашборда (`{ selectedFilters, configFilters, dataSources }`) — только у карточки |
-| `prev` | снимок прошлого расчёта: `{ filters?, configFilters?, dashboardFilters? }` |
+| `prev` | снимок прошлого расчёта `UpdatingDataSourcesSnapshot`: `{ filters?, configFilters?, dashboardFilters? }` |
 
-Изменением считаются: смена выбранного фильтра виджета (**getChangedFilterNames**), смена дефолта невыбранного фильтра (**getChangedDefaultNames** — дефолт из `$dashboard:`), смена фильтра дашборда. Источник попадает в список, если его `parameters` ссылаются на изменившийся фильтр — `%name` или `$dashboard:name`, целиком, со свойством или внутри строки (**referencesFilters**). Источники слоя без `query` попадают на любое изменение. Нечего перезапрашивать — `undefined`.
+Изменением считаются: смена выбранного фильтра виджета (**getChangedFilterNames**), смена дефолта невыбранного фильтра (**getChangedDefaultNames** — дефолт из `$dashboard:`), смена фильтра дашборда. Источник попадает в список, если его `parameters` или `condition` ссылаются на изменившийся фильтр — `%name` или `$dashboard:name`, целиком, со свойством или внутри строки (**referencesFilters**). Вид источника роли не играет: слой, python и внешний url без ссылки на фильтр не перезапрашиваются — `query`, `url`, `resourceId` уходят на сервер как есть и от фильтров не зависят. Нечего перезапрашивать — `undefined`.
 
 ```ts
 const updating = selectUpdatingDataSources({ configDataSources, filters, configFilters, dashboard, prev });

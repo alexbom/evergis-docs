@@ -190,6 +190,7 @@ interface ConfigOptions
 | `overlay` | `string` | Наложение поверх изображения (CSS gradient, цвет) |
 | `onlyIcon` | `boolean` | Показывать только иконку (без текста) |
 | `bigIcon` | `boolean` | Большой размер иконки. В плитке (`RoundedBackground`) — водяной знак `3rem` в правом верхнем углу, прозрачность `0.12` |
+| `bigFeatureIcon` | `boolean` | Шапка карточки объекта: иконка объекта (слот `featureIcon`) 72px вместо 42px. См. [[headers#Иконка объекта, раскладка и строки текста\|Шапки]] |
 | `big` | `boolean` | Большой размер компонента |
 | `tagView` | `boolean` | Отображать в виде «тэга» |
 
@@ -213,8 +214,10 @@ interface ConfigOptions
 | `wordBreak` | `"break-word" \| "break-all"` | Стратегия переноса длинного текста |
 | `separator` | `string` | Разделитель элементов (Chips) |
 | `lineBreak` | `string` | Кастомный перевод строки |
+| `multilineTitle` | `boolean` | Шапка карточки объекта: заголовок до двух строк вместо одной, дальше многоточие |
+| `multilineDescription` | `boolean` | Шапка карточки объекта: подзаголовок до двух строк вместо одной, дальше многоточие |
 
-**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`. У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
+**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`, `FeatureCardDefaultHeader`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader` (`multilineTitle`, `multilineDescription`). У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
 
 ---
 

@@ -1,13 +1,13 @@
 # Шапки
 
 > [!danger] Дочерние элементы шапки обязаны иметь slot-`id`
-> Каждый ребёнок шапки идентифицируется по slot-`id` из фиксированного набора (`title`, `description`, `bgImage`, `icon`, `slideshow`). Без него элемент шапки не отрисуется. Таблица slot-id и чек-лист — [[authoring|Правила генерации]].
+> Каждый ребёнок шапки идентифицируется по slot-`id` из фиксированного набора (`title`, `description`, `featureIcon`, `bgImage`, `icon`, `slideshow`). Без него элемент шапки не отрисуется. Таблица slot-id и чек-лист — [[authoring|Правила генерации]].
 
 ## Обзор
 
 Шапки рендерятся через [[utils|утилиты]] `getDashboardHeader` / `getFeatureCardHeader` по `templateName` из конфига. Точка входа — [[components|компонент]] `DashboardHeader` (для Dashboard) и `FeatureCardHeader` (для FeatureCard).
 
-Дочерние элементы шапки **обязательно** идентифицируются по slot-`id` из фиксированного набора (`title`, `description`, `bgImage`, `icon`, `slideshow`) — конкретный набор зависит от типа шапки. Подробности и таблица slot-id — в [[concepts#ID контейнеров и элементов|разделе про id]]. Слот `bgImage` у шапок — тот же универсальный слот фона, что и у контейнеров: рендерится общим [[components|`ContainerBackground`]].
+Дочерние элементы шапки **обязательно** идентифицируются по slot-`id` из фиксированного набора (`title`, `description`, `featureIcon`, `bgImage`, `icon`, `slideshow`) — конкретный набор зависит от типа шапки. Подробности и таблица slot-id — в [[concepts#ID контейнеров и элементов|разделе про id]]. Слот `bgImage` у шапок — тот же универсальный слот фона, что и у контейнеров: рендерится общим [[components|`ContainerBackground`]].
 
 `HeaderTemplate` enum (см. [[types|Типы]]):
 
@@ -21,8 +21,12 @@
 Union типов конфигов шапок: `DashboardHeaderConfig` (см. [[types#Union шапок: DashboardHeaderConfig|типы]]). `HeaderTemplate.Default` сразу матчится двумя ветвями (Dashboard vs FeatureCard) — конкретная выбирается на уровне виджета.
 
 Shared-компоненты в `headers/components/`:
-- **HeaderLayerIcon** — кликабельная иконка слоя с тултипом «приблизить к объекту»; используется во всех `FeatureCard*Header`.
-- **HeaderTitle** — заголовок и описание `FeatureCardDefaultHeader`: авторские слоты `title`/`description`, а при отсутствии соответствующего слота — значение `titleAttribute` или `feature.id` и описание слоя.
+- **HeaderContent** — общая раскладка всех `FeatureCard*Header`: иконка, текст и кнопка закрытия — строкой или колонкой (`column`). См. [[#Иконка объекта, раскладка и строки текста]].
+- **HeaderLayerIcon** — кликабельная иконка с тултипом «приблизить к объекту»: иконка объекта из слота `featureIcon` (хук `useHeaderFeatureIcon`), а без неё — значок слоя по типу геометрии; используется во всех `FeatureCard*Header`.
+- **HeaderTitle** — заголовок и описание `FeatureCardDefaultHeader`: авторские слоты `title`/`description`, а при отсутствии соответствующего слота — значение `titleAttribute` или `feature.id` и описание слоя. Число строк — `multilineTitle` / `multilineDescription`.
+
+> [!warning] Текстовый слот шапки задаётся с `type`
+> `{ id: "title", type: "attributeValue", attributeName: "name" }` выводит значение атрибута, `{ id: "title", type: "text", value: "..." }` — текст. Узел **без** `type` (только `attributeName`) ничего не рендерит: `Background` и `Slideshow` молча показывают штатный текст (`titleAttribute` / `feature.id` для заголовка, имя слоя для подзаголовка), а у `Default` строка остаётся пустой — слот задан, и штатный текст не подставляется.
 
 ---
 
@@ -92,9 +96,12 @@ DefaultHeaderContainer (image, isDark)
 |---|---|---|
 | `themeName` | `"light" \| "dark"` | Принудительная тема для шапки. Не задана — берётся глобальная тема из [[setup\|GlobalContext]] (`themeName ?? pageThemeName`) |
 | `withPadding` | `boolean` | Внутренние отступы вокруг заголовка |
-| `column` | `boolean` | Вертикальная раскладка (иначе строкой) |
+| `column` | `boolean` | Иконка и кнопка закрытия в верхней строке, текст под ними на всю ширину (иначе текст справа от иконки). См. [[#Иконка объекта, раскладка и строки текста]] |
 | `height` | `number` | Высота шапки в px |
 | `overlay` | `string` | CSS-наложение поверх содержимого |
+| `bigFeatureIcon` | `boolean` | Иконка объекта (слот `featureIcon`) 72px вместо 42px |
+| `multilineTitle` | `boolean` | Заголовок до двух строк (без опции — одна), дальше многоточие |
+| `multilineDescription` | `boolean` | Подзаголовок до двух строк (без опции — одна), дальше многоточие |
 
 **Дочерние элементы:**
 
@@ -102,6 +109,7 @@ DefaultHeaderContainer (image, isDark)
 |---|---|
 | `title` | Авторский заголовок, рендерится через `useHeaderRender` с `wrap: false`. При отсутствии слота сохраняется штатный `titleAttribute` с форматированием или `feature.id` |
 | `description` | Авторское описание. При отсутствии слота сохраняется `layerInfo.configuration.alias`, затем `name` |
+| `featureIcon` | Иконка объекта на месте значка слоя. Пустая — остаётся значок слоя. См. [[#Иконка объекта, раскладка и строки текста]] |
 
 Заданность слота определяется его наличием, а не непустым результатом: скрытый или пустой авторский `title`/`description` не заменяется штатным текстом. У скалярного содержимого `style` дочернего узла применяется к существующей обёртке слота; у React-элемента стиль уже находится на его собственном корне. `visibility: false` скрывает обёртку слота в обоих случаях; правила `conditions` разрешаются тем же механизмом [[conditional-formatting|условного форматирования]].
 
@@ -114,9 +122,13 @@ DefaultHeaderContainer (image, isDark)
 ThemeProvider(getThemeByName(themeName ?? pageThemeName))
   └── DefaultHeaderWrapper(withPadding, height, $noFeature)
       └── Header($overlay, $isRow=!column, $noFeature)
-          └── HeaderFrontView(isDefault=!column)
-              ├── HeaderContainer: [HeaderLayerIcon, HeaderTitle(noFeature)]
-              └── FeatureCardButtons (Edit, Save, Cancel, Close)
+          └── HeaderContent(column, isDefault, noFeature)
+              ├── строкой: HeaderFrontView(isDefault)
+              │   ├── HeaderContainer: [HeaderLayerIcon, HeaderTitle(noFeature)]
+              │   └── FeatureCardButtons (Close)
+              └── column: HeaderColumnView
+                  ├── HeaderIconRow: [HeaderLayerIcon, FeatureCardButtons]
+                  └── HeaderTitle(noFeature)
 ```
 
 ```tsx
@@ -143,9 +155,10 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 **Props:** нет
 
 **Зависимости:**
-- [[hooks|хук]] `useWidgetConfig(WidgetType.FeatureCard)` — конфиг карточки
-- [[hooks|хук]] `useHeaderRender(header)` — функция рендера дочерних элементов шапки
-- [[utils|утилита]] `getThemeByName(themeName)`
+- [[hooks|хук]] `useConditionalHeader(WidgetType.FeatureCard)` — шапка текущей страницы с разрешёнными условиями
+- [[hooks|хук]] `useHeaderRender(header, WidgetType.FeatureCard)` — функция рендера дочерних элементов шапки
+- [[hooks|хук]] `useGlobalContext` — глобальная тема `themeName` как запасная
+- [[utils|утилита]] `getThemeByName(themeName ?? pageThemeName)`
 
 **Опции:**
 
@@ -155,11 +168,14 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 | `bgColor` | `string` | Цвет фона |
 | `height` | `number` | Высота |
 | `overlay` | `string` | CSS-наложение поверх фона |
-| `bigIcon` | `boolean` | Увеличенная иконка (занимает половину шапки) |
+| `bigIcon` | `boolean` | Увеличенная декоративная иконка справа (слот `icon`, занимает половину шапки) |
 | `withPadding` | `boolean` | Внутренние отступы |
 | `bottomBlur` | `boolean` | Эффект размытия снизу |
 | `themeName` | `"light" \| "dark"` | Принудительная тема. Не задана — глобальная тема из [[setup\|GlobalContext]] |
-| `column` | `boolean` | Вертикальная раскладка |
+| `column` | `boolean` | Иконка и кнопка закрытия в верхней строке, текст под ними на всю ширину. См. [[#Иконка объекта, раскладка и строки текста]] |
+| `bigFeatureIcon` | `boolean` | Иконка объекта (слот `featureIcon`) 72px вместо 42px |
+| `multilineTitle` | `boolean` | Заголовок до двух строк (без опции — одна), дальше многоточие |
+| `multilineDescription` | `boolean` | Подзаголовок до двух строк (без опции — одна), дальше многоточие |
 
 **Дочерние элементы (по `id`):**
 
@@ -167,17 +183,16 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 |---|---|
 | `title` | Заголовок (рендерится через `renderElement({ id: "title", wrap: false })`) |
 | `description` | Подзаголовок / краткое описание |
+| `featureIcon` | Иконка объекта слева от заголовка, на месте значка слоя. См. [[#Иконка объекта, раскладка и строки текста]] |
 | `bgImage` | Фоновое изображение — универсальный слот, рендерится общим [[components\|`ContainerBackground`]] в слое `ContainerBackgroundLayer` |
-| `icon` | Иконка объекта (в `HeaderIcon`) — обычно `type: "svg"` или `type: "icon"` |
+| `icon` | Декоративная иконка справа (в `HeaderIcon`) — обычно `type: "svg"` или `type: "icon"` |
 
 **Структура:**
 ```
 ThemeProvider(getThemeByName(themeName ?? pageThemeName))
   └── BackgroundHeaderWrapper($fontColor, $bgColor, $height, $bigIcon, $withPadding, $bottomBlur)
       └── Header($overlay, $isRow=!column)
-          ├── HeaderFrontView
-          │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
-          │   └── FeatureCardButtons
+          ├── HeaderContent(column) → [HeaderLayerIcon, FeatureCardTitle(title, description), FeatureCardButtons]
           ├── ContainerBackground → ContainerBackgroundLayer → renderElement(id="bgImage")
           └── HeaderIcon → renderElement(id="icon")
 ```
@@ -188,8 +203,8 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
     templateName: "Background",
     options: { bgColor: "#2c3e50", fontColor: "#fff", bigIcon: true, height: 120 },
     children: [
-      { id: "title", attributeName: "name" },
-      { id: "description", attributeName: "category" },
+      { id: "title", type: "attributeValue", attributeName: "name" },
+      { id: "description", type: "attributeValue", attributeName: "category" },
       { id: "icon", type: "svg", attributeName: "iconUrl" },
       { id: "bgImage", type: "image", value: "https://example.com/bg.png" }
     ]
@@ -215,9 +230,10 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 **Props:** нет
 
 **Зависимости:**
-- [[hooks|хук]] `useWidgetConfig(WidgetType.FeatureCard)`
-- [[hooks|хук]] `useHeaderRender(header)`
-- [[utils|утилита]] `getThemeByName(themeName)`
+- [[hooks|хук]] `useConditionalHeader(WidgetType.FeatureCard)` — шапка текущей страницы с разрешёнными условиями
+- [[hooks|хук]] `useHeaderRender(header, WidgetType.FeatureCard)`
+- [[hooks|хук]] `useGlobalContext` — глобальная тема `themeName` как запасная
+- [[utils|утилита]] `getThemeByName(themeName ?? pageThemeName)`
 
 **Опции:**
 
@@ -226,9 +242,12 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 | `height` | `number` | Высота блока шапки в px |
 | `fontColor` | `string` | Цвет текста |
 | `withPadding` | `boolean` | Внутренние отступы вокруг заголовка |
-| `themeName` | `"light" \| "dark"` | Принудительная тема |
-| `column` | `boolean` | Вертикальная раскладка |
+| `themeName` | `"light" \| "dark"` | Принудительная тема. Не задана — глобальная тема из [[setup\|GlobalContext]] (`themeName ?? pageThemeName`) |
+| `column` | `boolean` | Иконка и кнопка закрытия в верхней строке, текст под ними на всю ширину. См. [[#Иконка объекта, раскладка и строки текста]] |
 | `overlay` | `string` | CSS-наложение |
+| `bigFeatureIcon` | `boolean` | Иконка объекта (слот `featureIcon`) 72px вместо 42px |
+| `multilineTitle` | `boolean` | Заголовок до двух строк (без опции — одна), дальше многоточие |
+| `multilineDescription` | `boolean` | Подзаголовок до двух строк (без опции — одна), дальше многоточие |
 
 **Дочерние элементы (по `id`):**
 
@@ -236,17 +255,16 @@ ThemeProvider(getThemeByName(themeName ?? pageThemeName))
 |---|---|
 | `title` | Заголовок поверх изображений |
 | `description` | Подзаголовок |
+| `featureIcon` | Иконка объекта слева от заголовка, на месте значка слоя. См. [[#Иконка объекта, раскладка и строки текста]] |
 | `bgImage` | Статическое фоновое изображение (под слайдшоу) — общий [[components\|`ContainerBackground`]] |
 | `slideshow` | Источник изображений (`type: "slideshow"`) — `attributeName` со списком URL или `relatedDataSource` |
 
 **Структура:**
 ```
-ThemeProvider(getThemeByName(themeName))
-  └── SlideshowHeaderWrapper(fontColor, withPadding, height, big)
+ThemeProvider(getThemeByName(themeName ?? pageThemeName))
+  └── SlideshowHeaderWrapper($fontColor, withPadding, height, big)
       └── Header($overlay, $isRow=!column)
-          ├── HeaderFrontView
-          │   ├── HeaderContainer(column): [HeaderLayerIcon, FeatureCardTitle(title, description)]
-          │   └── FeatureCardButtons
+          ├── HeaderContent(column) → [HeaderLayerIcon, FeatureCardTitle(title, description), FeatureCardButtons]
           ├── ContainerBackground → ContainerBackgroundLayer → renderElement(id="bgImage")
           └── HeaderSlideshow(height) → renderElement(id="slideshow")
 ```
@@ -259,12 +277,57 @@ ThemeProvider(getThemeByName(themeName))
     children: [
       { id: "slideshow", type: "slideshow", attributeName: "photos" },
       { id: "bgImage", type: "image", value: "https://example.com/fallback-bg.png" },
-      { id: "title", attributeName: "name" },
-      { id: "description", attributeName: "address" }
+      { id: "title", type: "attributeValue", attributeName: "name" },
+      { id: "description", type: "attributeValue", attributeName: "address" }
     ]
   }
 }
 ```
+
+---
+
+## Иконка объекта, раскладка и строки текста
+
+Общее для `FeatureCardDefaultHeader`, `FeatureCardBackgroundHeader` и `FeatureCardSlideshowHeader`: все три собирают иконку, текст и кнопку закрытия общим `HeaderContent`.
+
+```tsx
+{
+  header: {
+    templateName: "Background",
+    options: { column: true, bigFeatureIcon: true, multilineTitle: true, multilineDescription: true },
+    children: [
+      { id: "featureIcon", type: "icon", attributeName: "coat_of_arms" },
+      { id: "title", type: "attributeValue", attributeName: "name" },
+      { id: "description", type: "attributeValue", attributeName: "category" }
+    ]
+  }
+}
+```
+
+### Слот `featureIcon`
+
+Иконка объекта на месте значка слоя слева от заголовка. Это обычный элемент: `HeaderLayerIcon` рендерит его через `renderElement({ id: "featureIcon", wrap: false })` (хук `useHeaderFeatureIcon`), поэтому работают `type`, `attributeName`, `value`, `style` и `conditions`. Основной вариант — `type: "icon"` ([[elements#ElementIcon|ElementIcon]]):
+- атрибут-вложение (`subType: Attachments`) — первое **изображение** из списка: SVG рисуется инлайном и перекрашивается `options.fontColor`, растр — картинкой как есть (`object-fit: contain`);
+- строковый атрибут или `value` — глиф иконочного шрифта по имени.
+
+**Размер** — 42px, при `bigFeatureIcon` — 72px; `options.fontSize` слота (число px) перебивает оба. Шапка передаёт размер иконке как её `fontSize`, а рамке `FeatureIconContainer` — как ширину и высоту, поэтому место под картинку не схлопывается, пока та грузится. Отступ до текста — `0.5rem`.
+
+Клик по иконке и тултип «Приблизить к объекту» — те же, что у значка слоя.
+
+**Когда остаётся значок слоя.** Слот уступает место штатному значку геометрии, если его нет, он скрыт условием (`visibility: false`) или ему нечего показать: пустой атрибут или `value`, а у вложения — ни одного изображения. Решение принимается по значению до рендера (`hasFeatureIconContent`). При `noFeature` слот не используется: рисуется иконка `no_geom`.
+
+> [!warning] Не путать с `icon` / `bigIcon` у `Background`
+> `icon` и `bigIcon` управляют декоративной иконкой справа (`HeaderIcon`). Иконку объекта слева от заголовка задают `featureIcon` и `bigFeatureIcon`.
+
+### Раскладка `column`
+
+Без опции текст стоит справа от иконки, а кнопка закрытия — отдельной колонкой справа (`HeaderFrontView` → `HeaderContainer`). С `column` иконка и кнопка делят верхнюю строку (`HeaderIconRow`, `space-between`), а заголовок и подзаголовок идут под ними на всю ширину (`HeaderColumnView`; подзаголовок без резерва под кнопку). Содержимое прижато к верху шапки и при заданной `height`.
+
+### Строки текста `multilineTitle` / `multilineDescription`
+
+По умолчанию заголовок и подзаголовок занимают одну строку и обрезаются многоточием. С опцией — **до двух** строк, дальше многоточие; длинные слова переносятся (`word-break: break-word`). Опции действуют и на авторские слоты `title`/`description`, и на штатный текст (`titleAttribute`, `feature.id`, имя слоя).
+
+Число строк шапка передаёт пропом `$lines` в `FeatureTitleContainer` и `LayerDescription` (`HeaderTextLinesMixin`). Без пропа эти styled-компоненты обрезают текст на второй строке — так их используют вне шапок карточки (например, заголовок статистики слоя в client-new).
 
 ---
 

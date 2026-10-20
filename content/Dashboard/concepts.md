@@ -317,7 +317,7 @@ interface SelectedFilter {
 - Тексты и подписи **живые**: сменили фильтр дашборда — сменилась подпись.
 - `defaultValue` контрола берётся **один раз**: первое непустое значение после открытия карточки. Смена фильтра дашборда не затирает выбор. В `controls` дефолт не пишется, это только показ.
 - `defaultValue` фильтра карточки из `$dashboard:` живой, пока фильтр карточки не выбран. После ручного выбора остаётся выбор пользователя.
-- Датасорсы карточки перезапрашиваются при смене фильтра дашборда, если их `parameters` ссылаются на него: напрямую через `$dashboard:name` или через `%name` фильтра карточки с дефолтом `$dashboard:`. Датасорсы слоя без `query` перезапрашиваются на любое изменение, как и раньше.
+- Датасорсы карточки перезапрашиваются при смене фильтра дашборда, если их `parameters` или `condition` ссылаются на него: напрямую через `$dashboard:name` или через `%name` фильтра карточки с дефолтом `$dashboard:`. Источник без такой ссылки не перезапрашивается, какого бы вида он ни был (слой, python, url) — см. [[utils#selectUpdatingDataSources|selectUpdatingDataSources]].
 
 [[utils|Утилиты]] `applyQueryFilters` (параметры) и `formatDataSourceCondition` (условие) принимают дополнительный `contextSources` для данных Actions и открытия модального окна. Для строки UI — `resolveConfigString`, источники — [[hooks#useConfigStringSources|useConfigStringSources]]. `#field`, `$event`, `$params` доступны в заголовке, содержимом и запросах окна; новые префиксы экранируются обратной косой чертой (JSON `"\\#ff00ff"` — буквальный цвет). Подробные границы и режимы — [[actions#Данные и подстановки|Данные и подстановки]].
 
@@ -425,10 +425,10 @@ interface ConfigLayer {
 | `TaskContainer` | `button` — кнопка запуска `type: "button"` (`TaskButtonChild`): вид — из слота, поведение и статусы — от контейнера; без слота — встроенная кнопка |
 | `ExportPdfContainer` | `button` — `type: "button"`; без слота кнопка экспорта не рисуется |
 | `VoteContainer` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — `type: "button"`; без соответствующего слота кнопка не рисуется. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
-| `FeatureCardBackgroundHeader` | `title`, `description`, `bgImage`, `icon` |
-| `FeatureCardSlideshowHeader` | `title`, `description`, `bgImage`, `slideshow` |
+| `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
+| `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` (логотип; при отсутствии — иконка `logo` и `options.title` страницы) |
-| `FeatureCardDefaultHeader` | — структура фиксирована, кастомные дети не рендерятся |
+| `FeatureCardDefaultHeader` | `title`, `description`, `featureIcon` — авторские слоты; без `title`/`description` используется штатный текст, без `featureIcon` — значок слоя |
 
 Слоты `title`, `icon`, `titleIcon` на уровне контейнера уходят в заголовок (`TITLE_SLOT_IDS`): `ContainerChildren` исключает их из рендера тела, а сетка — из подсчёта треков. `title` и `titleIcon` допустимы у **любого** контейнера с заголовком (`ExpandableTitle`) — `Chart`, `Camera`, `Attachment`, `Slideshow`, `StructuredData`, `Upload`, `Edit`, `Filters`, `Layers`, `Task`, `Vote`, `DataSource`, `DataSourceProgress`, `ContainersGroup` — и поэтому в наборы слотов отдельных контейнеров не входят.
 
@@ -595,10 +595,10 @@ interface ConfigLayer {
 Механизм:
 1. В конфиге источника данных указывается, за какими слоями он следит:
    - `"autoSyncLayer": true` — источник со своим слоем (`layerName`) следит за ним;
-   - `"autoSyncLayers": ["layer_a", "layer_b"]` — источник query (`ds` + `query`), внешний (`url`) или python (`resourceId`) следит за перечисленными слоями. Своего слоя у такого источника нет, а считает он по чужим, поэтому связь задаётся именами слоёв явно.
+   - `"autoSyncLayers": ["layer_a", "layer_b"]` — источник следит за перечисленными слоями. Работает у источников любого вида. Query (`ds` + `query`), внешнему (`url`) и python (`resourceId`) своего слоя нет, а считают они по чужим, поэтому связь задаётся только так. Источник со слоем перечисляет здесь чужие слои, от которых зависят его данные: например, блок по слою зданий обновляется, когда в слой квартир добавили или поправили объект (в том числе в редакторе геометрии).
 
-   Оба поля разбирает `getDataSourceAutoSyncLayers` (client-new, `utils/`) — единая точка правды для дашборда и карточки объекта. Если у источника задан `layerName`, `autoSyncLayers` игнорируется: два механизма на одном источнике дали бы конкурирующие подписки.
-2. Клиентский хук `useDataSourceSubscriptions` (вызывается из `useProjectDataSources`, см. [[setup|Подключение]]) подписывается на WebSocket-событие по одной подписке на слой: `addSubscription({ tag: "feature_layer_updated", resources: [layerName] })`. Подписка идёт на слой, а не на источник — один слой могут слушать несколько источников, и по подписке на источник id для отписки перезатирались бы
+   Оба поля складываются: источник со слоем может слушать и свой слой, и чужие. Слой, указанный дважды, даёт одну подписку и один перезапрос. Разбирает поля [[utils#getDataSourceAutoSyncLayers|getDataSourceAutoSyncLayers]] (`@evergis/react`) — единая точка правды для дашборда, модалок и карточки объекта.
+2. Клиентский хук `useDataSourceSubscriptions` (вызывается из `useProjectDataSources`, см. [[setup|Подключение]]) подписывается на WebSocket-событие по одной подписке на слой: `addSubscription({ tag: "feature_layer_updated", resources: [layerName] })`. Подписка идёт на слой, а не на источник — один слой могут слушать несколько источников, и по подписке на источник id для отписки перезатирались бы. Подписки копятся до смены проекта: при переходе на страницу хук дописывает слои, которых ещё нет среди оформленных, — у каждой страницы свои источники
 3. Когда другой пользователь изменяет объект слоя — бэкенд отправляет `ReceiveFeaturesUpdateNotification`
 4. Хук убирает записи нужных источников из стора и вызывает `fetchData(updatingDataSources)` для перезагрузки — зависимые контейнеры показывают свой `ContainerLoading`, соседние не мигают. Ставить `features: null` нельзя: в семантике контейнеров это ошибка («Блок не загружен»), а не загрузка
 5. При смене проекта подписки снимаются (`unsubscribeById`) и оформляются заново — иначе остались бы висеть на слоях прежнего проекта. Снимаются они и на размонтировании
@@ -620,6 +620,17 @@ interface ConfigLayer {
   "ds": "incidents_layer",
   "query": "SELECT district, count(*) AS cnt FROM incidents_layer GROUP BY district",
   "autoSyncLayers": ["incidents_layer"]
+}
+```
+
+Источник со слоем, который следит и за своим слоем, и за чужим:
+
+```json
+{
+  "name": "buildings",
+  "layerName": "buildings_layer",
+  "autoSyncLayer": true,
+  "autoSyncLayers": ["apartments_layer"]
 }
 ```
 
@@ -819,6 +830,6 @@ export const elementComponents = {
 
 `conditions` — объект «выражение → override» у Dashboard/FeatureCard, контейнеров, элементов, шапок, модалок и слотов. Выигрывает первая истинная ветка в порядке записи; `else` используется только если остальные не подошли. Override меняет только `options`, `style` и `visibility`, используя рекурсивный merge Actions: объекты объединяются, массивы заменяются, явный null сохраняется.
 
-Выражения используют parser/evaluator Actions и обычные конфиговые подстановки (`%filter`, `$dashboard`, `$card`, `{attribute}`, системные значения). Action-only `#result`, `$event`, `$params` запрещены; строки override остаются буквальными. Пока `isDataLoading` истинно (включая выполняющиеся запросы autoSync), действует базовый конфиг. Учёт ожидания debounce зависит от загрузчика — см. [[conditional-formatting#Загрузка и область вычисления|Загрузку и область вычисления]]. DataSource-хост разрешает дерево до рендера записей; правила удаляются из render-конфига и не вычисляются для каждой строки. `visibility: false` скрывает узел вместе с его местом в раскладке через существующий корень либо исключение из вывода; сохранение локального состояния при скрытии не гарантируется.
+Выражения используют parser/evaluator Actions и обычные конфиговые подстановки (`%filter`, `$dashboard`, `$card`, `{attribute}`, системные значения). Action-only `#result`, `$event`, `$params` запрещены; строки override остаются буквальными. Пока `isDataLoading` истинно (включая выполняющиеся запросы autoSync), правило вычисляется, только если получены данные, которые оно читает, иначе узел сохраняет базовый конфиг. Учёт ожидания debounce зависит от загрузчика — см. [[conditional-formatting#Загрузка и область вычисления|Загрузку и область вычисления]]. DataSource-хост разрешает дерево до рендера записей; правила удаляются из render-конфига и не вычисляются для каждой строки. `visibility: false` скрывает узел вместе с его местом в раскладке через существующий корень либо исключение из вывода; сохранение локального состояния при скрытии не гарантируется.
 
 Полный контракт и интерактивный пример: [[conditional-formatting|Условное форматирование]].
