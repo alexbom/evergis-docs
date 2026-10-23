@@ -305,6 +305,7 @@ interface SelectedFilter {
 | Условие | `condition` датасорса и слоя | — | в формате условия: кавычки по типу, списки `[…]`, даты `#'…'` | плейсхолдер остаётся |
 | Текст интерфейса | `value`, `defaultValue` элемента; `options.label`, `options.placeholder`, `options.title`; заголовок модалки | значение с типом | массив через `", "` | пустая строка — срабатывают `defaultValue` и `hideEmpty` |
 | Дефолт фильтра карточки | `filters[].defaultValue` | только `$dashboard:` | только `$dashboard:` | дефолта нет |
+| Значение новой строки [[containers#StructuredDataContainer\|StructuredData]] | `attributesDescription[].defaultValue` | значение с типом, затем приведение к типу колонки | текстом | `null` |
 
 ```json
 { "id": "alias", "value": "Показатели за $dashboard:year год" }
@@ -317,6 +318,7 @@ interface SelectedFilter {
 - Тексты и подписи **живые**: сменили фильтр дашборда — сменилась подпись.
 - `defaultValue` контрола берётся **один раз**: первое непустое значение после открытия карточки. Смена фильтра дашборда не затирает выбор. В `controls` дефолт не пишется, это только показ.
 - `defaultValue` фильтра карточки из `$dashboard:` живой, пока фильтр карточки не выбран. После ручного выбора остаётся выбор пользователя.
+- `defaultValue` атрибута [[containers#StructuredDataContainer|StructuredData]] — снимок в момент нажатия «Добавить»: строка получает значение подстановки на этот момент, и дальнейшая смена фильтра или объекта её не меняет.
 - Датасорсы карточки перезапрашиваются при смене фильтра дашборда, если их `parameters` или `condition` ссылаются на него: напрямую через `$dashboard:name` или через `%name` фильтра карточки с дефолтом `$dashboard:`. Источник без такой ссылки не перезапрашивается, какого бы вида он ни был (слой, python, url) — см. [[utils#selectUpdatingDataSources|selectUpdatingDataSources]].
 
 [[utils|Утилиты]] `applyQueryFilters` (параметры) и `formatDataSourceCondition` (условие) принимают дополнительный `contextSources` для данных Actions и открытия модального окна. Для строки UI — `resolveConfigString`, источники — [[hooks#useConfigStringSources|useConfigStringSources]]. `#field`, `$event`, `$params` доступны в заголовке, содержимом и запросах окна; новые префиксы экранируются обратной косой чертой (JSON `"\\#ff00ff"` — буквальный цвет). Подробные границы и режимы — [[actions#Данные и подстановки|Данные и подстановки]].

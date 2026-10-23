@@ -209,7 +209,7 @@ const child: StrictConfigContainerChild = {
 | `ElementSvg` | `"svg"` | `width`, `height`, `fontColor` |
 | `ElementTable` | `"table"` | `sort`, `editOnly`, `width`, `height` |
 | `ElementTooltip` | `"tooltip"` | `icon` |
-| `ElementUploader` | `"uploader"` | `fileExtensions`, `multiSelect`, `parentResourceId`, `icon`, `title`, `filterName` |
+| `ElementUploader` | `"uploader"` | `fileExtensions`, `multiSelect`, `compact`, `parentResourceId`, `icon`, `title`, `filterName` |
 
 ### Контейнеры
 
@@ -404,7 +404,7 @@ interface BgImageLayerProps {
 | `containers/FiltersContainer/constants.ts` | константы для рендера фильтров |
 | `containers/AttachmentContainer/types.ts` | `FileType` enum (`XLSX`, `PDF`, `CSV`, ... — 16 типов), `IMAGE_FILE_TYPES`, `AttachmentViewMode`, `Attachment` |
 | `containers/AttachmentContainer/constants.ts` | MIME-типы, лимиты, расширения |
-| `containers/StructuredDataContainer/types.ts` | `DraftRowState` (`"pristine" \| "created" \| "updated" \| "deleted"`), `DraftRow` (`key`, `featureId?`, `properties`, `state`), `StructuredDataAttribute` — атрибут схемы после слияния `attributesDescription` с атрибутами источника (плюс `control` и `listOptions` — они есть только у схемы **представления**, см. [[containers#StructuredDataContainer\|Контейнеры]]), `StructuredDataContextValue` (`schema`, `rows`, `loading`, `canEdit`, `canDelete`, `onCellChange`, `onRowDelete`) |
+| `containers/StructuredDataContainer/types.ts` | `DraftRowState` (`"pristine" \| "created" \| "updated" \| "deleted"`), `DraftRow` (`key`, `featureId?`, `properties`, `state`), `StructuredDataAttribute` — атрибут схемы после слияния `attributesDescription` с атрибутами источника (`hidden` и `defaultValue` — только из конфига; плюс `control` и `listOptions` — они есть только у схемы **представления**, см. [[containers#StructuredDataContainer\|Контейнеры]]), `StructuredDataContextValue` (`schema`, `rows`, `loading`, `canEdit`, `canDelete`, `onCellChange`, `onRowDelete`) |
 | `containers/StructuredDataContainer/constants.ts` | `STRUCTURED_DATA_VIEW_SLOT` (`"data"`), типы атрибутов по группам, `DEFAULT_ATTRIBUTE_TYPE`, `DEFAULT_ATTRIBUTE_CONTROL` (`"dropdown"` — контрол колонки со списком, когда `control` не задан), `SAVE_ERROR_DURATION` |
 | `containers/DataSourceContainer/constants.ts` | константы раскладки плиток источника |
 | `containers/TaskContainer/types.ts` | `TaskButtonProps` (`title`, `icon?`, `status`, `statusColors?`, `isWaiting`, `isDisabled`, `onClick`) — пропсы кнопки запуска; `TaskSlotButtonProps` — то же + `type?`, `buttonConfig: TaskButtonChild` для кнопки из слота `button` |
@@ -430,7 +430,7 @@ interface BgImageLayerProps {
 
 `ContainerProps` содержит опциональный `onChange?: (config: ConfigContainerChild) => void` — контейнер сообщает наружу новую версию собственного узла. Сейчас источник один: [[containers#Редактирование раскладки (editMode)|сетка в режиме редактирования]].
 
-Путь колбэка: проп `onContainerChange` у `DashboardProvider` / `FeatureCardProvider` → контекст → `useWidgetContext` → `PagesContainer` кладёт его в `getRenderElement({ onChange })` → движок передаёт каждому контейнеру пропом `onChange`. Поскольку `GetRenderElementProps extends Omit<ContainerProps, "renderElement">`, поле появилось в параметрах `getRenderElement` автоматически.
+Путь колбэка: проп `onContainerChange` у `DashboardProvider` / `FeatureCardProvider` → контекст → `useWidgetContext` → `PagesContainer` (страница) и `useModalContent` (тело и слоты модального окна) кладут его в `getRenderElement({ onChange })` → движок передаёт каждому контейнеру пропом `onChange`. Поскольку `GetRenderElementProps extends Omit<ContainerProps, "renderElement">`, поле появилось в параметрах `getRenderElement` автоматически.
 
 Идентификатор узла лежит внутри payload (`next.id`), поэтому хосту достаточно `replaceObject(config, { id: next.id }, next)` из `find-and`.
 
@@ -514,7 +514,7 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 |---|---|---|
 | `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `autoSyncLayers?`, `notifications?: ConfigNotifications`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
 | `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
-| `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?`, `parentResourceId?`, `fileExtensions?`, `control?: ConfigAttributeControl`, `variants?: ChipOption[]`, `relatedDataSource?`, `attributeValue?`, `attributeAlias?` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки, вида, загрузки вложений и списка значений, которых в серверном контракте нет |
+| `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?`, `parentResourceId?`, `fileExtensions?`, `control?: ConfigAttributeControl`, `variants?: ChipOption[]`, `relatedDataSource?`, `attributeValue?`, `attributeAlias?`, `hidden?`, `defaultValue?: string \| number \| boolean` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки, вида, загрузки вложений, списка значений, скрытости и значения новой строки, которых в серверном контракте нет |
 | `ConfigAttributeControl` | `"dropdown" \| "chips"` | Контрол выбора значения колонки из списка (`variants` либо справочник `relatedDataSource`): выпадающий список (по умолчанию) или ряд кнопок |
 | `ConfigNotifications` | `"all" \| "my" \| string[]` | Фильтр серверных уведомлений по автору изменения (`senderName`): `"all"` — любые (по умолчанию), `"my"` — только текущего пользователя, массив — только перечисленных (текущий пользователь неявно не добавляется, `"my"` внутри массива — обычное имя). Уведомление без автора (системная задача) применяется всегда. Поле с этим типом есть у `ConfigDataSource`, `ConfigLayer` и `ConfigMiscOptions` (`options` корня); приоритет — источник → слой → корень, см. [[concepts#Фильтр уведомлений по автору — notifications\|Основные понятия]] |
 | `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |

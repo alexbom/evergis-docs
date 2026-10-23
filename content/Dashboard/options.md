@@ -49,6 +49,7 @@ interface ConfigOptions
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик). У `ElementLegend` — направление записей: `false` в ряд, `true` столбиком |
+| `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла |
 | `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки (grid)\|Режим сетки]] |
 | `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
 | `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. См. [[containers#StructuredDataContainer\|StructuredData]] |
@@ -73,7 +74,7 @@ interface ConfigOptions
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `barHeight` | `number` | Высота StackBar |
 
-**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 `innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
@@ -121,7 +122,7 @@ interface ConfigOptions
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`, настройки загрузки вложений `parentResourceId`/`fileExtensions`, список значений колонки `variants`/`relatedDataSource`/`attributeValue`/`attributeAlias` и его контрол `control`; типы — от источника), без источника — единственная схема и обязательна |
+| `attributesDescription` | `ConfigAttributeDescription[]` | Схема структурированных данных [[containers#StructuredDataContainer\|StructuredDataContainer]]. С источником — переопределение его схемы (состав, `alias`, `stringFormat`, `isEditable`, раскладка и вид колонки `width`/`resizable`/`multiline`/`colorPicker`/`style`/`subType`, настройки загрузки вложений `parentResourceId`/`fileExtensions`, список значений колонки `variants`/`relatedDataSource`/`attributeValue`/`attributeAlias` и его контрол `control`, скрытое поле `hidden` и значение новой строки `defaultValue`; типы — от источника), без источника — единственная схема и обязательна |
 | `relatedDataSource` | `string` | ⚠️ entity-ref на `[[concepts#Источники данных\|ConfigDataSource]]` (см. `[[types#Branded types\|DataSourceName]]`) |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Несколько источников для серий графика. Имя серии — `alias`, настройки её оси — вложенный `axis` ([[types#ConfigAxis\|`ConfigAxis`]]) |
 | `relatedAttributes` | `ConfigRelatedAttribute[]` | Атрибуты из связанных слоёв (join) |

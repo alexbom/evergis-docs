@@ -98,6 +98,32 @@
 
 ---
 
+## ConditionalSlot (internal)
+
+**Назначение:** Хелперы стиля и видимости слотов для [[conditional-formatting|условного форматирования]]. Компонента в папке нет — только `components/ConditionalSlot/utils.ts`; в публичном барреле `components/index.tsx` не экспортируется. Шаблоны применяют результат к своим **существующим** обёрткам слотов (`ContainerAlias`, `ContainerValue`, `ContainerUnits`, `ProgressTotal`, ...), поэтому для `visibility`/`style` слота новых DOM-обёрток не появляется.
+
+**Функции:**
+
+| Функция | Сигнатура | Что возвращает |
+|---|---|---|
+| `getSlotVisibilityStyle` | `(node, ...ids) => CSSProperties` | `{ display: "none" }`, если среди детей `node` есть слоты с этими `id` и **все** они скрыты (`visibility: false`), иначе `{}`. Сворачивает общую обёртку группы слотов (например, строку `value` + `units`), не размонтируя содержимое |
+| `getSlotStyle` | `(node, id) => CSSProperties` | Авторский `style` слота плюс стиль его видимости. Для скалярного слота: значение рендерится без обёртки элемента, поэтому стиль несёт обёртка-владелец |
+| `getSlotOwnerStyle` | `(node, id, value: ReactNode) => CSSProperties` | Выбор между двумя первыми: `value` — React-элемент (свой корень уже несёт стиль) → `getSlotVisibilityStyle`; скаляр → `getSlotStyle` |
+
+Видимость читается через `isConditionallyVisible`, стиль скрытия — через `getConditionalVisibilityStyle` (см. [[conditional-formatting#Типы и чистые функции|Условное форматирование]]).
+
+**Используется в:** [[containers|контейнерах]] `Camera`, `Chart`, `DataSourceProgress`, `Edit`, `Filters`, `Icon`, `Image`, `OneColumn`, `Progress`, `RoundedBackground`, `Slideshow`, `TwoColumn`; [[headers|шапках]] `FeatureCardBackgroundHeader` (слот `icon`) и `FeatureCardSlideshowHeader` (слот `slideshow`); компонентах **ContainerBackground** (слот `bgImage`) и **HiddenTitleItems**.
+
+```tsx
+// Внутренний код шаблона: строка «значение + единицы» схлопывается, только когда скрыты оба слота
+<ContainerValue style={getSlotVisibilityStyle(elementConfig, "value", "units")}>
+  {renderElement({ id: "value" })}
+  <ContainerUnits style={getSlotStyle(elementConfig, "units")}>{units}</ContainerUnits>
+</ContainerValue>
+```
+
+---
+
 ## ContainerBackground
 
 **Назначение:** Фоновое изображение контейнера — универсальный слот `bgImage`. Рендерит ребёнка со слотом `bgImage` внутри абсолютного слоя `ContainerBackgroundLayer`, который лежит **под** содержимым контейнера. Слота нет в конфиге — в DOM не появляется ничего: ни обёртки, ни пустого слоя.

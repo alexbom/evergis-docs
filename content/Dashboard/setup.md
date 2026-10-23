@@ -4,7 +4,7 @@
 
 Файл: `src/providers/DashboardProvider/index.tsx`
 
-Клиентская обёртка над `DashboardProvider` из `@evergis/react` (импортируется под алиасом `BaseDashboardProvider`). Агрегирует Redux-состояние и результаты хуков, передаёт всё в базовый провайдер. Принимает единственный собственный проп — `config?: ConfigContainer` (нужен превью редактора контейнеров, которое подставляет свой конфиг вместо страничного).
+Клиентская обёртка над `DashboardProvider` из `@evergis/react` (импортируется под алиасом `BaseDashboardProvider`). Агрегирует Redux-состояние и результаты хуков, передаёт всё в базовый провайдер. Собственные пропсы — `config?: ConfigContainer` и `onContainerChange?`. Оба нужны превью редактора контейнеров: оно подставляет свой конфиг вместо страничного и само решает, куда сохранить правку контейнера. Без `config` правка уходит в проект (см. [[setup#Сохранение в client-new|Сохранение в client-new]]).
 
 ### Внутренние хуки
 
@@ -24,6 +24,7 @@
 | `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
 | `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider`, `options.outflow` без этого слота (`orphan-option`) и ошибки [[actions\|Actions]] (`invalid-action`) и [[conditional-formatting\|условного форматирования]] (`invalid-conditional-formatting`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
 | `useLayersListVisibility()` | `components/MainPanel/hooks` | `isVisible`, `toggleVisibility` |
+| `useDashboardContainerChange()` | `components/Dashboard/hooks` | `onContainerChange` для страницы без своего `config`: подменяет узел в `dashboardConfiguration` и вызывает `updateProject` |
 
 Колбэк `selectAttachmentsFromCatalog` открывает диалог `DIALOGS.RESOURCE_CATALOG` (`ResourceCatalogOptions`) и передаёт выбранные `CatalogResourceDc[]` через `onApply`.
 
@@ -110,9 +111,9 @@
 
 `onContainerChange` — единственная точка, через которую контейнер сообщает наружу новую версию собственного конфига. Сейчас его вызывает только [[containers#Редактирование раскладки (editMode)|сетка в режиме редактирования]]: после перетаскивания границы или операции над ячейками.
 
-Внутрь дашборда колбэк уходит по цепочке «контекст → `useWidgetContext` → `PagesContainer` → `getRenderElement({ onChange })` → проп `onChange` контейнера». Тот же проп есть у `FeatureCardProvider`.
+Внутрь дашборда колбэк уходит по цепочке «контекст → `useWidgetContext` → `PagesContainer` (у модального окна — `useModalContent`) → `getRenderElement({ onChange })` → проп `onChange` контейнера», поэтому сетка в теле модалки сохраняет правки так же, как на странице. Тот же проп есть у `FeatureCardProvider`.
 
-Приходит **весь узел целиком** и уже с новым содержимым; его `id` лежит внутри, поэтому применяется точечной заменой:
+Приходит **весь узел целиком** и уже с новым содержимым; его `id` лежит внутри, поэтому применяется точечной заменой. Узел исходный — взят из конфига виджета, а не из подготовленного к показу: `conditions` и строки с подстановками в нём целы, и сохранять его можно как есть.
 
 ```tsx
 import { replaceObject } from "find-and";
@@ -136,6 +137,16 @@ import { replaceObject } from "find-and";
 
 > [!info] Редактирование работает и без обработчика
 > Сетка держит собственный черновик раскладки, поэтому без `onContainerChange` правки видны, но не сохраняются. Если хост кладёт результат обратно в конфиг, зацикливания не будет: контейнер узнаёт по ссылке конфиг, который сам же и отдал.
+
+### Сохранение в client-new
+
+| Где правят | Обработчик | Куда сохраняется |
+|---|---|---|
+| Страница и модальные окна дашборда | `useDashboardContainerChange` (`components/Dashboard/hooks`) | `content.dashboardConfiguration` проекта через `updateProject`. Без права на проект `updateProject` меняет только Redux — правка видна до перезагрузки |
+| Превью редактора контейнеров | `onContainerChange` из `useDashboardConfigEdit` | Черновик `configEdit`, если узел в нём есть; сохраняется кнопкой редактора вместе с остальными правками. Узел вне `configEdit` (например, сетка в модальном окне страницы) не сохраняется |
+| Карточка объекта | `useFeatureCardContainerChange` (`components/FeatureCard/hooks`) | `editConfiguration` слоя, пока правят атрибуты объекта, иначе `cardConfiguration` — тот же выбор, что у библиотеки. Слой обновляется сразу через `updateProjectLayer`; на сервер (`api.layers.updateQueryLayer`) правка уходит только у администратора или с правом configure на слой, ошибка возвращает слою прежнее состояние |
+
+Узел подменяется утилитой `replaceDashboardNode` (`components/Dashboard/utils`): она обходит те же ветви, что `findDashboardNode` библиотеки (`children`, `modals`, `header`), и оставляет незатронутые ветки прежними ссылками. `replaceObject` из `find-and` здесь не подходит — он клонирует весь конфиг, и после каждой правки перерисовывался бы весь дашборд.
 
 ---
 
