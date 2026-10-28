@@ -12,6 +12,21 @@
 
 ---
 
+## useActionEffectChecker
+
+**Назначение:** Проверка «действуют ли действия узла» для нажатого вида кнопок [[containers#ControlsGroupContainer|ControlsGroupContainer]] и [[containers#TabsContainer|TabsContainer]] (`actions/hooks/`, internal). Учитывает click-вызовы верхнего уровня `setFilters` и `selectTab`, ссылки разворачивает через реестры области, подстановки разрешает перед сравнением. Правила — [[actions#Нажатость кнопок группы|Actions]].
+
+**Параметры:** `type: WidgetType`
+
+**Возвращает:** стабильную функцию `(actions?: ConfigActionInvocation[], attributes?: ClientFeatureAttribute[]) => boolean` — её зовут в цикле по кнопкам. `true`, если есть хотя бы одно `setFilters`/`selectTab` и действуют все такие действия.
+
+```ts
+const isInEffect = useActionEffectChecker(type);
+const pressed = isInEffect(item.pressedActions ?? item.actions);
+```
+
+---
+
 ## useAfterSave
 
 **Назначение:** Фабрика fire-and-forget действия после успешного сохранения объекта в FeatureCard. Запускает python-скрипт (`afterSave`) через remote task; показывает уведомление о прогрессе/успехе/ошибке, но **не блокирует** сохранение и ничего не возвращает в поток сохранения.
@@ -930,6 +945,22 @@ const prototype = buildPrototype(hook, { featureId, changedProperties, changedGe
 
 ---
 
+## useTabTargets
+
+**Назначение:** Выбор вкладки у её владельца — открытого окна или самого виджета (`actions/hooks/`, internal). Владельца ищет [[utils#resolveTabTarget|resolveTabTarget]]: сначала открытые окна, потом страница и шапка. Открытые окна читаются синхронным снимком менеджера модалок, поэтому `selectTab` в callback после `openModal` видит новое окно. Его используют исполнитель действия `selectTab` и **useActionEffectChecker**.
+
+**Параметры:** `type: WidgetType`
+
+**Возвращает:** `TabTargets` — `getSelectedTabId(tabId)` (текущий выбор у владельца вкладки; `undefined`, если вкладка нигде не объявлена) и `selectTab(tabId)` (`false`, если владельца нет).
+
+```ts
+const tabs = useTabTargets(type);
+
+tabs.selectTab("tab_docs");
+```
+
+---
+
 ## useUpdateDataSource
 
 **Назначение:** Перезагрузка данных одного источника (например, после изменения записи или для пагинации). Использует **useDataSources** под капотом.
@@ -975,7 +1006,7 @@ const { config, pages } = useWidgetConfig(type);
 
 **Возвращает:** объединённый объект контекста — `dataSources`, `filters`, `attributes`, `layerInfo`, `selectedTabId`, `expandedContainers`, `changeFilters`, `setSelectedTabId` и т.д.
 
-В модальном окне своего `WidgetType` поля `dataSources` и `isLoading` берутся из `ModalDataContext`; `filters`, навигация и остальные данные остаются от виджета. Также возвращает `actionContextKey`, `actionsActive`, `onModalToggle`, `onModalContextChange`, `isModalNotificationAllowed`. Контекст нажатой записи и ответа задачи собирает **useConfigStringSources**.
+В модальном окне своего `WidgetType` поля `dataSources`, `isLoading` и `selectedTabId`/`setSelectedTabId` берутся из `ModalDataContext` (у окна свой выбор вкладки; пустой выбор окна не подменяется вкладкой страницы); `filters`, навигация и остальные данные остаются от виджета. Выбор вкладки самого виджета без подмены окном — `widgetSelectedTabId` / `setWidgetSelectedTabId`. Также возвращает `actionContextKey`, `actionsActive`, `onModalToggle`, `onModalContextChange`, `isModalNotificationAllowed`. Контекст нажатой записи и ответа задачи собирает **useConfigStringSources**.
 
 ```ts
 const { dataSources, filters, attributes } = useWidgetContext(type);

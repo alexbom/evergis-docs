@@ -58,9 +58,9 @@
 | `height` | `CssSize` | Высота обёртки. `"100%"` — заполнить ячейку родителя |
 | `overflow` | `"visible" \| "hidden" \| "scroll" \| "auto"` | Что делать с контентом, вылезающим за бокс. Не задана — браузерный `visible`: контент вытекает на соседние слоты. Значения кроме `visible` обрезают и абсолютно спозиционированных потомков — у `Filters` с заданной высотой обрежется открытый список фильтра |
 
-Поддерживают: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Task`, `TwoColumn`, `Upload`, `Vote`. Значение `"100%"` включает **fill-режим**: обёртка занимает ячейку целиком, конфликтующие внутренние дефолты (собственные `width`/`height`/`margin`) снимаются, а для fill-высоты добавляется `flex: 1 1 auto`. Реализация — [[utils|`getWrapperSizeStyle`]] + [[hooks|`useWrapperSize`]]; размеры уходят styled-пропом, поэтому перебиваются снаружи обычной специфичностью, без `!important`.
+Поддерживают: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `ControlsGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `TwoColumn`, `Upload`, `Vote`. Значение `"100%"` включает **fill-режим**: обёртка занимает ячейку целиком, конфликтующие внутренние дефолты (собственные `width`/`height`/`margin`) снимаются, а для fill-высоты добавляется `flex: 1 1 auto`. Реализация — [[utils|`getWrapperSizeStyle`]] + [[hooks|`useWrapperSize`]]; размеры уходят styled-пропом, поэтому перебиваются снаружи обычной специфичностью, без `!important`.
 
-Остальные контейнеры (`AddFeature`, `DefaultAttributes`, `Divider`, `Edit*`, `ExportPdf`, `Icon`, `Progress`, `RoundedBackground`, `Tabs`, `Title`) своей размерной модели не имеют; у `Pages` из размеров есть только `width`.
+Остальные контейнеры (`AddFeature`, `DefaultAttributes`, `Divider`, `Edit*`, `ExportPdf`, `Icon`, `Progress`, `RoundedBackground`, `Title`) своей размерной модели не имеют; у `Pages` из размеров есть только `width`.
 
 > [!info] Размер в `fr` — это доля трека сетки
 > `width`/`height` вида `"2fr"` применяет не сам узел, а его родитель — [[containers#Режим сетки (grid)|сетка]] или [[containers#GridRowContainer|строка сетки]] — при сборке `grid-template-*`. Самому узлу такое значение даёт fill-режим, как `"100%"`.
@@ -481,6 +481,85 @@
 
 ---
 
+### ControlsGroupContainer
+
+**Назначение:** Тулбар — кнопки, фильтры и поле загрузки в одном ряду с общим видом: размер, отступ, скругление на стыке, серая подложка, подчёркивание, общий размер иконок. Кнопки, которые не помещаются по ширине, уходят в меню «…». Работает в Dashboard и FeatureCard. Частный случай — [[containers#TabsContainer|TabsContainer]].
+
+**Типы:** `templateName = "ControlsGroup"` · `ControlsGroupContainerOptions` · `ControlsGroupContainerProps`. Дети — `ControlsGroupContainerChild = ControlsGroupButtonChild | ControlsGroupFilterChild | ControlsGroupUploaderChild`. См. [[types#Контейнеры|сводную таблицу]]. В union `DashboardChild` ветви нет — в TS-коде узел типизируется напрямую как `ControlsGroupContainerConfig`.
+
+**Props:** `ContainerProps`
+
+Сам ряд рисует экспортируемый `ControlsGroupView` (`type`, `config`, `items: ControlsGroupItem[]`, `options`, `onItemClick?`) — на нём же построен [[containers#TabsContainer|TabsContainer]].
+
+**Дети** (перечисляемые: у каждого уникальный `id` в пределах `children`):
+
+| Узел | Что это |
+|---|---|
+| `type: "button"` | [[elements#ElementButton\|ElementButton]]: `value`, `actions`, `options` вида кнопки |
+| `type: "dropdown"` / `"text"` / `"chips"` / `"checkbox"` + `options.filterName` | Тот же фильтр, что в [[containers#FiltersContainer\|FiltersContainer]], со всеми его опциями. `text` — однострочный поиск, не многострочное поле. Фильтр должен быть объявлен в `filters` страницы |
+| `type: "uploader"` | [[elements#ElementUploader\|ElementUploader]], обычно с `options.compact: true` |
+
+Другие типы в ряд не попадают (валидатор client-new предупреждает `invalid-group-child`). Универсальные слоты `title`/`titleIcon`/`bgImage` работают как у остальных контейнеров.
+
+**Опции группы:**
+
+| Опция | Тип | Описание |
+|---|---|---|
+| `size` | `"small" \| "medium" \| "large" \| "xlarge"` | Размер кнопок по умолчанию (24 / 32 / 40 / 48). Поля всегда 32px, ряд выровнен по центру |
+| `gap` | `number` | Отступ между элементами, px. По умолчанию 4. `0` — кнопки склеены |
+| `joinRadius` | `number` | Скругление углов на стыке соседних кнопок, px (только при `gap: 0`). Внешние углы — от `shape`/`radius` кнопки |
+| `background` | `boolean` | Серая подложка группы. Ненажатые кнопки становятся `ghost` и теряют фон |
+| `underline` | `boolean` | Текстовые вкладки: без заливки, у нажатой — линия снизу акцентным цветом, при наведении — серая |
+| `iconSize` | `number` | Размер иконок всех кнопок, px — и шрифтовых, и картинок по адресу |
+| `stretch` | `boolean` | Группа на всю ширину: кнопки делят её поровну |
+| `button` | `ConfigButtonLook` | Набор «обычная» — опции кнопки для всех кнопок группы. По умолчанию `{ variant: "ghost", primary: false }` |
+| `activeButton` | `ConfigButtonLook` | Набор «нажатая» — поверх «обычной», когда actions кнопки действуют |
+| `width`, `height`, `overflow` | — | [[containers#Размеры контейнера\|Размеры контейнера]] |
+
+**Опции ребёнка** сверх его собственных:
+
+| Опция | У кого | Описание |
+|---|---|---|
+| `active` | кнопка | Переопределение набора «нажатая» для этой кнопки |
+| `grow` | любой | Забрать всё свободное место строки (поиск в тулбаре) |
+| `width` | поле | Ширина фильтра или загрузки. Без `width` и `grow` — 12.5rem |
+| `withDivider` | любой | Вертикальная черта после элемента |
+| `disabled` | кнопка | Кнопка недоступна: клик и actions не срабатывают |
+
+**Вид кнопки** — слияние по возрастанию приоритета: `size` группы → `options.button` → собственные `options` кнопки → (если нажата) `options.activeButton` → (если нажата) `options.active` кнопки. Если набора «нажатая» нет ни у группы, ни у кнопки, нажатость показывает сам `IconButton` (`active`).
+
+**Нажатость.** У кнопки задаются только [[actions|actions]]. Кнопка нажата, когда её click-действия верхнего уровня `setFilters` и `selectTab` **действуют**: текущие фильтры уже равны значениям `setFilters` (с учётом `defaultValue` фильтра), а у владельца вкладки `selectTab` выбрана его вкладка. Кнопка без таких действий не нажата; другие действия на нажатость не влияют. Повторный клик снимает выбор, если у `setFilters` задан `toggle: true`. Нажатый вид вычисляется только внутри группы — обычные кнопки дашборда выглядят как раньше.
+
+**Меню «…».** Кнопки, которые не помещаются по ширине, уходят в меню с конца ряда. Фильтры и загрузка не сворачиваются никогда — если не влезают одни они, ряд их ужимает. Пункт меню выполняет те же actions, что кнопка, и закрывает меню. Если нажатая кнопка свёрнута, нажата сама «…». Скрытые [[conditional-formatting|условной видимостью]] дети не участвуют ни в ряду, ни в меню.
+
+```tsx
+{
+  id: "map_toolbar",
+  templateName: "ControlsGroup",
+  options: { background: true, activeButton: { variant: "solid", primary: true } },
+  children: [
+    { id: "search", type: "text", options: { filterName: "search_text", placeholder: "Найти", grow: true } },
+    {
+      id: "view_map",
+      type: "button",
+      value: "Карта",
+      options: { icon: "map" },
+      actions: [{ type: "setFilters", options: { filters: { view_mode: { value: "map" } }, toggle: true } }]
+    },
+    {
+      id: "view_table",
+      type: "button",
+      value: "Таблица",
+      options: { icon: "table_view", withDivider: true },
+      actions: [{ type: "setFilters", options: { filters: { view_mode: { value: "table" } }, toggle: true } }]
+    },
+    { id: "report", type: "button", options: { icon: "download" }, actions: [{ id: "BuildReport" }] }
+  ]
+}
+```
+
+---
+
 ### DataSourceContainer
 
 **Назначение:** Отображает список объектов из источника данных — проходит по каждой записи (`feature`) и рендерит её через **внутренний шаблон** `options.innerTemplateName` (обёрнутый в `DataSourceInnerContainer`). Используется для карточек списков: объекты недвижимости, инциденты, объекты мониторинга.
@@ -519,7 +598,7 @@
 >
 > В dev-режиме пропуск ловит рантайм-валидатор `validateDashboardConfig` — ошибкой `missing-inner-template` с путём до узла; он же резолвит заданное имя и проверяет `children` по слотам внутреннего шаблона (см. [[authoring|Правила генерации]]).
 
-**`children` DataSource-хоста — это slot-id выбранного `innerTemplateName`** (например для `RoundedBackground`: `icon`, `alias`, `value`, `units`; для `OneColumn`/`TwoColumn`: `alias`, `value`, `units`), а не собственные слоты `DataSource` и не вложенный контейнер.
+**`children` DataSource-хоста — это slot-id выбранного `innerTemplateName`** (например для `RoundedBackground`: `icon`, `alias`, `value`, `units`; для `OneColumn`/`TwoColumn`: `alias`, `value`, `units`, у `TwoColumn` ещё и `icon`), а не собственные слоты `DataSource` и не вложенный контейнер.
 
 Исключение — [[containers#Универсальные слоты|универсальные слоты]]: `title` / `titleIcon` / `bgImage` принадлежат самому хосту, а не записи. Слот фона `DataSourceInnerContainer` **вырезает** из конфига записи: иначе одна картинка нарисовалась бы и у хоста, и у каждой из N записей.
 
@@ -1214,39 +1293,40 @@
 
 ### TabsContainer
 
-**Назначение:** Горизонтальные вкладки (Swiper). Каждая вкладка — дочерний элемент с `id`. Управляет `selectedTabId` через контекст — при клике на вкладку показывается соответствующая страница/контейнер.
+**Назначение:** Вкладки — частный случай [[containers#ControlsGroupContainer|ControlsGroupContainer]], где каждый ребёнок — кнопка-вкладка. Выбранная вкладка нажата; узлы с `options.tabId` (дети [[containers#PagesContainer|страницы]], любые узлы через `getRenderElement`) показываются только при своей вкладке.
 
-**Опции:**
+**Типы:** `templateName = "Tabs"` · `TabsContainerOptions` (= `ControlsGroupContainerOptions`) · `TabsContainerProps`. Дети — `TabChild`. См. [[types#Контейнеры|сводную таблицу]].
 
-| Опция | Тип | Описание |
-|---|---|---|
-| `radius` | `number` | Радиус скругления вкладок |
-| `column` | `boolean` | Вертикальные вкладки вместо горизонтальных |
-| `bgColor` | `string` | Цвет фона панели вкладок |
-| `noBg` | `boolean` | Прозрачный фон (без подложки) |
-| `onlyIcon` | `boolean` | Показывать только иконку без текста |
-| `shownItems` | `number` | Количество видимых вкладок (остальные — в overflow) |
-| `maxLength` | `number` | Максимальная длина текста вкладки |
-| `wordBreak` | `string` | CSS `word-break` для текста вкладок |
+**Props:** `ContainerProps`
 
-**Опции дочерних элементов (`TabOptions`):**
+**Опции** — те же, что у ControlsGroup: `size`, `gap`, `joinRadius`, `background`, `underline`, `iconSize`, `stretch`, `button`, `activeButton`, `width`/`height`/`overflow`. Умолчания вкладок: `gap: 0`, `button: { variant: "soft", primary: false }`, `activeButton: { variant: "solid", primary: true }`; при `underline` оба набора — `ghost` нейтральные. Наборы узла сливаются с умолчаниями по полям.
 
-| Опция | Тип | Описание |
-|---|---|---|
-| `icon` | `IconTypesKeys` | Иконка вкладки. При `onlyIcon` у контейнера подпись не рендерится и остаётся только она |
+> [!warning] Старые опции не поддерживаются
+> `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` больше не читаются. Вид вкладок задают `button`/`activeButton` и опции самих вкладок; лишние вкладки уходят в меню «…» вместо свайпа. Валидатор client-new отмечает старые опции предупреждением `removed-option`.
 
-Дочерний узел вкладки — `TabChild`: `id` (уникальное имя, на которое ссылается `options.tabId` [[containers#PagesContainer|страницы]]), `value` (подпись) и `options.icon`. Своих `children` у вкладки нет.
+**Дочерний узел — `TabChild`:** `id` (уникальное имя, на него ссылаются `options.tabId` и действие `selectTab`), `value` (подпись), `actions`, `options` — все опции [[elements#ElementButton|ElementButton]] (`icon` — имя иконки шрифта или адрес картинки), плюс `active`, `grow`, `withDivider`, `disabled`. `type` можно не писать — любой ребёнок считается кнопкой; другой `type` — ошибка валидатора.
 
-`{ id: "tab_1", value: "Общая информация", options: { icon: "info" } }`
+**Поведение:**
+- Каждой вкладке первым вызовом добавляется `{ type: "selectTab", options: { tabId: <id> } }`, затем выполняются её `actions`. Нажатость — только по выбору вкладки: её собственные `setFilters` на нажатость не влияют.
+- Клик по самой вкладке ставит адрес `#tabId` и прокручивает к ряду вкладок. `selectTab` из других мест (кнопка, график) адрес не трогает.
+- Если ничего не выбрано или выбранной вкладки нет ни в одной группе `Tabs` виджета и его окон, выбирается первая видимая — без запуска её actions. Две группы вкладок на одной странице выбор не перетягивают.
+- В client-new выбор вкладок дашборда и карточки объекта независим, а смена страницы сбрасывает выбор — новая страница начинает с первой вкладки.
+
+**Вкладки в модальном окне.** `TabsContainer` можно положить в `children` модалки. Её дети с `options.tabId` показываются только при своей вкладке, как дети страницы. Выбор вкладки у каждого окна свой: окно не переключает вкладки страницы под собой, а при каждом открытии начинает с первой вкладки. Открыть окно сразу на нужной вкладке — `openModal` с callback `selectTab` (см. [[actions|Actions]]).
 
 ```tsx
 {
   id: "main_tabs",
   templateName: "Tabs",
-  options: { noBg: false, onlyIcon: false },
+  options: { underline: true, background: true },
   children: [
     { id: "tab_info", value: "Информация", options: { icon: "info" } },
-    { id: "tab_docs", value: "Документы", options: { icon: "attachment" } }
+    {
+      id: "tab_docs",
+      value: "Документы",
+      options: { icon: "attachment" },
+      actions: [{ type: "setFilters", options: { filters: { section: { value: "docs" } } } }]
+    }
   ]
 }
 ```
@@ -1344,6 +1424,8 @@
 **Props:** `ContainerProps`
 
 **Слоты (`children`):** `alias`, `value`, `units`, `icon`, `tooltip`, `modal`. Слот `icon` рендерится перед подписью, и его тип со значением подставляются из настроек атрибута в слое (`attributesConfiguration.attributes[].icon`) через [[hooks|`useRenderContainerItem`]] + [[utils|`getAttributeIconElement`]]; `tooltip` и `modal` встают рядом с подписью.
+
+**Цвет иконок строки.** Шрифтовые иконки рядом с подписью (`icon`, глиф `modal`) по умолчанию рисуются `palette.primary`. Цвет ставится самому `span[kind]` обёртки подписи (`ContainerAlias`), а глиф его наследует, поэтому собственный цвет элемента сильнее: `options.fontColor` (или `style.color`) узла `icon` перекрашивает иконку и в одиночной строке, и в строках списка `DataSource`. Иконка `tooltip` красится своим цветом (`palette.iconDisabled`), иконка `modal` на hover — цветом `IconButton` (`iconAccent`).
 
 **Опции:**
 

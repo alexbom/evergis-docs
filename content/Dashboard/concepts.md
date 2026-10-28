@@ -367,7 +367,7 @@ interface ConfigLayer {
 |---|---|---|---|
 | **Контейнер** (`templateName`-узел) | Уникальное имя для быстрого поиска и связей | `ContainerId` (бренд `string`), подтипы — `ChartId`, `ModalId`, `TabId` | Глобально уникален в `config` |
 | **Элемент** (`type`-узел внутри `children`) | Слот — зарезервированное место в parent-контейнере | Литеральный `string` из фиксированного набора | Уникален в пределах `children` одного контейнера |
-| **Перечисляемая сущность в `children`** (фильтр в `FiltersContainer`, таб в `TabsContainer`, кнопка в `AddFeatureContainer` — узлы со специализированными child-типами без своего `templateName`/`type`) | Уникальное имя, как у контейнера | `string` (для табов — `TabId`) | Уникален в пределах `children` одного контейнера |
+| **Перечисляемая сущность в `children`** (фильтр в `FiltersContainer`, таб в `TabsContainer`, кнопка или поле в `ControlsGroupContainer`, кнопка в `AddFeatureContainer` — узлы со специализированными child-типами без своего `templateName`/`type`) | Уникальное имя, как у контейнера | `string` (для табов — `TabId`) | Уникален в пределах `children` одного контейнера |
 
 ### `id` контейнера — уникальное имя
 
@@ -395,10 +395,11 @@ interface ConfigLayer {
 Некоторые контейнеры держат в `children` не элементы и не вложенные контейнеры, а **специализированные child-типы**:
 
 - `FiltersContainer` → `FilterChild` (фильтр с `options.filterName`)
-- `TabsContainer` → `TabChild` (вкладка)
+- `TabsContainer` → `TabChild` (вкладка-кнопка)
+- `ControlsGroupContainer` → `ControlsGroupContainerChild` (кнопка, фильтр с `options.filterName` или поле загрузки)
 - `AddFeatureContainer` → `AddFeatureButtonChild` (кнопка добавления фичи)
 
-Это **перечисляемые сущности** — каждая своя со своим действием/конфигом, не slot из фиксированного набора. У них `id` — **уникальное имя в пределах `children`**, как у контейнера. По нему React строит `key` для списка, а внешний код адресует конкретный экземпляр (например, `PageChild.options.tabId` ссылается на `id` нужной вкладки в `TabsContainer`).
+Это **перечисляемые сущности** — каждая своя со своим действием/конфигом, не slot из фиксированного набора. У них `id` — **уникальное имя в пределах `children`**, как у контейнера. По нему React строит `key` для списка, а внешний код адресует конкретный экземпляр (например, `PageChild.options.tabId` и действие `selectTab` ссылаются на `id` нужной вкладки в `TabsContainer`).
 
 У **фильтра** в придачу к `id` обязателен `options.filterName` — это ключ фильтра из `ConfigFilter.name` на странице, по которому работает логика подстановки в `condition` и сброса. `id` и `filterName` — **разные вещи**: `id` идентифицирует узел в `children`, `filterName` связывает фильтр со страничным конфигом.
 
@@ -422,7 +423,8 @@ interface ConfigLayer {
 | `EditGroupContainer` | `alias`, `tooltip` (+ `units`, `icon` — их читает [[hooks\|`useRenderContainerItem`]]); дети клонируются в разрешённый по типу атрибута `Edit*`-шаблон |
 | `DataSourceContainer`, `DataSourceProgressContainer` | slot-id **внутреннего шаблона** `options.innerTemplateName`, а не собственные слоты хоста — см. раздел «[[concepts#Рендеринг записей источника — innerTemplateName\|Рендеринг записей источника]]» |
 | `AddFeatureContainer` | **дети — кнопки `AddFeatureButtonChild` с уникальным `id`** (перечисляемые сущности — см. подраздел выше) |
-| `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности) |
+| `TabsContainer` | **дети — табы `TabChild` с уникальным `id`** (тип `TabId` — перечисляемые сущности); `type` — только `"button"` или не задан |
+| `ControlsGroupContainer` | **дети — кнопки, фильтры и поле загрузки с уникальным `id`** (перечисляемые сущности); у фильтра обязателен `options.filterName` |
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
 | `TaskContainer` | `button` — кнопка запуска `type: "button"` (`TaskButtonChild`): вид — из слота, поведение и статусы — от контейнера; без слота — встроенная кнопка |
 | `ExportPdfContainer` | `button` — `type: "button"`; без слота кнопка экспорта не рисуется |
@@ -501,6 +503,7 @@ interface ConfigLayer {
 > - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
 > - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
 > - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`); `options.saveToLayer` стоит только на источнике со слоем — без `relatedDataSource` или на источнике, объявленном без `layerName`, это `save-to-layer-without-layer`, а без `editMode` — предупреждение `orphan-option`. Списки значений колонок проверяет `validateStructuredDataLists.ts`: неизвестный `control` — ошибка `invalid-control`; `control` без списка, `attributeValue`/`attributeAlias` без `relatedDataSource`, `variants` вместе с `relatedDataSource` и список у колонки цвета или вложений — предупреждения `orphan-option`; справочник, не объявленный среди `dataSources` конфига, — предупреждение `unknown-list-source` (предупреждение, а не ошибка: слой страницы редактор регистрирует источником только при сохранении).
+> - У `ControlsGroup` и `Tabs` свой набор инвариантов (`validateControlsGroup.ts`). Ребёнок `ControlsGroup` не из `button`/`uploader`/`dropdown`/`text`/`chips`/`checkbox` — предупреждение `invalid-group-child`, фильтр без `options.filterName` — `missing-filter-name`. У `Tabs` ребёнок с `type`, отличным от `"button"`, — ошибка `invalid-group-child`; старые опции вида (`radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak`) — предупреждение `removed-option`; одинаковые id вкладок во всём виджете — предупреждение `duplicate-tab-id`. `tabId` действий `selectTab` (в вызовах, определениях и ветках callback) проверяется как entity-ref — `dangling-ref`.
 
 ### Сводный пример с двумя уровнями `id`
 
@@ -786,7 +789,7 @@ const createContainerComponents = () =>
     [ContainerTemplate.Chart]: ChartContainer,
     [ContainerTemplate.DataSource]: DataSourceContainer,
     [ContainerTemplate.Filters]: FiltersContainer,
-    // ... всего 37 записей
+    // ... всего 39 записей
     default: ContainersGroupContainer, // если templateName не найден
   }) as const satisfies ContainerComponentRegistry;
 

@@ -88,7 +88,8 @@
 
 | Контейнер | Дети | Доп. требование |
 |---|---|---|
-| `Tabs` | табы с уникальным `id` (тип `TabId`) | — |
+| `Tabs` | вкладки-кнопки с уникальным `id` (тип `TabId`) | `type` — `"button"` или не задан; id вкладок уникальны во всём виджете (на них ссылается `selectTab`); старые опции `radius`/`column`/`bgColor`/`noBg`/`onlyIcon`/`shownItems`/`maxLength`/`wordBreak` не работают |
+| `ControlsGroup` | кнопки (`type: "button"`), фильтры (`dropdown`/`text`/`chips`/`checkbox`), поле загрузки (`uploader`) с уникальным `id` | у фильтра обязателен `options.filterName`; кнопкам — только `actions` |
 | `AddFeature` | кнопки с уникальным `id` | `type: "button"`, текст в `value`, оформление в опциях button |
 | `Filters` | фильтры с уникальным `id` | у каждого обязателен `options.filterName` |
 | `ContainersGroup` с `options.grid` | строки `GridRow` с уникальным `id` | см. раздел про сетку ниже |
@@ -177,6 +178,7 @@
 |---|---|
 | `options.chartId` | `id` `ChartContainer` или slot-id дочернего чарта (`"chart"`) |
 | `options.tabId` | `id` вкладки в `TabsContainer` |
+| `actions[].options.tabId` у `selectTab` | `id` вкладки в `TabsContainer` страницы или окна |
 | `options.modalId` | `id` модала в `config.modals[]` |
 | `options.downloadById` | `id` `ExportPdfContainer` |
 
@@ -245,11 +247,12 @@
 - [ ] У **каждой** перечисляемой сущности (таб / кнопка / фильтр) есть уникальный `id`.
 - [ ] У кнопок AddFeature, ExportPdf и Vote явно задан `type: "button"`, подпись находится в `value` или в `options.title` при отсутствии / `null` в `value`, оформление — в `options` дочерней кнопки. Корневой `style`, `noMargin` и `withDivider` применяются к узлу кнопки. У ExportPdf есть слот `button`, у Vote — слоты всех нужных операций: без соответствующего слота кнопки нет.
 - [ ] У **каждого** фильтра дополнительно есть `options.filterName`.
+- [ ] Дети `ControlsGroup` — только `button`, `uploader` и фильтры `dropdown`/`text`/`chips`/`checkbox` (с `options.filterName`); дети `Tabs` — только кнопки (`type: "button"` или без `type`), без старых опций вида `radius`/`column`/`bgColor`/`noBg`/`onlyIcon`/`shownItems`/`maxLength`/`wordBreak`, а id вкладок не повторяются во всём виджете (иначе `invalid-group-child` / `removed-option` / `duplicate-tab-id`).
 - [ ] У **каждого** `DataSource` / `DataSourceProgress` задан `options.innerTemplateName`, а slot-id детей соответствуют этому внутреннему шаблону.
 - [ ] Слот `bgImage` (если он есть) стоит у контейнера, а не у `Divider`, и не продублирован внутрь записей DataSource-хоста.
 - [ ] `options.outflow` задан только там, где у контейнера есть слот `bgImage` (иначе валидатор отдаёт `orphan-option` — вытекать нечему).
 - [ ] У `Vote` заданы свойство узла `attributeName` и все четыре слоя (`categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`) — это **имена слоёв**, а не источников данных страницы (иначе валидатор отдаёт `missing-vote-binding` / `missing-vote-source`).
-- [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` резолвятся в существующий `id`.
+- [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` (и `tabId` действий `selectTab`) резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 - [ ] Реестры `actions` корня/страницы/модалки содержат определения с `id`, `type`, `options`; привязки визуальных узлов содержат ссылки или inline-вызовы. `actions` не помещены в `options`.
 - [ ] `runTask.options.taskName` ссылается на `name` задачи текущей страницы; `openModal.options.modalId` — на существующую модалку. Callback имеет форму вызова либо непустого объекта условий, `event` — `click`.

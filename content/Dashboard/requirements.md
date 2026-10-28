@@ -68,7 +68,6 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 | `styled-components` | Стилизация всех компонентов (`useTheme`, `ThemeProvider`) |
 | `react-markdown` | `ElementMarkdown` — рендеринг Markdown |
 | `rehype-raw`, `rehype-sanitize`, `remark-gfm` | Плагины для `react-markdown` |
-| `swiper` | `TabsContainer` — горизонтальный скролл вкладок |
 | `find-and` | Клиентское изменение конфигурации (`replaceObject`); поиск узлов рендера выполняет [[utils#findDashboardNode\|findDashboardNode]] |
 | `jsPDF`, `html2canvas` | `useExportPdf` — экспорт в PDF |
 | `d3` | `FEATURE_CARD_DEFAULT_COLORS` (`d3.schemeAccent`) для цветовой палитры карточки |

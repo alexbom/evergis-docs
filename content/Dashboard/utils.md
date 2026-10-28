@@ -505,6 +505,18 @@ const resolved = resolveElementStrings(
 
 ---
 
+### getTabIds
+
+`(nodes: readonly ConfigContainerChild[] | undefined) => string[]`
+
+Id всех вкладок поддерева: дети каждого контейнера `Tabs` на любой глубине. По нему [[containers#TabsContainer|TabsContainer]] решает, известна ли выбранная вкладка виджету, а **resolveTabTarget** — где вкладка объявлена.
+
+```ts
+const tabIds = getTabIds(config.children); // ["tab_info", "tab_docs"]
+```
+
+---
+
 ### getTemplateNameFromAttribute
 
 `(attribute: ClientFeatureAttribute) => ContainerTemplate`
@@ -1108,6 +1120,33 @@ const sources = getUpdatedDataSources(responses, requestedSources, otherSources)
 
 ```ts
 const chart = findDashboardNode(config, "chart_sales");
+```
+
+### resolveTabTarget (internal)
+
+`({ tabId, openedModals, modals, widgetNodes }) => TabTarget | null`
+
+Владелец вкладки для действия `selectTab` (`actions/utils/`): сначала открытые окна (последнее открытое первым; конфиг окна берётся из `modals`), затем `widgetNodes` — страница и шапка виджета. Вкладка только в закрытом окне или нигде — `null`.
+
+```ts
+const target = resolveTabTarget({ tabId: "tab_docs", openedModals, modals, widgetNodes });
+// { kind: "modal", modalId: "details" } | { kind: "widget" } | null
+```
+
+### isSetFiltersInEffect (internal)
+
+`(filters: SelectedFilters, current: SelectedFilters | undefined, configFilters: ConfigFilter[] | undefined) => boolean`
+
+«Действует» ли `setFilters` (`actions/utils/`): каждый фильтр действия уже равен эффективному значению — выбранному, а без выбора — `defaultValue` фильтра страницы (`getEffectiveFilterValue` рядом). `min`/`max` сравниваются, только если они есть в действии. Пустой набор фильтров — `false`. Используется нажатостью кнопок групп и `toggle`.
+
+### getClearedFilters (internal)
+
+`(filters: SelectedFilters, current: SelectedFilters | undefined, configFilters: ConfigFilter[] | undefined) => SelectedFilters`
+
+Явно пустые значения для фильтров действия — снятие выбора `setFilters` с `toggle: true` (`actions/utils/`): `""`, а у массивного фильтра `[]`. `null` не используется: `getSelectedFilterValue` подставил бы вместо него `defaultValue`.
+
+```ts
+getClearedFilters({ view_mode: { value: "map" } }, current, configFilters); // { view_mode: { value: "" } }
 ```
 
 ### resolveActionInvocation

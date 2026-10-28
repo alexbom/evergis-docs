@@ -140,6 +140,9 @@ Slot-id обязателен у каждого элемента — без не�
 | `UploadContainerConfig` | `ContainerTemplate.Upload` |
 | `VoteContainerConfig` | `ContainerTemplate.Vote` |
 
+> [!note] Шаблоны вне union
+> `Pages` и `ControlsGroup` есть в реестре и в `ContainerTemplateToProps`, но ветвей в `DashboardChild` (а значит, и в `StrictDashboardChild`) у них нет: по `templateName: "ControlsGroup"` TS union не сужает. Узел тулбара в TS-коде типизируй напрямую — `ControlsGroupContainerConfig`.
+
 ### Union шапок: `DashboardHeaderConfig`
 
 ```ts
@@ -248,7 +251,8 @@ const child: StrictConfigContainerChild = {
 | `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `maxLines`, `wordBreak`, `center`, `fontColor`, `bgColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute`, `align`, `columns`, `gap`, `innerGap` |
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `StructuredDataContainer` | `StructuredData` | `attributesDescription`, `relatedDataSource`, `filterName`, `editMode`, `saveToLayer`, `expandable`, `expanded` + `ContainerBoxOptions` (+ дети: `StructuredDataTableChild` (`id: "data"`, `type: "table"`, опции — `ElementTableOptions`), `StructuredDataAliasChild`, `StructuredDataTitleChild`, `StructuredDataTitleIconChild`) |
-| `TabsContainer` | `Tabs` | `radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak` (+ `TabChild`: `icon`) |
+| `ControlsGroupContainer` | `ControlsGroup` | `size`, `gap`, `joinRadius`, `background`, `underline`, `iconSize`, `stretch`, `button`, `activeButton` + `ContainerBoxOptions` (дети — `ControlsGroupContainerChild`: `ControlsGroupButtonChild` / `ControlsGroupFilterChild` (`type`: `ControlsGroupFilterType` = `dropdown`/`text`/`chips`/`checkbox`) / `ControlsGroupUploaderChild`; опции ребёнка — `ControlsGroupItemOptions`: `grow`, `withDivider`, `width`; у кнопки ещё `active`) |
+| `TabsContainer` | `Tabs` | `TabsContainerOptions` = `ControlsGroupContainerOptions` (+ `TabChild`: `type?: "button"`, `options` — `TabOptions` = `ControlsGroupButtonOptions`, `actions`) |
 | `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` (дети — `TaskContainerChild`: слот `button` + `title`/`titleIcon`) |
 | `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
 | `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
@@ -275,7 +279,7 @@ export type ContainerTemplateToProps = {
   [ContainerTemplate.AddFeature]: AddFeatureContainerProps;
   [ContainerTemplate.Attachment]: AttachmentContainerProps;
   [ContainerTemplate.Chart]: ChartContainerProps;
-  // ... все 38 ключей
+  // ... все 39 ключей
 };
 
 export type ContainerComponentRegistry = {
@@ -350,9 +354,9 @@ const RoundedBackgroundContainerTyped =
 
 Читает набор [[utils#isRootOwningContainer|`isRootOwningContainer`]], а результат уходит флагом `hasOwnRoot` в [[utils#formatElementValue|`formatElementValue`]]. Неизвестный шаблон считается владельцем корня: он резолвится в реестровый `default` (= `ContainersGroupContainer`), а тот корнем владеет.
 
-Сейчас в наборе: `ContainersGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Task`, `Upload`, `Vote`.
+Сейчас в наборе: `ContainersGroup`, `ControlsGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `Upload`, `Vote`.
 
-Остальных там нет намеренно: `DefaultAttributes`, `EditGroup` и `OneColumn`/`TwoColumn` в режиме `attributesToRender` возвращают **несколько** корней, а `Title`, `Icon`, `Divider`, `Tabs`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground` ставят `id`/`style` руками — для них обёртка остаётся единственным одиночным узлом. Переводишь очередной контейнер на `useContainerRoot` — добавь его в набор.
+Остальных там нет намеренно: `DefaultAttributes`, `EditGroup` и `OneColumn`/`TwoColumn` в режиме `attributesToRender` возвращают **несколько** корней, а `Title`, `Icon`, `Divider`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground` ставят `id`/`style` руками — для них обёртка остаётся единственным одиночным узлом. Переводишь очередной контейнер на `useContainerRoot` — добавь его в набор.
 
 ---
 
@@ -679,16 +683,18 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 
 ## Типы Actions
 
-Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по четырём `type`; сценарии — [[actions|Actions]].
+Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по пяти `type`; сценарии — [[actions|Actions]].
 
 ### Определения и вызовы
 
 | Тип | Контракт |
 |---|---|
 | `ActionEvent` | `"click"` |
-| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal"` |
+| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab"` |
 | `ActionParameters` | `Record<string, unknown>` |
-| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?` |
+| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId` |
+| `TabTarget` | Владелец вкладки: `{ kind: "modal"; modalId }` \| `{ kind: "widget" }` |
+| `TabTargets` | `getSelectedTabId(tabId)` — выбор у владельца вкладки; `selectTab(tabId)` — выбрать, `false`, если вкладка нигде не объявлена |
 | `ConfigActionDefinition` | Обязательные `id`, `type`, `options`; необязательные `event`, `callback` |
 | `ConfigActionInline` | `type`, `options`, `event?`, `callback?`; `id?: never` |
 | `ConfigActionReference` | `id`, `event?`, `options?: ActionParameters`, `callback?`; `type?: never` |
@@ -733,9 +739,9 @@ const inline: ConfigActionInvocation = {
 | Тип | Контракт |
 |---|---|
 | `WidgetModalSnapshot` | `modalId: string`, `revision: number`, `context: ActionExecutionContext` |
-| `WidgetModalEntry` | Snapshot + `scopes: ActionScopes`, `signal: AbortSignal` |
-| `WidgetModalManager` | `openedModals`, `openModal(modalId, context, scopes, parameters?)`, `closeModal(modalId)` |
-| `ModalDataOverlay` | `type: WidgetType`, `dataSources: WidgetDataSource[]`, `configDataSources: ConfigDataSource[]`, `isLoading: boolean` |
+| `WidgetModalEntry` | Snapshot + `scopes: ActionScopes`, `signal: AbortSignal`, `selectedTabId?` — выбранная вкладка окна |
+| `WidgetModalManager` | `openedModals`, `openModal(modalId, context, scopes, parameters?)`, `closeModal(modalId)`, `setModalTab?(modalId, tabId)`, `getOpenedModals?()` — синхронный снимок открытых окон (callback после `openModal` видит окно до перерисовки) |
+| `ModalDataOverlay` | `type: WidgetType`, `dataSources: WidgetDataSource[]`, `configDataSources: ConfigDataSource[]`, `isLoading: boolean`, `selectedTabId?`, `setSelectedTabId?` — выбор вкладки окна |
 
 Snapshot передаётся хосту через `onModalContextChange`; entry живёт внутри менеджера окна. `ModalDataContext` меняет только источники и loading своего виджета; запись открытия берётся из `ActionContext`. Контракт интеграции — [[setup#Подключение Actions|Подключение Actions]].
 

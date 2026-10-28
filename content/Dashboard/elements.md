@@ -40,7 +40,7 @@
 
 ## ElementButton
 
-**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Также используется внутри [[containers#AddFeatureContainer|AddFeatureContainer]], в слоте `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и в слотах `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]: вид задаёт элемент, обработчик — контейнер. У AddFeature, ExportPdf и Vote отсутствие соответствующего элемента означает отсутствие кнопки; текст берётся из `value`, а при `null` или отсутствии значения — из `options.title`.
+**Назначение:** Кнопка для [[actions|Actions]], внешнего обработчика или URL из атрибута объекта. Её же рисуют [[containers#ControlsGroupContainer|ControlsGroupContainer]] и [[containers#TabsContainer|TabsContainer]] — со слитыми наборами вида группы и нажатостью. Также используется внутри [[containers#AddFeatureContainer|AddFeatureContainer]], в слоте `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и в слотах `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]: вид задаёт элемент, обработчик — контейнер. У AddFeature, ExportPdf и Vote отсутствие соответствующего элемента означает отсутствие кнопки; текст берётся из `value`, а при `null` или отсутствии значения — из `options.title`.
 
 Подписи кнопок AddFeature, ExportPdf, Vote и Task поддерживают стандартные [[concepts#Подстановки в строках конфига|подстановки]] (`%project`, `$dashboard:`, `{attr}`, …); внутри строки DataSource атрибуты берутся из текущей записи.
 
@@ -53,7 +53,8 @@
 | `title` | `string` | Текст кнопки; перекрывает `value` и `options.title` |
 | `icon` | `ReactNode` | Готовая иконка (например, спиннер ожидания) |
 | `color` | `string` | Цвет; перекрывает `options.color` |
-| `disabled` | `boolean` | Кнопка недоступна |
+| `disabled` | `boolean` | Кнопка недоступна; перекрывает `options.disabled` |
+| `active` | `boolean` | Нажатый вид `IconButton` — его передаёт группа, когда действия кнопки действуют, а набора «нажатая» нет |
 | `onClick` | `VoidFunction` | Обработчик; с ним кнопка рисуется и без ссылки в атрибуте |
 | `attributes` | `ClientFeatureAttribute[]` | Атрибуты конкретной записи; при отсутствии берутся из контекста виджета |
 
@@ -75,12 +76,13 @@
 | `size` | `"small" \| "medium" \| "large" \| "xlarge"` | Высота 24 / 32 / 40 / 48; по умолчанию `"medium"` |
 | `shape` | `"square" \| "round"` | Скругление по размеру / пилюля-круг |
 | `radius` | `number` | Скругление вручную, px |
-| `icon` | `IconTypesKeys` | Иконка кнопки |
+| `icon` | `IconTypesKeys` | Иконка кнопки: имя иконки шрифта, а также адрес картинки или идентификатор ресурса. SVG рисуется инлайном и красится цветом текста кнопки, растровая картинка — как есть ([[components#ButtonIcon\|ButtonIcon]]) |
 | `iconRight` | `boolean` | Иконка справа от текста |
 | `iconTop` | `boolean` | Иконка над текстом, текст по центру с переносом по словам; перекрывает `iconRight` |
 | `title` | `string` | Подпись при отсутствии `value` или при `value: null`; поддерживает подстановки |
 | `noMargin` | `boolean` | Убрать нижний отступ обёртки узла |
 | `withDivider` | `boolean` | Разделитель после узла кнопки |
+| `disabled` | `boolean` | Кнопка недоступна: клик и actions не срабатывают |
 
 **Поведение:**
 - Приоритет подписи: внешний prop `title` → `value` → `options.title`. Явное `value: ""` сохраняет кнопку без подписи, `value: 0` выводится как «0».

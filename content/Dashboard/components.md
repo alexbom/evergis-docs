@@ -40,6 +40,19 @@
 
 ---
 
+## ButtonIcon
+
+**Назначение:** Иконка [[elements#ElementButton|ElementButton]] по адресу картинки или идентификатору ресурса (`options.icon`, не имя иконки шрифта). SVG загружается с токеном, рисуется инлайном и красится текущим цветом текста кнопки — следует её состояниям; растровый файл рисуется как есть. Квадрат 1rem; размер иконок группы (`iconSize`) меняет только его.
+
+**Props:**
+- `url: string` — готовый адрес картинки (после `resolveIconValue`).
+
+```tsx
+<IconButton icon={<ButtonIcon url="/sp/resources/file/3f9c…" />}>Отчёт</IconButton>
+```
+
+---
+
 ## Chart
 
 **Назначение:** Основной компонент для отображения чартов: bar, line, pie, stack. Оркестрирует внутренние `BarChartView`, `LineChartView`, `PieChartView`, `StackChartView`; раскладка вынесена в `useChartLayout`, форматирование и взаимодействие — в `useChartPresentation`. Поддерживает фильтрацию и [[actions|Actions]] по клику, тултипы, маркеры и легенду.

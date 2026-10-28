@@ -15,14 +15,14 @@
 | `useEwktGeometry()` | `src/hooks` | EWKT геометрического фильтра для ключа контекста загрузки |
 | `useDataSourceLoading(type, contextKey, inputsKey)` | `components/Dashboard/hooks` | `isDataLoading` — состояние текущих запросов своего виджета; ключи учитывают проект, страницу, геометрию и фильтры. Состояние хранит трекер `DATA_SOURCE_LOADING_TRACKERS[type]` (`utils/dataSourceLoadingTrackers`, по одному на Dashboard и FeatureCard; класс — `utils/dataSourceLoadingTracker`), хук читает его через `useSyncExternalStore`. Загрузчик регистрирует в трекере каждый запрос (`begin` → `finish`) через парный `useDataSourceLoadingTracker`; смена `contextKey` сбрасывает учёт прежних запросов, а их поздние `finish` игнорируются. Флаг истинен, пока есть запросы в полёте или ключи хука ещё не совпали с ключами загрузчика |
 | `useExpandableContainers()` | `@evergis/react` | `expandedContainers`, `expandContainer` |
-| `useSelectedTab()` | `components/Dashboard/hooks/useSelectTab` | `selectedTabId`, `setSelectedTabId` |
+| `useSelectedTab()` | `components/Dashboard/hooks/useSelectTab` | `selectedTabId`, `setSelectedTabId` — выбор вкладки дашборда (слайс `dashboard`); смена страницы сбрасывает его в `null`, и новая страница начинает с первой вкладки |
 | `useProjectModals()` | `components/Dashboard/hooks/useProjectModals` | `[openedModalIds, onModalToggle]` — открытые модалки в слайсе `dashboard` (`toggleProjectModal`); `onModalToggle` уходит в базовый провайдер |
 | `useProjectDataSourceFilters()` | `components/Dashboard/hooks` | `[filters, changeFilters, getActionFilters]`: getter читает Redux синхронно, а `changeFilters` объединяет изменения с актуальным стором |
 | `useDashboardsOpen()` | `components/Dashboard/hooks` | `actionsActive` — разрешены ли действия открытого дашборда |
 | `useModalNotifications(config, pageIndex)` | `components/Dashboard/hooks` | `isModalNotificationAllowed(senderName, source, layerName)` — политика autoSync для источников модального окна; использует конфиг именно этого виджета |
 | `useDashboardPages()` | `components/Dashboard/hooks` | `nextPage`, `prevPage`, `changePage` |
 | `useDashboardLayers()` | `components/Dashboard/hooks` | `dashboardLayers`, `setDashboardLayer` |
-| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider`, `options.outflow` без этого слота (`orphan-option`) и ошибки [[actions\|Actions]] (`invalid-action`) и [[conditional-formatting\|условного форматирования]] (`invalid-conditional-formatting`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
+| `useValidateDashboardConfig()` | `components/Dashboard/hooks` | side-effect: прогоняет активный конфиг через клиентский рантайм-валидатор `validateDashboardConfig` (`components/Dashboard/utils/validateDashboardConfig.ts`) — ловит пропуски `id`, неверные slot-id, фильтры без `filterName`, висячие ссылки, слот `bgImage` у `Divider`, `options.outflow` без этого слота (`orphan-option`), инварианты `ControlsGroup`/`Tabs` (`invalid-group-child`, `removed-option`, `duplicate-tab-id` — см. [[concepts#ID контейнеров и элементов\|Основные понятия]]) и ошибки [[actions\|Actions]] (`invalid-action`) и [[conditional-formatting\|условного форматирования]] (`invalid-conditional-formatting`). Источник берётся из стора (`content.dashboardConfiguration`), а не из пропа `config` провайдера; в production — no-op (см. [[authoring\|Правила генерации]]) |
 | `useLayersListVisibility()` | `components/MainPanel/hooks` | `isVisible`, `toggleVisibility` |
 | `useDashboardContainerChange()` | `components/Dashboard/hooks` | `onContainerChange` для страницы без своего `config`: подменяет узел в `dashboardConfiguration` и вызывает `updateProject` |
 
@@ -174,7 +174,7 @@ import { replaceObject } from "find-and";
 | `isFeatureEditable` | `boolean` | Можно ли редактировать объект |
 | `hasCopyRights` | `boolean` | Есть ли права на копирование |
 | `editOnly` | `boolean` | Режим «только редактирование» |
-| `selectedTabId` | `string` | ID выбранной вкладки |
+| `selectedTabId` | `string` | ID выбранной вкладки карточки. В client-new — свой ключ `feature.selectedTabId` (`useFeatureSelectedTab()`), независимый от вкладок дашборда; смена страницы карточки сбрасывает его |
 | `setSelectedTabId` | `(id) => void` | Выбрать вкладку |
 | `dataSources` | `WidgetDataSource[]` | Источники данных карточки |
 | `loading` | `boolean` | Идёт загрузка данных |

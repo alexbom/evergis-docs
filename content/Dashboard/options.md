@@ -2,7 +2,7 @@
 
 ## Обзор
 
-`ConfigOptions` — общий словарь конфигурационных опций для всех контейнеров, элементов и шапок Dashboard. Исторически это был один плоский интерфейс с 100+ полями. После рефакторинга типизации интерфейс разбит на **14 доменных миксинов**:
+`ConfigOptions` — общий словарь конфигурационных опций для всех контейнеров, элементов и шапок Dashboard. Исторически это был один плоский интерфейс с 100+ полями. После рефакторинга типизации интерфейс разбит на **15 доменных миксинов**:
 
 ```ts
 interface ConfigOptions
@@ -13,6 +13,7 @@ interface ConfigOptions
     ConfigDataSourceBindingOptions,
     ConfigChartOptions,
     ConfigButtonOptions,
+    ConfigControlsGroupOptions,
     ConfigVisualOptions,
     ConfigTextDisplayOptions,
     ConfigCollectionOptions,
@@ -22,7 +23,7 @@ interface ConfigOptions
     ConfigMiscOptions {}
 ```
 
-> `ConfigEntityRefOptions` — четырнадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
+> `ConfigEntityRefOptions` — пятнадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
 
 Каждый компонент использует только часть полей. В `componentTypes.ts` для каждого компонента определён `<Name>Options = Pick<ConfigOptions, ...>` — список фактически читаемых полей. Это даёт:
 
@@ -46,7 +47,7 @@ interface ConfigOptions
 | `padding` | `number` | Внутренние отступы |
 | `innerPadding` | `boolean` | Фиксированный внутренний отступ `1rem` по всем краям корня контейнера (`CONTAINER_INNER_PADDING`). Пара к слоту `bgImage`: без отступа содержимое прилипает к краям картинки. От `padding` отличается тем, что не требует числа и не участвует в расчёте размеров обёртки (`getWrapperSizeStyle`). Гейт **не** привязан к наличию фона — отступ работает и без него. Читается [[hooks\|`useBgImageHost`]] / [[hooks\|`useWrapperSize`]] напрямую из `options` |
 | `outflow` | `boolean` | Слой фонового изображения (`bgImage`) вытекает за края контейнера на `1.5rem` (`BG_IMAGE_OUTFLOW`) — по бокам и **вверх**, вниз никогда: там начинается следующий контейнер колонки. Раскладку не меняет — слой абсолютный, содержимое остаётся в своих границах. Без слота `bgImage` не делает ничего; обрезается любым предком с `overflow` кроме `visible`, включая собственный `options.overflow`. Читает сам слой ([[components\|`ContainerBackground`]]), а не хост |
-| `radius` | `number` | Радиус (для PieChart — относительно контейнера; для табов — `border-radius`) |
+| `radius` | `number` | Радиус (для PieChart — относительно контейнера; для кнопок — `border-radius`, px) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик). У `ElementLegend` — направление записей: `false` в ряд, `true` столбиком |
 | `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла |
@@ -60,7 +61,7 @@ interface ConfigOptions
 | `fill` | `boolean` | Вписать график `ChartContainer` в контейнер: по ширине всегда, по высоте — при заданной `height` (аналог `object-fit: contain`) |
 | `align` | `"left" \| "center" \| "right" \| "stretch"` | Выравнивание текста/блоков; для плиток (`DataSource` + `RoundedBackground`) — положение плиток в ряду/столбце. У `ChartContainer` с легендой сбоку (`twoColumns`) — положение пары «график + легенда» в строке (по умолчанию `center`); `stretch` растягивает слот графика на свободное место, см. [[containers#ChartContainer\|ChartContainer]] |
 | `columns` | `number` | Число плиток в строке ряда плиточного контейнера (включает grid-режим) |
-| `gap` | `number` | Отступ **между плитками**, px. Читает `DataSourceContainer`. Дефолт `8` (в ряду без `columns` — `0.5rem`). В сетке (`grid`) — зазор между треками: у сетки между строками, у `GridRow` между ячейками, дефолт `0` |
+| `gap` | `number` | Отступ **между плитками**, px. Читает `DataSourceContainer`. Дефолт `8` (в ряду без `columns` — `0.5rem`). В сетке (`grid`) — зазор между треками: у сетки между строками, у `GridRow` между ячейками, дефолт `0`. В `ControlsGroup` — между элементами ряда, дефолт `4`; у `Tabs` — `0` (кнопки склеены) |
 | `innerGap` | `number` | Отступ **между элементами внутри плитки** (иконка ↔ значение ↔ подпись, значение ↔ единицы), px. Читает `RoundedBackgroundContainer`. Не задан — исторические значения (`0.25rem` над подписью и до единиц в строку, `0.5rem` в режиме `big` между блоком иконки и значением; под иконкой и под значением у единиц зазора нет) |
 | `alignItems` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | Выравнивание детей по поперечной оси. В ряду по умолчанию `center` |
 | `fit` | `"cover" \| "contain" \| "fill" \| "none" \| "scale-down"` | CSS `object-fit` изображения элемента `image` |
@@ -74,7 +75,7 @@ interface ConfigOptions
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `barHeight` | `number` | Высота StackBar |
 
-**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `TabsContainer`, `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`), `ControlsGroupContainer` и `TabsContainer` (`gap`, `width`, `height`, `overflow`; `width` — и у детей-полей), `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 `innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
@@ -98,7 +99,7 @@ interface ConfigOptions
 | `statusColors` | `Record<RemoteTaskStatus, string>` | Цвета по статусам задачи |
 | `typography` | `MarkdownTypography` | Пер-тег типографика markdown-виджета: `{ h1..h6, p, li, code }` → `{ fontSize, lineHeight, fontWeight, marginTop, marginBottom }`. Отсутствующий тег или свойство — дефолт `MarkdownWrapper`. См. [[types#Типографика markdown\|Типографика markdown]] |
 
-**Используется в:** `ElementChart`, `ElementChips`, `ElementIcon`, `ElementLegend`, `ElementMarkdown` (`typography`), `ElementSvg`, `DividerContainer`, `FiltersContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementChart`, `ElementChips`, `ElementIcon`, `ElementLegend`, `ElementMarkdown` (`typography`), `ElementSvg`, `DividerContainer`, `FiltersContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader`.
 
 ---
 
@@ -173,8 +174,29 @@ interface ConfigOptions
 | `shape` | `IconButtonShape` | `"square"` — скругление по размеру, `"round"` — пилюля/круг |
 | `iconRight` | `boolean` | Иконка справа от текста |
 | `iconTop` | `boolean` | Иконка над текстом, текст по центру с переносом по словам, шеврон — под текстом; перекрывает `iconRight` |
+| `disabled` | `boolean` | Кнопка недоступна: клик и actions не срабатывают |
 
-**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`), а через него — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. Текст задаётся в `value` дочернего элемента или в `options.title`, если `value` отсутствует или равен `null`; опции оформления принадлежат кнопке, а не контейнеру.
+**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`), кнопки [[containers#ControlsGroupContainer|ControlsGroupContainer]] и вкладки [[containers#TabsContainer|TabsContainer]] (`size` — ещё и как размер группы), а через `ElementButton` — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. Текст задаётся в `value` дочернего элемента или в `options.title`, если `value` отсутствует или равен `null`; опции оформления принадлежат кнопке, а не контейнеру.
+
+---
+
+## ConfigControlsGroupOptions
+
+Группа контролов (`ControlsGroup`, `Tabs`) и её дети. Наборы вида — тип `ConfigButtonLook` (`ConfigButtonOptions` + `icon` + `radius`, px), те же поля, что у самой кнопки.
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `joinRadius` | `number` | Скругление углов на стыке соседних кнопок, px (при `gap: 0`) |
+| `background` | `boolean` | Серая подложка группы; ненажатые кнопки без фона |
+| `underline` | `boolean` | Текстовые вкладки: линия снизу у нажатой, серая при наведении |
+| `iconSize` | `number` | Размер иконок всех кнопок группы, px |
+| `stretch` | `boolean` | Группа на всю ширину, кнопки делят её поровну |
+| `button` | `ConfigButtonLook` | Набор «обычная» для всех кнопок группы |
+| `activeButton` | `ConfigButtonLook` | Набор «нажатая» для нажатых кнопок группы |
+| `active` | `ConfigButtonLook` | У кнопки группы: свой набор «нажатая» |
+| `grow` | `boolean` | У ребёнка группы: забрать свободное место строки |
+
+**Используется в:** [[containers#ControlsGroupContainer|ControlsGroupContainer]], [[containers#TabsContainer|TabsContainer]] (`ControlsGroupContainerOptions`, `ControlsGroupItemOptions`, `ControlsGroupButtonOptions`).
 
 ---
 
@@ -195,7 +217,7 @@ interface ConfigOptions
 | `big` | `boolean` | Большой размер компонента |
 | `tagView` | `boolean` | Отображать в виде «тэга» |
 
-**Используется в:** `ElementButton` (`icon`, в том числе дочерние кнопки AddFeature, ExportPdf и Vote), `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `RoundedBackgroundContainer`, `TabsContainer` (`onlyIcon`), `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`. У ExportPdf нет собственной опции `icon`: задавайте её в `options` элемента слота `button`.
+**Используется в:** `ElementButton` (`icon`, в том числе дочерние кнопки AddFeature, ExportPdf и Vote), `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `RoundedBackgroundContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`. У ExportPdf нет собственной опции `icon`: задавайте её в `options` элемента слота `button`.
 
 ---
 
@@ -218,7 +240,7 @@ interface ConfigOptions
 | `multilineTitle` | `boolean` | Шапка карточки объекта: заголовок до двух строк вместо одной, дальше многоточие |
 | `multilineDescription` | `boolean` | Шапка карточки объекта: подзаголовок до двух строк вместо одной, дальше многоточие |
 
-**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TabsContainer`, `TaskContainer`, `TitleContainer`, `FeatureCardDefaultHeader`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader` (`multilineTitle`, `multilineDescription`). У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
+**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TaskContainer`, `TitleContainer`, `FeatureCardDefaultHeader`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader` (`multilineTitle`, `multilineDescription`). У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
 
 ---
 
@@ -237,7 +259,7 @@ interface ConfigOptions
 | `hideEmpty` | `boolean` | Скрывать пустые элементы |
 | `limit` | `number` | Лимит на количество элементов |
 
-**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TabsContainer` (`shownItems`), `TwoColumnContainer` (`hideEmpty`), `ElementTable` (`sort`).
+**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TwoColumnContainer` (`hideEmpty`), `ElementTable` (`sort`).
 
 ---
 
