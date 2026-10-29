@@ -519,7 +519,7 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 | `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `autoSyncLayers?`, `notifications?: ConfigNotifications`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
 | `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
 | `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?`, `parentResourceId?`, `fileExtensions?`, `control?: ConfigAttributeControl`, `variants?: ChipOption[]`, `relatedDataSource?`, `attributeValue?`, `attributeAlias?`, `hidden?`, `defaultValue?: string \| number \| boolean` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки, вида, загрузки вложений, списка значений, скрытости и значения новой строки, которых в серверном контракте нет |
-| `ConfigAttributeControl` | `"dropdown" \| "chips"` | Контрол выбора значения колонки из списка (`variants` либо справочник `relatedDataSource`): выпадающий список (по умолчанию) или ряд кнопок |
+| `ConfigAttributeControl` | `"dropdown" \| "chips" \| "textarea"` | Способ правки колонки: выбор из списка (`variants` либо справочник `relatedDataSource`) — выпадающий список (по умолчанию) или ряд кнопок, — либо многострочный ввод строки (`textarea`) |
 | `ConfigNotifications` | `"all" \| "my" \| string[]` | Фильтр серверных уведомлений по автору изменения (`senderName`): `"all"` — любые (по умолчанию), `"my"` — только текущего пользователя, массив — только перечисленных (текущий пользователь неявно не добавляется, `"my"` внутри массива — обычное имя). Уведомление без автора (системная задача) применяется всегда. Поле с этим типом есть у `ConfigDataSource`, `ConfigLayer` и `ConfigMiscOptions` (`options` корня); приоритет — источник → слой → корень, см. [[concepts#Фильтр уведомлений по автору — notifications\|Основные понятия]] |
 | `EqlDataSource` | `items: FeatureDc[]`, `attributes?` | Ответ EQL-запроса |
 | `FetchedDataSource` / `WidgetDataSource` | `name`, `features`, `layerName?`, `attributes?` | Загруженный источник в состоянии виджета |
@@ -587,6 +587,24 @@ interface ConfigChartAxisOptions {
 **Как определяется вид значения.** По полю `valueType` конфига фильтра, а не по форме значения: `tree` и `features` оба объекты, и структурная догадка их не различает. Отсюда сигнатура `isTreeFilterValue(value, configFilter?)` — второй аргумент передают везде, где конфиг фильтра под рукой. Решают ровно два значения `valueType`: `"tree"` — это tree, `"features"` — точно не tree. Любое другое (`"array"`, не задано вовсе) уходит в структурный фолбэк: в существующих конфигах tree-фильтры объявлены как раз так, и трактовать их как не-tree значило бы их сломать. Фолбэк намеренно узкий: ключи вида `l{N}`, значения — массивы. `isFeaturesFilterValue(value)` конфига не требует: форма `FeatureCollection` самодостаточна.
 
 > Объявляя фильтр-приёмник для `StructuredData`, обязательно ставь `valueType: "features"` — без него значение уйдёт в структурный фолбэк, а `condition` источника не получит гейта по конфигу. Валидатор конфига (`validateDashboardConfig`) проверяет это отдельно.
+
+---
+
+## Тип capabilities
+
+`ConfigCapabilities` — поле `ConfigContainer.capabilities` корня конфигурации дашборда. Отключает функции проекта: скрывает только `false`. Назначение ключей, допустимые имена пунктов и конфигурация по умолчанию со всеми ключами — в [[concepts#Отключение функций проекта — `capabilities`|Основных понятиях]].
+
+```ts
+interface ConfigCapabilities {
+  pagination?: boolean;                     // список страниц и стрелки в шапке
+  pageEdit?: boolean;                       // добавление, удаление и свойства страниц
+  layerMenu?: Record<string, boolean>;      // пункты меню слоя
+  projectMenu?: Record<string, boolean>;    // пункты меню проекта
+  selectionMenu?: Record<string, boolean>;  // способы геометрической выборки
+}
+```
+
+Секции меню типизированы как `Record<string, boolean>`: имена пунктов — enum'ы хоста (client-new), пакет их не перечисляет. Допустимые имена проверяет валидатор конфига client-new.
 
 ---
 
@@ -755,7 +773,7 @@ Snapshot передаётся хосту через `onModalContextChange`; entr
 | `PythonExecutionSnapshot` | `taskId`, `status`, `log`, `lastMessage`, `error`, `loading`, `executionTime`, `result` |
 | `TaskExecutionContextValue` | `runTask`, `entries`, `openLog`, `closeLog`, `dismissTask`, `logRunId` |
 
-`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Четыре действия|Actions]].
+`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Пять действий|Actions]].
 
 У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
 

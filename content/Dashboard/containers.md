@@ -327,6 +327,8 @@
 
 **Назначение:** Группа контейнеров — базовый составной контейнер, используемый как страница дашборда. Является `default` в registry (применяется когда `templateName` не найден).
 
+**Типы:** `templateName = "ContainersGroup"` · `ContainersGroupContainerOptions` · `ContainersGroupContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps`
 
 **Опции:**
@@ -514,7 +516,7 @@
 | `stretch` | `boolean` | Группа на всю ширину: кнопки делят её поровну |
 | `button` | `ConfigButtonLook` | Набор «обычная» — опции кнопки для всех кнопок группы. По умолчанию `{ variant: "ghost", primary: false }` |
 | `activeButton` | `ConfigButtonLook` | Набор «нажатая» — поверх «обычной», когда actions кнопки действуют |
-| `width`, `height`, `overflow` | — | [[containers#Размеры контейнера\|Размеры контейнера]] |
+| `width`, `height`, `overflow` | — | [[containers#Размерная модель обёртки (ContainerBoxOptions)\|Размерная модель обёртки]] |
 
 **Опции ребёнка** сверх его собственных:
 
@@ -563,6 +565,8 @@
 ### DataSourceContainer
 
 **Назначение:** Отображает список объектов из источника данных — проходит по каждой записи (`feature`) и рендерит её через **внутренний шаблон** `options.innerTemplateName` (обёрнутый в `DataSourceInnerContainer`). Используется для карточек списков: объекты недвижимости, инциденты, объекты мониторинга.
+
+**Типы:** `templateName = "DataSource"` · `DataSourceContainerOptions` · `DataSourceContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Props:** `ContainerProps` + `innerComponent?: FC<InnerContainerProps>`
 
@@ -641,6 +645,8 @@
 
 **Назначение:** Список прогресс-баров из источника данных с опциональным итогом. Как и `DataSourceContainer`, рендерит каждую запись через внутренний шаблон `options.innerTemplateName` (обычно `Progress`). Полезен для рейтингов: топ зданий по этажности, топ районов по объёму сделок.
 
+**Типы:** `templateName = "DataSourceProgress"` · `DataSourceProgressContainerOptions` · `DataSourceProgressContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps` + `innerComponent`
 
 **Опции:**
@@ -676,15 +682,40 @@
 
 ### DefaultAttributesContainer
 
-**Назначение:** Рендерит все атрибуты объекта по умолчанию без явного конфига (для FeatureCard). Итерирует `attributes` из контекста и рендерит каждый через `TwoColumnContainer`.
+**Назначение:** Список атрибутов объекта (для FeatureCard). Проходит по `attributes` из контекста виджета и для каждого рендерит узел своего поддерева с `id`, равным имени атрибута (`renderElement({ id: attributeName })`). Порядок строк задаёт порядок атрибутов объекта, а не `children`; атрибут без такого узла даёт пустую строку.
+
+**Типы:** `templateName = "DefaultAttributes"` · `DefaultAttributesContainerOptions` (`Record<string, never>`) · `DefaultAttributesContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Props:** `ContainerProps`
+
+**Опции:** нет.
+
+Каждая строка — отдельный `Container` в колонку. Без фона контейнер отдаёт **несколько корней** — по одному на атрибут, поэтому его нет в `ROOT_OWNING_TEMPLATES`. Общая обёртка появляется только под слот `bgImage` или `options.innerPadding`.
+
+```tsx
+{
+  id: "building_attributes",
+  templateName: "DefaultAttributes",
+  children: [
+    {
+      id: "floors",
+      templateName: "TwoColumn",
+      children: [
+        { id: "alias", type: "attributeAlias", attributeName: "floors" },
+        { id: "value", type: "attributeValue", attributeName: "floors" }
+      ]
+    }
+  ]
+}
+```
 
 ---
 
 ### DividerContainer
 
 **Назначение:** Горизонтальный разделитель между контейнерами.
+
+**Типы:** `templateName = "Divider"` · `DividerContainerOptions` · `DividerContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Опции:**
 
@@ -704,6 +735,8 @@
 ### EditContainer
 
 **Назначение:** Обёртка для поля редактирования атрибута объекта. Отображает `alias` (подпись) + поле ввода `value`. Используется только внутри FeatureCard в режиме редактирования.
+
+**Типы:** `templateName = "Edit"` · `EditContainerOptions` (`Record<string, never>`) · `EditContainerProps`. Подтипы — свои тройки `Edit<Kind>ContainerOptions` / `Edit<Kind>ContainerProps` с литералами `"EditGroup"`, `"EditBoolean"`, `"EditString"`, `"EditText"`, `"EditNumber"`, `"EditDropdown"`, `"EditChips"`, `"EditCheckbox"`, `"EditDate"`, `"EditAttachment"`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Props:** `ContainerProps`
 
@@ -859,6 +892,8 @@
 
 **Назначение:** Контейнер фильтров. Динамически рендерит компоненты фильтров через **`getFilterComponent(filterType)`**. Показывает текущие активные фильтры через `HiddenTitleItems`.
 
+**Типы:** `templateName = "Filters"` · `FiltersContainerOptions` · `FiltersContainerProps`. Дети — `FilterChild` (`FilterChildOptions`). См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps`
 
 **Опции:**
@@ -985,7 +1020,27 @@
 
 **Назначение:** Блок с иконкой, заголовком, описанием и ссылкой. Используется для виджетов-карточек типа «быстрых ссылок».
 
+**Типы:** `templateName = "Icon"` · `IconContainerOptions` (`Record<string, never>`) · `IconContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps` (дочерние элементы по id: `icon`, `alias`, `link`, `text`)
+
+**Опции:** нет. Размерной модели (`ContainerBoxOptions`) тоже нет: `id` и `style` узла ставятся на корень напрямую.
+
+Раскладка: строка заголовка — `icon` + `alias`, справа `link`; под ней `text`. Обёртка каждого слота скрывается, когда её слоты скрыты условной видимостью.
+
+```tsx
+{
+  id: "docs_link_card",
+  templateName: "Icon",
+  children: [
+    { id: "icon", type: "icon", options: { icon: "attachment" } },
+    { id: "alias", type: "text", value: "Документация" },
+    // ElementLink берёт адрес из атрибута (attributeName); статический адрес — через action
+    { id: "link", type: "link", value: "Открыть", actions: [{ type: "openUrl", options: { url: "https://example.com/docs" } }] },
+    { id: "text", type: "text", value: "Регламенты и инструкции" }
+  ]
+}
+```
 
 ---
 
@@ -993,15 +1048,35 @@
 
 **Назначение:** Блок с фоновым изображением, заголовком, текстом и кнопкой действия.
 
+**Типы:** `templateName = "Image"` · `ImageContainerOptions` (= `ContainerBoxOptions`) · `ImageContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps` (дочерние по id: `alias`, `text`, `button`, `image`)
 
 **Опции:** собственных нет — только `ContainerBoxOptions` (`width`, `height`, `overflow`).
+
+Слот `image` — картинка блока (обычный [[elements#ElementImage|ElementImage]]), не путать с универсальным слотом фона `bgImage`.
+
+```tsx
+{
+  id: "promo_block",
+  templateName: "Image",
+  options: { height: 200 },
+  children: [
+    { id: "alias", type: "text", value: "Новый квартал" },
+    { id: "text", type: "text", value: "Сдача — IV квартал" },
+    { id: "button", type: "button", value: "Подробнее", actions: [{ type: "openUrl", options: { url: "https://example.com" } }] },
+    { id: "image", type: "image", options: { url: "https://example.com/promo.png" } }
+  ]
+}
+```
 
 ---
 
 ### LayersContainer
 
 **Назначение:** Дерево слоёв карты текущей страницы. Позволяет пользователю управлять видимостью слоёв. Рендерит `<LayerTree />`.
+
+**Типы:** `templateName = "Layers"` · `LayersContainerOptions` · `LayersContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Опции:**
 
@@ -1020,6 +1095,8 @@
 ### OneColumnContainer
 
 **Назначение:** Одноколоночный блок: подпись (`alias`) + значение (`value`) + единицы измерения (`units`). Поддерживает `options.attributes` для рендеринга нескольких атрибутов в одну колонку.
+
+**Типы:** `templateName = "OneColumn"` · `OneColumnContainerOptions` · `OneColumnContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Props:** `ContainerProps`
 
@@ -1050,22 +1127,53 @@
 
 ### PagesContainer
 
-**Назначение:** Корневой контейнер страниц дашборда. Фильтрует дочерние страницы по `selectedTabId` и рендерит через `ContainerChildren`.
+**Назначение:** Корневой контейнер дашборда — рендерит **текущую страницу** (`useWidgetPage`) через `ContainerChildren`. Дети страницы с `options.tabId` показываются только при выбранной вкладке (`selectedTabId`); без выбранной вкладки показываются все.
+
+**Типы:** `templateName = "Pages"` · `PagesContainerOptions` · `PagesContainerProps`. Страница — `PageChild` (`PageChildOptions`: `tabId`). См. [[types#Контейнеры|сводную таблицу]].
 
 **Props:** `ContainerProps` + `noBorders?: boolean`
 
-**Опции:**
+Сам узел `Pages` — первый ребёнок корня конфигурации (`id: "pages"`, `CONFIG_PAGES_ID`), страницы — его `children` ([[utils|`getPagesFromConfig`]] = `config.children[0].children`).
+
+**Опции** читаются из `options` **корня** конфигурации (`config.options`), а не из узла `Pages` или страницы:
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `column` | `boolean` | Расположение страниц в колонку |
-| `width` | `string \| number` | Ширина контейнера страниц |
+| `column` | `boolean` | Раскладка блоков страницы в колонку. Не задана — `true` |
+| `width` | `string \| number` | Ширина корня (inline-`style`) |
+
+Корень получает `id` из [[utils|`getRootElementId`]], `style` корня конфига и страницы, фон `bgImage` страницы и условную видимость корня и страницы.
+
+```tsx
+{
+  options: { column: true, width: 400 },
+  children: [
+    {
+      id: "pages",
+      templateName: "Pages",
+      children: [
+        {
+          id: "page_1",
+          templateName: "ContainersGroup",
+          children: [
+            { id: "main_tabs", templateName: "Tabs", children: [{ id: "tab_info", value: "Информация" }, { id: "tab_docs", value: "Документы" }] },
+            { id: "info_block", templateName: "ContainersGroup", options: { tabId: "tab_info" }, children: [] },
+            { id: "docs_block", templateName: "Attachment", options: { tabId: "tab_docs" }, children: [] }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ---
 
 ### ProgressContainer
 
 **Назначение:** Прогресс-бар с тултипом. Вычисляет ширину полосы по `value / maxValue * 100%`. Используется как **внутренний шаблон** `DataSourceProgressContainer` — подключается через `options.innerTemplateName: "Progress"` на хосте (не как обычный вложенный контейнер).
+
+**Типы:** `templateName = "Progress"` (как значение `innerTemplateName` хоста) · `ProgressContainerOptions` · `ProgressContainerProps` (в реестре — каст из `InnerContainerProps`, см. [[types#Типизированные реестры|Типы]]).
 
 **Props:** `InnerContainerProps` (только как внутренний шаблон `DataSourceProgressContainer`)
 
@@ -1083,11 +1191,27 @@
 | `maxValue` | `number` | Максимальное значение (100%) |
 | `innerTemplateStyle` | `object` | Кастомные CSS-стили для внутренних элементов |
 
+Внутренний шаблон получает конфиг **хоста** (без `actions` и слота `bgImage`), поэтому эти опции задаются в `options` узла `DataSourceProgress`. `maxValue`, вычисленный хостом по записям, приоритетнее `options.maxValue`.
+
+```tsx
+{
+  id: "districts_rating",
+  templateName: "DataSourceProgress",
+  options: { relatedDataSource: "districts_ds", innerTemplateName: "Progress", colors: ["#4c9aff", "#36b37e"] },
+  children: [
+    { id: "alias", attributeName: "district_name" },
+    { id: "value", attributeName: "deals_count" }
+  ]
+}
+```
+
 ---
 
 ### RoundedBackgroundContainer
 
 **Назначение:** Компактный блок с округлым фоновым блоком: иконка + значение + подпись. Используется как **внутренний шаблон** `DataSourceContainer` для списков — подключается через `options.innerTemplateName: "RoundedBackground"` на хосте.
+
+**Типы:** `templateName = "RoundedBackground"` (как значение `innerTemplateName` хоста) · `RoundedBackgroundContainerOptions` · `RoundedBackgroundContainerProps` (в реестре — каст из `InnerContainerProps`, см. [[types#Типизированные реестры|Типы]]).
 
 **Props:** `InnerContainerProps`
 
@@ -1146,6 +1270,8 @@
 
 **Назначение:** Контейнер для слайдшоу изображений, связанных с атрибутом объекта или источником данных.
 
+**Типы:** `templateName = "Slideshow"` · `SlideshowContainerOptions` · `SlideshowContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps`
 
 **Слоты (`children`):** `slideshow` (элемент `type: "slideshow"`) и опциональный `alias` — подпись над галереей. Без `alias` обёртка подписи не рендерится вовсе: пустой блок отъедал бы половину ширины у галереи.
@@ -1158,6 +1284,18 @@
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 
 Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
+
+```tsx
+{
+  id: "building_photos",
+  templateName: "Slideshow",
+  options: { expandable: true, expanded: true },
+  children: [
+    { id: "alias", type: "text", value: "Фотографии" },
+    { id: "slideshow", type: "slideshow", attributeName: "photos" }
+  ]
+}
+```
 
 ---
 
@@ -1201,7 +1339,7 @@
 | `relatedDataSource` | `string` | ⚠️ entity-ref: справочник — источник страницы, из записей которого собирается список значений. Обязан быть объявлен в `dataSources` страницы: отдельно его никто не загрузит |
 | `attributeValue` | `string` | Атрибут записи справочника, чьё значение пишется в ячейку. Не задан — `attributeName` колонки |
 | `attributeAlias` | `string` | Атрибут записи справочника, который виден подписью. Не задан — `attributeValue`. Не путать с `alias` — это заголовок колонки |
-| `control` | `"dropdown" \| "chips"` | Контрол выбора из списка (`ConfigAttributeControl`): выпадающий список (по умолчанию) или ряд кнопок. Без списка ни на что не влияет |
+| `control` | `"dropdown" \| "chips" \| "textarea"` | Способ правки ячейки (`ConfigAttributeControl`). `dropdown`/`chips` — выбор из списка: выпадающий список (по умолчанию) или ряд кнопок; без списка ни на что не влияют. `textarea` — многострочный ввод строковой колонки: `Enter` переносит строку, `Ctrl+Enter` (`Cmd+Enter`) завершает правку, значение показывается с переносами строк и по словам даже без `multiline`. У нестроковой колонки, цвета и вложений `textarea` не действует, а заданный список его перебивает |
 | `hidden` | `boolean` | Скрытое поле — аналог `<input type="hidden">`: колонки в таблице нет, а значение остаётся в строке и уходит вместе с видимыми. См. «Скрытые атрибуты» ниже |
 | `defaultValue` | `string \| number \| boolean` | Начальное значение атрибута у строки, добавленной кнопкой «Добавить». Строка конфига с [[concepts#Подстановки в строках конфига\|подстановками]]. Работает у любого атрибута, не только у скрытого. См. «Значение по умолчанию у новой строки» ниже |
 
@@ -1399,6 +1537,8 @@
 
 **Назначение:** Заголовок контейнера с поддержкой collapse (LegendToggler) и кнопкой управления видимостью слоёв.
 
+**Типы:** `templateName = "Title"` · `TitleContainerOptions` · `TitleContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps` + `containerId?`, `templateName?`, `layerNames?`, `fontColor?`, `expandable?`, `expanded?`, `isVisible?`
 
 **Опции:**
@@ -1420,6 +1560,8 @@
 ### TwoColumnContainer
 
 **Назначение:** Двухколоночный блок: подпись (`alias`) слева + значение (`value`) справа. Основной контейнер для отображения атрибутов объекта. Поддерживает `options.attributes`.
+
+**Типы:** `templateName = "TwoColumn"` · `TwoColumnContainerOptions` · `TwoColumnContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
 
 **Props:** `ContainerProps`
 
@@ -1454,6 +1596,8 @@
 
 **Назначение:** Обёртка для элемента загрузки файлов.
 
+**Типы:** `templateName = "Upload"` · `UploadContainerOptions` · `UploadContainerProps`. См. [[types#Контейнеры|сводную таблицу]].
+
 **Props:** `ContainerProps`
 
 **Слоты (`children`):** `uploader` — элемент `type: "uploader"` (см. [[elements#ElementUploader|ElementUploader]]).
@@ -1466,6 +1610,20 @@
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 
 Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
+
+```tsx
+{
+  id: "data_upload",
+  templateName: "Upload",
+  children: [
+    {
+      id: "uploader",
+      type: "uploader",
+      options: { fileExtensions: ".csv,.xlsx", filterName: "dataFile", parentResourceId: "upload_folder_id" }
+    }
+  ]
+}
+```
 
 ---
 

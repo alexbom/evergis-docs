@@ -28,6 +28,94 @@
 
 ---
 
+## Отключение функций проекта — `capabilities`
+
+Секция `capabilities` в **корне** конфигурации дашборда (рядом с `children`, `options`, `dataSources`) скрывает функции из интерфейса client-new. Скрывает только значение `false`; `true` или отсутствие ключа ничего не меняют. Тип — `ConfigCapabilities` (`ConfigContainer.capabilities`, см. [[types#Тип capabilities|Типы]]).
+
+```json
+{
+  "capabilities": {
+    "pagination": false,
+    "pageEdit": false,
+    "layerMenu": { "SaveTempLayer": false },
+    "projectMenu": { "Catalog": false, "NewMap": false },
+    "selectionMenu": { "Zones": false, "Route": false }
+  },
+  "children": [...]
+}
+```
+
+| Ключ | Что скрывает |
+|---|---|
+| `pagination` | Список страниц и стрелки листания в [[headers#DashboardDefaultHeader\|шапке дашборда]]. Шапки карточки объекта не затрагивает |
+| `pageEdit` | В списке страниц — «Новая страница», настройки свойств и удаление страниц; список остаётся навигацией |
+| `layerMenu` | Пункты меню слоя по имени |
+| `projectMenu` | Пункты меню проекта (кнопка «гамбургер») по имени — оба блока меню. Опустевший верхний блок не выводится; заголовок с именем проекта остаётся всегда |
+| `selectionMenu` | Способы геометрической выборки по имени |
+
+**Имена пунктов** — значения enum'ов меню client-new, у способов выборки — имена членов `GeometrySelectionTypes` (значения этого enum — коды иконок):
+
+| Секция | Допустимые имена | Источник |
+|---|---|---|
+| `layerMenu` | `SaveTempLayer`, `ZoomTo`, `ShowTable`, `Styling`, `Filter`, `OpenStats`, `LayerSettings`, `CopyFeatures`, `ImportData`, `ExportData`, `Configuration`, `EditLayer`, `Remove` | `LayerMenu` (`LayerList/components/LayerItem/types.ts`) |
+| `projectMenu` | верхний блок: `Catalog`, `Print`, `Upload`, `EmptyLayer`, `Eql`; нижний: `NewMap`, `SaveTempProject`, `OpenDevMode` | `AddMenu`, `ProjectMenu` (`MainPanel/types.ts`) |
+| `selectionMenu` | `Dynamic`, `Point`, `Line`, `Polygon`, `Zones` (зона доступности), `Route` | `GeometrySelectionTypes` (`slices/map/types.ts`) |
+
+**Конфигурация по умолчанию** — полный набор ключей со значением `true`. Ведёт себя так же, как отсутствие секции, и служит заготовкой: чтобы отключить функцию, замените её значение на `false`.
+
+```json
+"capabilities": {
+  "pagination": true,
+  "pageEdit": true,
+  "layerMenu": {
+    "SaveTempLayer": true,
+    "ZoomTo": true,
+    "ShowTable": true,
+    "Styling": true,
+    "Filter": true,
+    "OpenStats": true,
+    "LayerSettings": true,
+    "CopyFeatures": true,
+    "ImportData": true,
+    "ExportData": true,
+    "Configuration": true,
+    "EditLayer": true,
+    "Remove": true
+  },
+  "projectMenu": {
+    "Catalog": true,
+    "Print": true,
+    "Upload": true,
+    "EmptyLayer": true,
+    "ExternalService": true,
+    "Eql": true,
+    "Group": true,
+    "NewMap": true,
+    "ProjectProperties": true,
+    "SaveAsNew": true,
+    "SaveTempProject": true,
+    "Share": true,
+    "OpenDevMode": true
+  },
+  "selectionMenu": {
+    "Dynamic": true,
+    "Point": true,
+    "Line": true,
+    "Polygon": true,
+    "Zones": true,
+    "Route": true
+  }
+}
+```
+
+В `projectMenu` здесь также `ExternalService`, `Group`, `ProjectProperties`, `SaveAsNew` и `Share`: валидатор их принимает (это члены `AddMenu` и `ProjectMenu`), но сами пункты закомментированы в коде меню, поэтому значение пока ни на что не влияет.
+
+**Выборка.** Если текущий способ выборки отключён (стартовый `Dynamic`, после сброса или смены проекта), выборка переключается на первый доступный по порядку меню — со сбросом карточки, редактируемых слоёв и истории, как при ручном выборе (`useAllowedGeometrySelectionType`). Отключены все способы — инструмент выборки не выводится, режим остаётся стартовым. Без `Dynamic` переключатель «Редактировать слой» в меню слоя всегда неактивен: он работает только в динамической выборке.
+
+Реализация. В `@evergis/react` шапка читает `config.capabilities.pagination` (через `useWidgetConfig`) и отдаёт флаг `isPaginationVisible` из `useDashboardHeader`. Client-new читает секцию из проекта в redux хуком `useProjectCapabilities` (`hooks/project/`): меню выборки живёт вне контекста дашборда. Фильтр пунктов — `filterMenuOptions` / `isMenuItemEnabled` (`utils/capabilities.ts`). Валидатор `validateDashboardConfig` (проверка `checkCapabilities` в `validateCapabilities.ts`) ловит неизвестные ключи и имена пунктов, а также небулевы значения — ошибку `invalid-capabilities`: опечатка (`"Isochrone"` вместо `"Zones"`, строка `"false"`) рантайм не ломает, но ничего не отключает. Списки допустимых имён (`CAPABILITY_MENU_ITEMS` в `Dashboard/utils/constants.ts`) строятся из самих enum'ов.
+
+---
+
 ## Источники данных
 
 **Источник данных** (`ConfigDataSource`) — это описание запроса, результат которого передаётся в контейнеры для отображения. Когда открывается страница со списком зданий, каждый источник данных — это один запрос: «дай мне все здания в этом квартале» или «дай мне топ-10 зданий по высоте».
@@ -502,7 +590,7 @@ interface ConfigLayer {
 > - `options.outflow` без слота `bgImage` — ошибка `orphan-option`: вытекать нечему, опция молча не работает. `options.innerPadding` так не проверяется — это обычный отступ, осмысленный и без картинки.
 > - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
 > - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
-> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`); `options.saveToLayer` стоит только на источнике со слоем — без `relatedDataSource` или на источнике, объявленном без `layerName`, это `save-to-layer-without-layer`, а без `editMode` — предупреждение `orphan-option`. Списки значений колонок проверяет `validateStructuredDataLists.ts`: неизвестный `control` — ошибка `invalid-control`; `control` без списка, `attributeValue`/`attributeAlias` без `relatedDataSource`, `variants` вместе с `relatedDataSource` и список у колонки цвета или вложений — предупреждения `orphan-option`; справочник, не объявленный среди `dataSources` конфига, — предупреждение `unknown-list-source` (предупреждение, а не ошибка: слой страницы редактор регистрирует источником только при сохранении).
+> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`); `options.saveToLayer` стоит только на источнике со слоем — без `relatedDataSource` или на источнике, объявленном без `layerName`, это `save-to-layer-without-layer`, а без `editMode` — предупреждение `orphan-option`. Списки значений колонок проверяет `validateStructuredDataLists.ts`: неизвестный `control` (допустимы `dropdown`, `chips`, `textarea`) — ошибка `invalid-control`; списочный `control` (`dropdown`/`chips`) без списка, `control: "textarea"` у нестроковой колонки, у колонки цвета или вложений или вместе со списком значений, `attributeValue`/`attributeAlias` без `relatedDataSource`, `variants` вместе с `relatedDataSource` и список у колонки цвета или вложений — предупреждения `orphan-option`; справочник, не объявленный среди `dataSources` конфига, — предупреждение `unknown-list-source` (предупреждение, а не ошибка: слой страницы редактор регистрирует источником только при сохранении).
 > - У `ControlsGroup` и `Tabs` свой набор инвариантов (`validateControlsGroup.ts`). Ребёнок `ControlsGroup` не из `button`/`uploader`/`dropdown`/`text`/`chips`/`checkbox` — предупреждение `invalid-group-child`, фильтр без `options.filterName` — `missing-filter-name`. У `Tabs` ребёнок с `type`, отличным от `"button"`, — ошибка `invalid-group-child`; старые опции вида (`radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak`) — предупреждение `removed-option`; одинаковые id вкладок во всём виджете — предупреждение `duplicate-tab-id`. `tabId` действий `selectTab` (в вызовах, определениях и ветках callback) проверяется как entity-ref — `dangling-ref`.
 
 ### Сводный пример с двумя уровнями `id`

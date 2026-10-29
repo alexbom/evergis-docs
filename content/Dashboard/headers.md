@@ -39,7 +39,7 @@ Shared-компоненты в `headers/components/`:
 **Props:** нет (данные из контекста)
 
 **Зависимости:**
-- [[hooks|хук]] `useDashboardHeader` — `title`, `pageId`, `image`, `icon`, `tooltip`, `themeName`, `onClickLogo`
+- [[hooks|хук]] `useDashboardHeader` — `title`, `pageId`, `image`, `icon`, `tooltip`, `themeName`, `isPaginationVisible`, `onClickLogo`
 - [[hooks|хук]] `useWidgetContext` — `toggleLayersVisibility`, `components.ProjectPanelMenu`, `components.ProjectPagesMenu`
 
 **Опции:**
@@ -69,6 +69,8 @@ DefaultHeaderContainer (image, isDark)
   ├── TopContainer: [LogoContainer(icon), ProjectPanelMenu]
   └── PageTitleContainer: [Tooltip(PageTitle onClick=toggleLayersVisibility), ProjectPagesMenu, Pagination]
 ```
+
+**Пагинация:** `capabilities.pagination: false` в корне конфига (`isPaginationVisible` из `useDashboardHeader`) скрывает `ProjectPagesMenu` и `Pagination` — см. [[concepts#Отключение функций проекта — `capabilities`|capabilities]].
 
 ```tsx
 // HeaderTemplate.Default в контексте WidgetType.Dashboard

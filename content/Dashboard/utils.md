@@ -1208,7 +1208,7 @@ const result = await run.completion;
 
 `(config: unknown) => ActionValidationIssue[]`
 
-Проверяет реестры root/page/modal отдельно от визуальных вызовов: структуру, дубли ID внутри scope, разрешение ссылок, параметры четырёх действий, callback и его синтаксис, ссылки на задачи/модалки. Циклы ссылок допустимы. Диагностика содержит `path`, `code`, `message`, `ownerId?`, `severity: "error" | "warning"`; не-объект даёт пустой список. Включение в клиентский валидатор — [[setup#Подключение Actions|Подключение Actions]].
+Проверяет реестры root/page/modal отдельно от визуальных вызовов: структуру, дубли ID внутри scope, разрешение ссылок, параметры пяти действий (`runTask`, `setFilters`, `openUrl`, `openModal`, `selectTab`), callback и его синтаксис, ссылки на задачи/модалки. Циклы ссылок допустимы. Диагностика содержит `path`, `code`, `message`, `ownerId?`, `severity: "error" | "warning"`; не-объект даёт пустой список. Включение в клиентский валидатор — [[setup#Подключение Actions|Подключение Actions]].
 
 ```ts
 const issues = validateDashboardActions(config);

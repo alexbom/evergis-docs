@@ -419,6 +419,7 @@ return (
 | `url` | `string` |
 | `tooltip` | `ReactNode` |
 | `themeName` | `ThemeName` |
+| `isPaginationVisible` | `boolean` — `false`, когда `capabilities.pagination: false` в корне конфига: шапка скрывает список страниц и стрелки |
 | `onClickLogo` | `VoidFunction` |
 
 ```ts
@@ -947,7 +948,7 @@ const prototype = buildPrototype(hook, { featureId, changedProperties, changedGe
 
 ## useTabTargets
 
-**Назначение:** Выбор вкладки у её владельца — открытого окна или самого виджета (`actions/hooks/`, internal). Владельца ищет [[utils#resolveTabTarget|resolveTabTarget]]: сначала открытые окна, потом страница и шапка. Открытые окна читаются синхронным снимком менеджера модалок, поэтому `selectTab` в callback после `openModal` видит новое окно. Его используют исполнитель действия `selectTab` и **useActionEffectChecker**.
+**Назначение:** Выбор вкладки у её владельца — открытого окна или самого виджета (`actions/hooks/`, internal). Владельца ищет [[utils#resolveTabTarget (internal)|resolveTabTarget]]: сначала открытые окна, потом страница и шапка. Открытые окна читаются синхронным снимком менеджера модалок, поэтому `selectTab` в callback после `openModal` видит новое окно. Его используют исполнитель действия `selectTab` и **useActionEffectChecker**.
 
 **Параметры:** `type: WidgetType`
 
