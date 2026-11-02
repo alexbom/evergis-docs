@@ -58,7 +58,7 @@
 | `height` | `CssSize` | Высота обёртки. `"100%"` — заполнить ячейку родителя |
 | `overflow` | `"visible" \| "hidden" \| "scroll" \| "auto"` | Что делать с контентом, вылезающим за бокс. Не задана — браузерный `visible`: контент вытекает на соседние слоты. Значения кроме `visible` обрезают и абсолютно спозиционированных потомков — у `Filters` с заданной высотой обрежется открытый список фильтра |
 
-Поддерживают: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `ControlsGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `TwoColumn`, `Upload`, `Vote`. Значение `"100%"` включает **fill-режим**: обёртка занимает ячейку целиком, конфликтующие внутренние дефолты (собственные `width`/`height`/`margin`) снимаются, а для fill-высоты добавляется `flex: 1 1 auto`. Реализация — [[utils|`getWrapperSizeStyle`]] + [[hooks|`useWrapperSize`]]; размеры уходят styled-пропом, поэтому перебиваются снаружи обычной специфичностью, без `!important`.
+Поддерживают: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `ControlsGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `TwoColumn`, `Upload`, `Vote`. Значение `"100%"` включает **fill-режим**: обёртка занимает ячейку целиком, конфликтующие внутренние дефолты (собственные `width`/`height`/`margin`) снимаются, а для fill-высоты добавляется `flex: 1 1 auto`. Реализация — [[utils|`getWrapperSizeStyle`]] + [[hooks|`useWrapperSize`]]; размеры уходят styled-пропом, поэтому перебиваются снаружи обычной специфичностью, без `!important`.
 
 Остальные контейнеры (`AddFeature`, `DefaultAttributes`, `Divider`, `Edit*`, `ExportPdf`, `Icon`, `Progress`, `RoundedBackground`, `Title`) своей размерной модели не имеют; у `Pages` из размеров есть только `width`.
 
@@ -130,8 +130,8 @@
 | `expandable` | `boolean` | Разрешить сворачивание |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 | `viewMode` | `"grid" \| "list"` | Режим отображения коллекции |
-| `shownItems` | `number` | Сколько элементов показывать сразу |
-| `otherItems` | `number` | Лимит «остальных» в развёрнутом списке |
+| `shownItems` | `number` | Сколько элементов показывать сразу; остальные открывает кнопка «Показать ещё» |
+| `otherItems` | `number` | Второй предел числа элементов до раскрытия: при заданных обеих опциях действует меньшая из `shownItems` и `otherItems`. Раскрытый список показывает все элементы |
 | `relatedDataSource` | `string` | Источник данных вложений (см. [[types#Branded types\|DataSourceName]]) |
 | `controls` | `ConfigControl[]` | Маппинг полей источника на поля `Attachment`: `[{ attributeLink, attributeName, attributeMime, attributeDate }]` |
 
@@ -166,6 +166,8 @@
 **Типы:** `templateName = "Camera"` · `CameraContainerOptions` · `CameraContainerProps`.
 
 **Props:** `ContainerProps` + поддержка `expandable/expanded`
+
+**Слоты (`children`):** `alias` — подпись над камерой; `value` — элемент камеры.
 
 **Опции (`CameraContainerOptions`):**
 
@@ -347,7 +349,7 @@
 
 Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
 
-Рендерит дочерние элементы через `ContainerChildren`. Если `id` начинается с `"page_"` — рендерится как корневой контейнер страницы.
+Рендерит дочерние элементы через `ContainerChildren`. Если `id` начинается с `"page"` (`CONFIG_PAGE_ID`, например `page_1`) — рендерится как корневой контейнер страницы.
 
 Корневая обёртка группы всегда `box-sizing: border-box`, поэтому `padding` из авторского `style` не раздувает бокс сверх выданного размера — указывать `boxSizing` в конфиге не нужно.
 
@@ -582,7 +584,7 @@
 | `innerGap` | `number` | Отступ между элементами внутри плитки — потребляет внутренний шаблон, см. [[containers#RoundedBackgroundContainer\|RoundedBackgroundContainer]] |
 | `align` | `"left" \| "center" \| "right" \| "stretch"` | Положение плиток в ряду/столбце |
 | `shownItems` | `number` | Сколько записей показывать до кнопки «Показать все» ([[hooks\|`useShownOtherItems`]]) |
-| `otherItems` | `number` | Максимум записей в развёрнутом списке |
+| `otherItems` | `number` | Второй предел числа записей до раскрытия: при заданных обеих опциях показывается меньшее из `shownItems` и `otherItems`. Кнопка «Показать все» появляется только при заданном `shownItems` и раскрывает список целиком; одна `otherItems` лишь обрезает список |
 | `expandable` | `boolean` | Разрешить сворачивание контейнера |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
 
@@ -655,12 +657,12 @@
 |---|---|---|
 | `relatedDataSource` | `string` | **Обязательный.** Имя источника данных |
 | `innerTemplateName` | `ContainerTemplate` | **Обязательный.** Шаблон рендеринга каждой записи (обычно `Progress`) — конвертируется в `innerComponent`. Объявлен в `ConfigMiscOptions` (см. [[options\|Опции]]) и необязателен по типу, поэтому пропуск компилируется молча — без него записи не рендерятся |
-| `maxValue` | `number \| string` | Максимальное значение для расчёта ширины бара. Если строка — имя атрибута |
+| `maxValue` | `number \| Date` | Максимальное значение для расчёта ширины бара. Не задано — берётся наибольшее значение слота `value` среди записей. В типах `number \| Date` (общий тип `ConfigOptions`), но рантайм также принимает строку — имя атрибута, значение которого берётся из первой записи |
 | `showTotal` | `boolean` | Показывать итоговую сумму под списком |
 | `expandable` | `boolean` | Разрешить сворачивание |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
-| `shownItems` | `number` | Элементов до кнопки «Показать ещё» |
-| `otherItems` | `number` | Максимум элементов с «Другое» |
+| `shownItems` | `number` | Элементов до кнопки «Показать все» |
+| `otherItems` | `number` | Второй предел числа элементов до раскрытия: при заданных обеих опциях показывается меньшее из `shownItems` и `otherItems`. Без `shownItems` кнопки «Показать все» нет, `otherItems` лишь обрезает список |
 
 Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
 
@@ -721,10 +723,18 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `bgColor` | `string` | Цвет разделителя (CSS-значение, например `"#e0e0e0"`) |
+| `bgColor` | `string` | Цвет разделителя (CSS-значение, например `"#e0e0e0"`). Читается из `options` **корня** конфигурации (`config.options`), а не из узла `Divider`: общий цвет всех разделителей виджета. `options.bgColor` самого узла не действует |
 
 ```tsx
-{ id: "section_divider", templateName: "Divider", options: { bgColor: "#e0e0e0" } }
+{ id: "section_divider", templateName: "Divider" }
+```
+
+```tsx
+// цвет разделителей — в корне конфигурации
+{
+  options: { bgColor: "#e0e0e0" },
+  children: [{ id: "pages", templateName: "Pages", children: [/* страницы */] }]
+}
 ```
 
 > [!warning] Единственный контейнер без слота `bgImage`
@@ -751,25 +761,17 @@
 | Подтип | `templateName` | `<Name>Options` Pick | Описание |
 |---|---|---|---|
 | `EditBooleanContainer` | `EditBoolean` | `controls` | Переключатель для boolean-атрибута |
-| `EditCheckboxContainer` | `EditCheckbox` | `controls` | Чекбокс с кастомным label |
-| `EditChipsContainer` | `EditChips` | `controls` | Мультиселект в виде чипов |
+| `EditCheckboxContainer` | `EditCheckbox` | `controls` | Набор чекбоксов по одному на вариант контрола; отмечен может быть один вариант |
+| `EditChipsContainer` | `EditChips` | `controls` | Выбор одного значения из вариантов контрола в виде чипов |
 | `EditDateContainer` | `EditDate` | `controls`, `withTime` | Выбор даты/времени через календарь |
 | `EditDropdownContainer` | `EditDropdown` | `controls` | Выпадающий список значений |
 | `EditGroupContainer` | `EditGroup` | `controls`, `useProjectHiddenAttributes`, `expandable`, `expanded` | Группа edit-полей (использует [[hooks\|`useEditGroupAttributes`]] для фильтрации) |
-| `EditNumberContainer` | `EditNumber` | `controls` | Числовой инпут |
-| `EditStringContainer` | `EditString` | `controls` | Строковый текстовый инпут |
+| `EditNumberContainer` | `EditNumber` | `controls` | Числовой инпут и слайдер; границы и шаг слайдера — `minValue` / `maxValue` / `step` контрола |
+| `EditStringContainer` | `EditString` | `controls` | Строковый инпут; с `relatedDataSource` у контрола — автодополнение по записям источника |
 | `EditTextContainer` | `EditText` | `controls` | Многострочное поле (`Textarea` из uilib-gl) с авто-высотой и пределами высоты (см. ниже) |
 | `EditAttachmentContainer` | `EditAttachment` | `parentResourceId`, `fileExtensions`, `viewMode`, `shownItems`, `otherItems`, `relatedDataSource`, `controls` | Редактируемый список вложений (см. ниже) |
 
-**Общие опции для полей редактирования:**
-
-| Опция | Тип | Описание |
-|---|---|---|
-| `attributeName` | `string` | Имя атрибута, значение которого редактируется |
-| `label` | `string` | Подпись поля (если не задан alias) |
-| `readOnly` | `boolean` | Только чтение — поле отображается, но недоступно для ввода |
-| `required` | `boolean` | Обязательное поле |
-| `placeholder` | `string` | Placeholder для текстовых полей |
+**Что читают поля редактирования.** Атрибут поля задаёт свойство `attributeName` самого узла (не `options`). Всё остальное лежит в `options.controls[i]` (`ConfigControl`); опций `label`, `readOnly`, `required`, `placeholder` на узле поля нет. `label`, `placeholder` и `width` из контрола читает только `EditDropdown`; `minValue` / `maxValue` / `step` — только `EditNumber`.
 
 **Варианты EditDropdown / EditChips** задаются в контроле `options.controls[i]` (`ConfigControl`). Контейнер находит свой контрол по `targetAttributeName`, равному атрибуту поля (`attributeName` узла), а без атрибута поля берёт первый контрол.
 
@@ -1086,6 +1088,8 @@
 | `expandable` | `boolean` | Разрешить сворачивание панели слоёв |
 | `expanded` | `boolean` | Развёрнута ли панель по умолчанию |
 
+Плюс `ContainerBoxOptions` (`width`, `height`, `overflow`).
+
 ```tsx
 { id: "map_layers", templateName: "Layers", options: { layerNames: ["buildings", "roads"], expandable: true } }
 ```
@@ -1183,11 +1187,11 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `hideTitle` | `boolean` | Скрыть подпись над прогресс-баром |
-| `innerValue` | `string` | Имя атрибута для значения внутри бара |
-| `bgColor` | `string` | Цвет фона бара |
-| `colors` | `string[]` | Массив цветов для разных значений |
-| `colorAttribute` | `string` | Имя атрибута, определяющего цвет бара |
+| `hideTitle` | `boolean` | Скрыть строку подписи (`alias`, `value`, `units`) над прогресс-баром; значение при этом выводится внутри полосы |
+| `innerValue` | `boolean` | Выводить значение (слот `value`) внутри полосы; строка подписи над ней остаётся |
+| `bgColor` | `string` | Цвет заливки полосы, когда не задан цвет из `colors` по индексу записи |
+| `colors` | `string[]` | Цвета полос по индексу записи |
+| `colorAttribute` | `string` | Имя атрибута, значение которого задаёт цвет полосы; перебивает `colors` и `bgColor` |
 | `maxValue` | `number` | Максимальное значение (100%) |
 | `innerTemplateStyle` | `object` | Кастомные CSS-стили для внутренних элементов |
 
@@ -1221,7 +1225,7 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `center` | `boolean` | Центрировать содержимое |
+| `center` | `boolean` | Центрировать содержимое. По умолчанию включено; отключает только явный `false` |
 | `fontColor` | `string` | Цвет текста; он же — источник тонированного фона, если не заданы `bgColor` и цвет иконки |
 | `bgColor` | `string` | Свой цвет фона плитки. Кладётся **сплошным** и перебивает наследование от иконки/текста |
 | `colorAttribute` | `string` | Имя атрибута, значение которого заменяет `fontColor` (цвет текста, а с ним и тонированный фон) |
@@ -1301,21 +1305,21 @@
 
 ### StructuredDataContainer
 
-**Назначение:** Таблица структурированных данных со схемой в конфиге. С `editMode` строки правятся, добавляются и удаляются прямо в дашборде, а результат уходит потребителям через фильтр значением `valueType: "features"` (FeatureCollection); без него таблица работает как представление данных только на чтение. Режимов данных два: с источником (строки грузятся из него) и без источника (пустая структура набирается руками). В обоих «Сохранить» пишет в фильтр, а обратно в слой источника — только с `saveToLayer: true`.
+**Назначение:** Таблица структурированных данных со схемой в конфиге. С `editMode` строки правятся, добавляются и удаляются прямо в дашборде, а результат уходит потребителям через фильтр значением `valueType: "features"` (FeatureCollection); без него таблица работает как представление данных только на чтение. Режимов данных два: с источником (строки грузятся из него) и без источника (пустая структура набирается руками). В обоих «Сохранить» пишет в фильтр, а обратно в слой источника — только с `saveToLayer: true`. Actions с `event: "save"` заменяют эту запись настраиваемой цепочкой (см. «Сохранение через actions» ниже).
 
 **Типы:** `templateName = "StructuredData"` · `StructuredDataContainerOptions` · `StructuredDataContainerProps`. Дети — `StructuredDataContainerChild`.
 
 **Props:** `ContainerProps`
 
-**Слоты (`children`):** `data` — представление структуры, элемент `type: "table"` (см. [[elements#ElementTable|ElementTable]]); `alias`; `title` / `titleIcon` — заголовок контейнера. Слот `data` обязателен: без него данные негде показать.
+**Слоты (`children`):** `data` — представление структуры, элемент `type: "table"` (см. [[elements#ElementTable|ElementTable]]); `title` / `titleIcon` — заголовок контейнера. Слот `alias` допустим по типам и клиентскому валидатору, но контейнер его не рисует. Слот `data` обязателен: без него данные негде показать.
 
 **Опции:**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `attributesDescription` | `ConfigAttributeDescription[]` | Схема данных, она же набор колонок таблицы: что описано, то и показано, в порядке описания (кроме скрытых — `hidden`). С источником — переопределение его схемы: задаёт состав, порядок, `alias`, `stringFormat`, `isEditable`, а также раскладку и вид колонки (`width`, `resizable`, `multiline`, `style`, `subType`); типы приходят от источника. Без источника — единственная схема, обязательна |
+| `attributesDescription` | `ConfigAttributeDescription[]` | Схема данных, она же набор колонок таблицы: что описано, то и показано, в порядке описания (кроме скрытых — `hidden`). С источником — переопределение его схемы: задаёт состав, порядок, `alias`, `stringFormat`, `isEditable`, а также раскладку и вид колонки (`width`, `resizable`, `multiline`, `style`, `subType`); типы приходят от источника. Без источника — единственная схема, обязательна. С источником и без описания колонками становятся все атрибуты источника, кроме геометрии |
 | `relatedDataSource` | `string` | Имя источника данных. Не задан — структура набирается вручную |
-| `filterName` | `string` | Имя фильтра-приёмника. **Обязателен при `editMode`** — иначе правкам некуда уходить. Фильтр должен быть объявлен на странице с `valueType: "features"` |
+| `filterName` | `string` | Имя фильтра-приёмника. **Обязателен при `editMode`** — иначе правкам некуда уходить; исключение — таблица с источником и save-вызовами в `actions`, там запись задаёт цепочка (см. «Сохранение через actions» ниже). Фильтр должен быть объявлен на странице с `valueType: "features"` |
 | `editMode` | `boolean` | Разрешить правку таблицы: редакторы в ячейках, добавление и удаление строк, панель отката и записи. Не задан или `false` — таблица только на чтение. Та же опция, что у сетки [[containers#ContainersGroupContainer\|ContainersGroup]], но читает её этот контейнер сам. Состав строк закрывается отдельно — опцией `editOnly` у ребёнка `data` |
 | `saveToLayer` | `boolean` | Писать правку в слой источника через features-API. По умолчанию `false`: «Сохранить» пишет только в фильтр. В фильтр результат уходит **всегда**, с опцией или без. Работает только с `editMode` и источником со слоем (`layerName`) — см. «Запись в слой» ниже |
 | `expandable` | `boolean` | Разрешить сворачивание |
@@ -1394,6 +1398,34 @@
 
 > [!warning] Ломающее изменение
 > До появления `saveToLayer` таблица на источнике-слое писала в слой автоматически. Теперь по умолчанию — только в фильтр: существующим конфигам, которые должны писать в слой, нужно явно добавить `saveToLayer: true`.
+
+**Сохранение через actions (`event: "save"`).** Если в `actions` контейнера есть хоть один вызов с `event: "save"`, «Сохранить» запускает эти вызовы по порядку вместо стандартной записи: ни слой, ни фильтр контейнер сам не пишет. Так собирается любая последовательность — «слой → Python-задача», «фильтр → любое действие» — с отдельной реакцией на ошибку каждого шага через `onError` (см. [[actions#Обработка ошибок шага (onError)|Actions]]). Вызовы с `event: "click"` в том же массиве — по-прежнему действия строк, и в режиме правки они отключены.
+
+- **Данные черновика** — `$event.value`: та же FeatureCollection, что стандартная запись кладёт в фильтр. В фильтр её пишет обычный `setFilters` с `"$event.value"`.
+- **`saveToLayer`** — действие записи черновика в слой источника контейнера (`deleteFeatures` → `updateFeature` → `createFeatures`, только `isEditable`-атрибуты). Доступно только в save-цепочке StructuredData. Если оно есть в цепочке (с `callback`, `onError` и ссылками), схема получает те же ограничения слоя, что и при `options.saveToLayer`; сама опция при save-вызовах игнорируется.
+- **Итог.** Успех всей цепочки фиксирует черновик. Любая ошибка — даже пойманная `onError` — и отмена (уход со страницы, повторный запуск) оставляют черновик и галку: сохранение можно повторить. После успешного `saveToLayer` новые строки сразу получают `id`, поэтому повтор проходит слой вхолостую и не плодит дубли. «Отменить» после частичной ошибки возвращает строки к состоянию, уже записанному в слой.
+- **Пока цепочка идёт**, ячейки, «Добавить», удаление и кнопки сохранения неактивны, а обновления источника (например, по `autoSyncLayer` после записи в слой) черновик не подменяют. Если источник успел прислать новые данные, после успеха базой становятся они — так видны изменения, сделанные Python-задачей.
+- **`filterName`** при save-вызовах обязателен только без `relatedDataSource` — из него таблица восстанавливается после перезагрузки. Валидатор client-new предупреждает (`save-chain-skips-filter`), если такая цепочка этот фильтр не пишет.
+
+```tsx
+// стандартное поведение, собранное из actions, плюс шаг сверх него
+{
+  id: "Table-2",
+  templateName: "StructuredData",
+  options: { relatedDataSource: "source-data", filterName: "type_1", editMode: true },
+  actions: [
+    { event: "save", type: "saveToLayer", options: {} },
+    { event: "save", type: "setFilters", options: { filters: { type_1: { value: "$event.value" } } } },
+    {
+      event: "save",
+      type: "runTask",
+      options: { taskName: "recalc", parameters: { rows: "$event.value" } },
+      onError: { type: "showNotification", options: { error: true, description: "$event.error.message" } }
+    }
+  ],
+  children: [{ id: "data", type: "table" }]
+}
+```
 
 ```tsx
 // в filters страницы
@@ -1545,9 +1577,9 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `simple` | `boolean` | Простой заголовок без кнопок управления |
-| `downloadById` | `string` | ID элемента `ExportPdf` — добавляет кнопку скачивания рядом с заголовком |
-| `align` | `"left" \| "center" \| "right"` | Горизонтальное выравнивание содержимого заголовка |
+| `simple` | `boolean` | Компактный заголовок: прижат к левому краю, шрифт текста `0.75rem`, переключатель сворачивания стоит вплотную к тексту |
+| `downloadById` | `string` | ID узла `ExportPdf` (`pdf_export` в примере) — добавляет кнопку скачивания рядом с заголовком; кнопка проявляется при наведении |
+| `align` | `"left" \| "center" \| "right" \| "stretch"` | Горизонтальное выравнивание содержимого заголовка; `stretch` ведёт себя как `left` |
 
 `fontColor` задаётся не опцией, а одноимённым prop контейнера (см. Props выше).
 
@@ -1646,7 +1678,7 @@
 
 **Нет соответствующего элемента button — нет кнопки**, без встроенных замен. Подпись берётся из `value`, а при `null` или отсутствии значения — из `options.title`; оформление — из всех [[elements#ElementButton|опций ElementButton]], включая корневой `style`, `noMargin` и `withDivider`. Переводы подписей кнопок внутри компонента не используются. Доступны также универсальные `title` / `titleIcon` (заголовок) и `bgImage` (фон).
 
-**Свойство узла:** `attributeName` — имя атрибута объекта, в котором лежит `question_id` голосования. Живёт **на самом узле**, а не в `options`, как у элементов, привязанных к атрибуту. Обязательно: без него контейнеру не за что зацепиться.
+**Свойство узла:** `attributeName` — имя атрибута объекта, в котором лежит `question_id` голосования. Живёт **на самом узле**, а не в `options`, как у элементов, привязанных к атрибуту. Обязательно: без него контейнеру не за что зацепиться. Без `attributeName` или без любого из четырёх слоёв ниже контейнер вместо экрана показывает ошибку блока (`DataSourceError`).
 
 **Опции:**
 

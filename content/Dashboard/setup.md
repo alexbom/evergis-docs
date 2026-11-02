@@ -250,6 +250,9 @@ import { replaceObject } from "find-and";
 |---|---|---|
 | `ewktGeometry` | `useEwktGeometry()` (`src/hooks/map`) | EWKT нарисованного выделения с буфером |
 | `ewktExtent`, `zoomLevel` | `useMapView()` (`src/hooks/map`) | Снимок вида карты по событию `idle`; `getMapView` (`src/evergis/map`) клампит bounds по границам меркатора и конвертирует через `geometryToEwkt` |
+| `projectName`, `projectAlias` | селектор `getProjectInfo` (слайс `project`) | `name` и `alias` открытого проекта |
+| `notification` | слайс `notifications` | `add` / `update` / `close` диспатчат `addNotification` / `updateNotification` / `closeNotification` |
+| `onCreateFeature` | `useFeatureCreationHost()` (`src/hooks/map`) | Обработчик хоста создания объекта |
 
 Подписка идёт на `idle`, а не на `moveend`: последний ловит и синтетические события от `stop()` во время программного `flyTo` и отдавал бы промежуточные координаты интерполяции.
 
@@ -284,7 +287,7 @@ import { replaceObject } from "find-and";
 
 **useValidateDashboardConfig** вызывается клиентским DashboardProvider и в dev-сборке проверяет реальный `projectInfo.content.dashboardConfiguration` через `validateDashboardConfig`; подменный `config` превью не проверяет. В production хук ничего не делает. Проверка слотов использует `src/components/Dashboard/utils/constants.ts` (`CONTAINER_SLOT_MAP`), а не реестр компонентов библиотеки; проблемы выводятся в консоль, рендер не блокируется.
 
-После перехода кнопок на [[components#ContainerButton (internal)|ContainerButton]] карта пока отстаёт от `@evergis/react@4.0.168`:
+После перехода кнопок на [[components#ContainerButton (internal)|ContainerButton]] карта отстаёт от библиотеки:
 
 - Для `Vote` в ней по-прежнему записан пустой набор слотов: корректные `submitButton` / `createButton` / `saveButton` / `deleteButton` могут получить `unexpected-slot`, хотя библиотека их рендерит.
 - Для `ExportPdf` записи нет: валидатор не проверяет фиксированный слот `button`. Библиотека ищет узел с `id: "button"` и `type: "button"`; без него кнопки экспорта нет.

@@ -100,8 +100,8 @@
 |---|---|
 | `data` | `PieChartDisplayedData` |
 | `loading` | `boolean` |
-| `chartElement` | `ConfigContainerChild` |
-| `twoColumns` | `boolean?` |
+| `chartElement` | `ConfigContainerChild?` |
+| `twoColumns` | `boolean` |
 | `column` | `boolean?` — записи столбиком (`true`) или в ряд (`false`); не задано — раскладку выбирает контейнер |
 | `fontSize` | `string \| number` |
 | `type` | `WidgetType` |
@@ -169,7 +169,7 @@
 
 ## ContainerButton (internal)
 
-**Назначение:** Кнопка действия контейнера с оформлением [[elements#ElementButton|ElementButton]] и стандартными [[concepts#Подстановки в строках конфига|подстановками строк конфига]]. Используется в [[containers#AddFeatureContainer|AddFeatureContainer]], [[containers#ExportPdfContainer|ExportPdfContainer]] и [[containers#VoteContainer|VoteContainer]]. Лежит в `components/ContainerButton/index.tsx`; в публичном барреле `components/index.tsx` не экспортируется.
+**Назначение:** Кнопка действия контейнера с оформлением [[elements#ElementButton|ElementButton]] и стандартными [[concepts#Подстановки в строках конфига|подстановками строк конфига]]. Используется в [[containers#AddFeatureContainer|AddFeatureContainer]], [[containers#ExportPdfContainer|ExportPdfContainer]] и [[containers#VoteContainer|VoteContainer]], а также в [[containers#TaskContainer|TaskContainer]] (слот `button`). Лежит в `components/ContainerButton/index.tsx`; в публичном барреле `components/index.tsx` не экспортируется.
 
 **Props:** `ElementButtonProps` (см. [[elements#ElementButton|ElementButton]]). Основные:
 
@@ -208,6 +208,7 @@
 |---|---|
 | `type` | `WidgetType` |
 | `items` | `ConfigContainerChild[]` |
+| `elementConfig` | `ConfigContainerChild?` |
 | `isColumn` | `boolean?` |
 | `isMain` | `boolean?` |
 | `renderElement` | `RenderElementFunction` |
@@ -292,13 +293,15 @@ const renderResultOptions = useCallback(
 
 **Props:** `ExpandableTitleProps` (elementConfig, type, renderElement)
 
-Ищет дочерний элемент `id === "title"`. Если не найден — не рендерится. Управляет `expandContainer` через `TitleContainer`.
+Ищет дочерний элемент `id === "title"`. Если не найден — не рендерится. Не рендерится и тогда, когда нет ни текста заголовка (`value` / `attributeName`), ни иконки `titleIcon`, ни управляющих элементов (`expandable`, `downloadById` у заголовка, шаблон `Layers`). Управляет `expandContainer` через `TitleContainer`.
 
 ---
 
 ## FeatureCardButtons
 
-**Назначение:** Кнопки действий карточки объекта (редактировать, закрыть, сохранить и т.п.).
+**Назначение:** Кнопка закрытия карточки объекта: `IconButton` с иконкой `close`, вызывает `closeFeatureCard` из контекста виджета `FeatureCard`.
+
+**Props:** нет.
 
 ---
 

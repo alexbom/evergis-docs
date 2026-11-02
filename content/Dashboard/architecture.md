@@ -134,14 +134,16 @@ getRenderElement() → ElementComponent
 Общий runtime в `components/Dashboard/actions` выполняет действия последовательно: callback предыдущего вызова завершается до следующего вызова массива. `WidgetActionsProvider` создаёт области root/page своего `WidgetType`; окно дополняет их реестром модалки. Разрешение ID идёт от внутренней области к внешней. [[actions|Контракт и сценарии]].
 
 ```text
-Клик элемента / записи / сегмента
-  → useActionBindings (контекст записи + sourceKey)
+Клик элемента / записи / сегмента → useActionBindings (контекст записи + sourceKey)
+«Сохранить» StructuredData → useStructuredDataSaveActions (черновик в $event.value + обработчик шага saveToLayer)
   → createActionRuntime → executeActionSequence
       → resolveActionInvocation (ссылка/inline, scopes)
-      → resolveActionParameters (живые фильтры + снимок клика)
-      → исполнитель runTask / setFilters / openUrl / openModal
-      → callback: первый истинный вариант или else
+      → resolveActionParameters (живые фильтры + снимок события)
+      → исполнитель runTask / setFilters / openUrl / openModal / selectTab / showNotification / saveToLayer
+      → успех — callback, ошибка шага — onError: первый истинный вариант или else
 ```
+
+Шаг `saveToLayer` исполняет сам контейнер: исполнитель виджета стоит выше и черновика не видит, поэтому `StructuredData` передаёт обработчик шага в `handlers` запуска.
 
 `TaskExecutionProvider` внутри `GlobalProvider` наблюдает независимые Python-задачи дольше жизни страницы. `usePythonTask` и Actions используют один сервис, сборку параметров ресурса и уведомления. Уход из контекста отменяет продолжения; повторный клик или ручная остановка дополнительно запрашивают остановку серверной задачи. Смена страницы сама по себе её не останавливает.
 

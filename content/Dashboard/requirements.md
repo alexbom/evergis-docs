@@ -68,7 +68,8 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 | `styled-components` | Стилизация всех компонентов (`useTheme`, `ThemeProvider`) |
 | `react-markdown` | `ElementMarkdown` — рендеринг Markdown |
 | `rehype-raw`, `rehype-sanitize`, `remark-gfm` | Плагины для `react-markdown` |
-| `find-and` | Клиентское изменение конфигурации (`replaceObject`); поиск узлов рендера выполняет [[utils#findDashboardNode\|findDashboardNode]] |
+| `find-and` | Не нужен ни библиотеке, ни клиентскому Dashboard: узлы ищет [[utils#findDashboardNode\|findDashboardNode]], подменяет `replaceDashboardNode`. `replaceObject` фигурирует только в примере хоста для `onContainerChange` ([[setup#Сохранение изменений раскладки\|Подключение]]) |
+| `@evergis/common` | `isObject`, `formatAttributeValue`, `FeatureAttributeValue`, `ThemeName`, `ProjectInfo`, `transparentizeColor`, `stretchPalette`, `formatDate` и др. — общие утилиты и типы |
 | `jsPDF`, `html2canvas` | `useExportPdf` — экспорт в PDF |
 | `d3` | `FEATURE_CARD_DEFAULT_COLORS` (`d3.schemeAccent`) для цветовой палитры карточки |
 | `maplibre-gl` | Типы `CircleLayerSpecification`, `FillLayerSpecification`, `LineLayerSpecification` для `CustomFeatureSelect` |
@@ -85,7 +86,7 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 
 ## Actions
 
-Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает ресурсы с `taskResourceSubType: "PythonTask"` независимо от `taskType`, а также прежние `taskType: "pythonService"` или `"PythonTask"`. Необязательные строки `fileName` и `methodName` задаются в `ConfigTask` и переопределяются `runTask.options`. Чтение схемы сохраняется; ответ 400 `Python importMethod is required` допускает запуск только при наличии обоих полей из действия/запроса или задачи страницы. Тогда доступны только явно переданные аргументы задачи и запуска; схема и `userConfiguration` не используются. Подробности — [[actions#Пять действий|runTask]].
+Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает ресурсы с `taskResourceSubType: "PythonTask"` независимо от `taskType`, а также прежние `taskType: "pythonService"` или `"PythonTask"`. Необязательные строки `fileName` и `methodName` задаются в `ConfigTask` и переопределяются `runTask.options`. Чтение схемы сохраняется; ответ 400 `Python importMethod is required` допускает запуск только при наличии обоих полей из действия/запроса или задачи страницы. Тогда доступны только явно переданные аргументы задачи и запуска; схема и `userConfiguration` не используются. Подробности — [[actions#Семь действий|runTask]].
 
 Условия callback вычисляются локально; EQL источников продолжает исполняться сервером. Новая вкладка подчиняется правилам пользовательского жеста браузера; при блокировке отображается ссылка. [[actions|Ограничения и проверка]].
 

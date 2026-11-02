@@ -28,7 +28,7 @@
 | `Icon` | `icon`, `alias`, `link`, `text` |
 | `Image` | `alias`, `text`, `button`, `image` |
 | `Slideshow` | `slideshow`, `alias` (опционален) |
-| `StructuredData` | `data` — `type: "table"` (обязателен), `alias` |
+| `StructuredData` | `data` — `type: "table"` (обязателен); `alias` допустим по типам и валидатору, но контейнер его не рисует — подпись задаётся слотом `title` |
 | `Upload` | `uploader` |
 | `Attachment` | `alias`; `value` — если не задан `relatedDataSource` |
 | `Edit` (базовый) | `alias`, `value` |
@@ -162,6 +162,12 @@
 
 Фильтр получает результат всегда. Чтобы правка уходила ещё и обратно в слой источника, у контейнера нужен `options.saveToLayer: true`, а у `relatedDataSource` — `layerName`. Без опции таблица на источнике-слое пишет только в фильтр.
 
+Всё это — про стандартное сохранение. Вызовы с `event: "save"` заменяют его, и куда писать, решает сама цепочка (см. [[containers#StructuredDataContainer|StructuredData]]):
+
+- `options.saveToLayer` игнорируется (предупреждение `orphan-option`), в слой пишет шаг `saveToLayer`. Ему нужен `relatedDataSource` со `layerName`, иначе `save-to-layer-without-layer`;
+- `options.filterName` обязателен только таблице без источника (иначе `missing-filter-name`), и цепочка должна писать этот фильтр через `setFilters`: иначе после перезагрузки таблица не покажет сохранённое (предупреждение `save-chain-skips-filter`);
+- заданный `filterName` по-прежнему требует фильтр с `valueType: "features"`.
+
 ```jsonc
 // filters страницы
 { "name": "type_1", "valueType": "features" }
@@ -255,7 +261,7 @@
 - [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` (и `tabId` действий `selectTab`) резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 - [ ] Реестры `actions` корня/страницы/модалки содержат определения с `id`, `type`, `options`; привязки визуальных узлов содержат ссылки или inline-вызовы. `actions` не помещены в `options`.
-- [ ] `runTask.options.taskName` ссылается на `name` задачи текущей страницы; `openModal.options.modalId` — на существующую модалку. Callback имеет форму вызова либо непустого объекта условий, `event` — `click`.
+- [ ] `runTask.options.taskName` ссылается на `name` задачи текущей страницы; `openModal.options.modalId` — на существующую модалку. `callback` и `onError` имеют форму вызова либо непустого объекта условий. `event` — `click` или `save`: `save` допустим только у вызова верхнего уровня контейнера `StructuredData`, а шаг `saveToLayer` — только в такой цепочке (иначе `saveEventPlacement` / `saveToLayerPlacement`). У `showNotification` задано хотя бы одно из `title`, `description`, `error`.
 - [ ] У `runTask` поля `fileName` и `methodName`, если заданы в задаче страницы или `options` действия, являются непустыми строками и содержат хотя бы один непробельный символ. Общий файл/метод можно задать в задаче страницы, а `options` действия переопределяют каждое поле отдельно. Для ресурса без `importMethod` оба поля должны быть известны из задачи/действия; аргументы задаются явно в `ConfigTask.params` или `options.parameters`. Пример — [[actions#Одна задача, разные методы|одна задача, разные методы]].
 - [ ] Для настроенных Actions выполнен [[utils#validateDashboardActions|validateDashboardActions]]; клиентский `validateDashboardConfig` включает его диагностику.
 - [ ] В [[conditional-formatting|условном форматировании]] ветки `conditions` переопределяют только `options`, `style` и `visibility`; action-подстановки `#result`, `$event` и `$params` не используются в выражениях. Значения override буквальные, без строковых подстановок.
@@ -278,6 +284,6 @@
 
 Правило ID визуальных узлов не применяется к inline Actions и объектам условных callback. Определение в `config.actions`, `page.actions`, `modal.actions` требует `id`, `type`, `options`; ID уникален внутри реестра. Ссылка содержит `id` без `type`, inline-вызов — `type` и `options` без `id`. Локальный реестр может переопределить одноимённое действие внешнего реестра. Не помещайте `actions` в `options`.
 
-Валидатор отделяет Actions от дерева UI, допускает циклы `A → B → A` и показывает точный путь ошибки. Наличие поля в базовом `ConfigContainerChild` не означает, что произвольный контейнер обрабатывает клики: привязки задаются только поддерживаемым [[actions#Поверхности клика и совместимость|поверхностям]]. Для графика действие элемента `chart` перекрывает действие контейнера; у `StructuredData` действия строки задаются контейнеру и отключены при `options.editMode`.
+Валидатор отделяет Actions от дерева UI, допускает циклы `A → B → A` и показывает точный путь ошибки. Наличие поля в базовом `ConfigContainerChild` не означает, что произвольный контейнер обрабатывает клики: привязки задаются только поддерживаемым [[actions#Поверхности клика и совместимость|поверхностям]]. Для графика действие элемента `chart` перекрывает действие контейнера; у `StructuredData` действия строки задаются контейнеру и отключены при `options.editMode`, а вызовы с `event: "save"` заменяют стандартную запись по галке «Сохранить».
 
 Ссылки и inline-вызовы — [[types#Типы Actions|Типы Actions]], полный конфиг и подстановки — [[actions|Actions]].

@@ -284,11 +284,11 @@
 | `separator` | `string` | Разделитель тегов (default: `,`) |
 | `bgColor` | `string` | Цвет фона чипов |
 | `fontColor` | `string` | Цвет текста чипов |
-| `fontSize` | `string \| number` | Размер шрифта чипов |
+| `fontSize` | `string` | Размер шрифта чипов |
 | `colorAttribute` | `string` | Имя атрибута, определяющего цвет чипа |
-| `variants` | `IOption[] \| ChipOption[]` | Варианты соответствия значение → цвет/подпись чипа |
+| `variants` | `IOption[] \| ChipOption[]` | Готовый набор чипов `{ text, color }`. Если задан и не пуст, значение атрибута не разбирается: выводятся именно эти чипы |
 
-**Поведение:** `attribute.value.split(separator)` → массив тегов → `DashboardChip`
+**Поведение:** с непустым `variants` — чипы из него (`text`, `color`); иначе `attribute.value.split(separator)` → массив тегов → `DashboardChip`. Цвет чипа: `color` варианта → значение атрибута `colorAttribute` → `bgColor`.
 
 ```tsx
 { id: "value", type: "tags", attributeName: "categories", options: { separator: ";", bgColor: "#e3f2fd", fontColor: "#1565c0" } }
@@ -308,7 +308,7 @@
 |---|---|---|
 | `relatedDataSource` | `string` | Источник данных для вариантов выбора |
 | `label` | `string` | Подпись элемента управления |
-| `width` | `string \| number` | Ширина элемента |
+| `width` | `number` | Ширина элемента в px (уходит в CSS-строку, проценты не поддерживаются). По умолчанию `100%` |
 | `placeholder` | `string` | Placeholder |
 | `control` | `ConfigControl` | Конфиг контрола: `{ type, targetAttributeName, attributeName, variants, iconAttribute, icon }` |
 
@@ -350,7 +350,7 @@
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `fontSize` | `string \| number` | Размер иконки в px — число или числовая строка (`"24"`); единицы не указываются, `px` дописывается сам |
+| `fontSize` | `string` | Размер иконки в px — числовая строка (`"24"`); единицы не указываются, `px` дописывается сам |
 | `fontColor` | `string` | Цвет иконки; у иконки-вложения перекрашивает только SVG |
 
 **Поведение:** если указан `attributeName` — берёт значение атрибута как `IconTypesKeys`; иначе `elementConfig.value`. Атрибут ищется среди атрибутов, пришедших в `renderElement` (у DataSource inner-шаблонов — атрибуты текущей записи), с фолбэком на `useWidgetContext`.
@@ -437,7 +437,7 @@ SVG-ресурс отображается как обычная картинка
 | `chartId` | `string` | `id` дочернего элемента-чарта, к которому привязана легенда |
 | `twoColumns` | `boolean` | Отображать легенду в две колонки |
 | `relatedDataSources` | `ConfigRelatedDataSource[]` | Источники данных (для line-чарта — оси Y). Имя записи в легенде берётся из `alias`, цвет метки — из `axis.color` |
-| `fontSize` | `string \| number` | Размер шрифта элементов легенды |
+| `fontSize` | `string` | Размер шрифта элементов легенды |
 | `column` | `boolean` | Направление записей: `false` — в ряд, `true` — столбиком. Не задано — легенда сама по себе идёт столбиком, а внутри [[containers#ChartContainer\|ChartContainer]] раскладку выбирает контейнер (под графиком — в ряд, сбоку — столбиком). Явная опция перебивает выбор контейнера |
 
 **Поведение:** для line-чарта — показывает оси Y как элементы легенды; для bar/pie — items из `data[0].items` с alias из атрибутов. Тип графика легенда берёт у элемента, на который указывает `chartId`, — своей опции типа у неё нет.
@@ -652,18 +652,18 @@ modals: [
 
 | Поле | Тип | Описание |
 |---|---|---|
-| `attributeName` | `string` | Имя атрибута, содержащего URL изображений (через разделитель) |
+| `attributeName` | `string` | Имя атрибута, содержащего URL изображений (через разделитель) или вложения (`subType: Attachments`); с `relatedDataSource` — имя поля записей источника с URL |
 
 **Опции (`options`, `ElementSlideshowOptions` Pick):**
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `relatedDataSource` | `string` | Источник данных с изображениями (приоритет над `attributeName`) |
+| `relatedDataSource` | `string` | Источник данных с изображениями: URL берутся из поля `attributeName` его записей |
 | `expandable` | `boolean` | Разрешить сворачивание |
 | `expanded` | `boolean` | Развёрнут ли по умолчанию |
-| `controls` | `ConfigControl[]` | Маппинг полей источника на поля слайдшоу |
+| `controls` | `ConfigControl[]` | Маппинг полей источника на поля слайдшоу; `controls[0].attributeLink` включает режим вложений |
 
-**Поведение:** если `relatedDataSource` → из features датасорса; иначе `getSlideshowImages({ element, attribute })`. Открывает `Preview` галерею по клику.
+**Поведение:** если атрибут — вложение (`subType: Attachments`) или у `controls[0]` задан `attributeLink` — показываются изображения из вложений (`useAttachmentItems`, фильтр `IMAGE_FILE_TYPES`). Иначе, если `relatedDataSource` → из features датасорса; иначе `getSlideshowImages({ element, attribute })`. Открывает `Preview` галерею по клику.
 
 ```tsx
 { id: "slideshow", type: "slideshow", attributeName: "photos", options: { relatedDataSource: "photosDs", expandable: true } }
@@ -689,8 +689,8 @@ modals: [
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `width` | `number \| string` | Ширина |
-| `height` | `number \| string` | Высота |
+| `width` | `number` | Ширина, px |
+| `height` | `number` | Высота, px |
 | `fontColor` | `string` | Цвет заливки SVG (через CSS `color`) |
 
 **Поведение:** [[utils|`getSvgUrl`]]`({ elementConfig, layerInfo, attributes })` → `getResourceUrl(url)` → `SvgImage`. Порядок источников — первый непустой выигрывает: `attributeIcon` → `attributeName` → `value`. Разбор `attributeIcon` вынесен в утилиту [[utils|`getAttributeIconUrl`]] (читает `icon` из `attributesConfiguration` слоя).
@@ -708,6 +708,8 @@ modals: [
 **Props:** `ElementTableProps` (`ContainerProps` с `elementConfig: ElementTableConfig`)
 
 **Slot-id:** `data` — единственное место, где элемент работает.
+
+**Блокировка на время сохранения.** Пока идёт цепочка сохранения через actions (`event: "save"`), контекст контейнера выставляет `locked`, и все ячейки таблицы только на чтение, даже при включённом `editMode` (редактор доступен при `canEdit && !locked`).
 
 **Колонки — это видимая часть схемы контейнера** (`attributesDescription`): сколько атрибутов описано и в каком порядке, столько колонок и в том же порядке, без скрытых (`hidden: true`). Своего отбора у представления нет — состав колонок правится схемой контейнера, а не опциями элемента. Скрытый атрибут выпадает только из колонок (`useTableView`): контекст контейнера отдаёт его строке, и [[actions|Actions]] строки получают его значение наравне с видимыми.
 

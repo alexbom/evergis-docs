@@ -257,19 +257,21 @@
 | `single` | Одно значение | `"Жилой"` |
 | `range` | Диапазон min/max | `[5, 15]` |
 | `array` | Массив выбранных значений | `["Жилой", "Коммерческий"]` |
+| `tree` | Выбор в иерархическом справочнике: уровень → массив id (см. ниже) | `{ "l1": [1, 2], "l3": [1023] }` |
+| `features` | Строки таблицы [[containers#StructuredDataContainer\|StructuredData]]; подставляется только в `parameters` | `{ "type": "FeatureCollection", "features": [...] }` |
 
 **SelectedFilters** — текущие значения всех фильтров страницы:
 ```ts
 type SelectedFilters = Record<string, SelectedFilter>;
 
 interface SelectedFilter {
-  value: string | number | string[] | number[] | Date | Date[] | TreeFilterValue;
+  value: string | number | boolean | string[] | number[] | Date | Date[] | TreeFilterValue | FeaturesFilterValue;
   min?: string | number | Date;
   max?: string | number | Date;
 }
 ```
 
-Объектный вариант `TreeFilterValue` — только у иерархического фильтра «tree» (см. ниже); остальные фильтры хранят скалярное или массивное значение (`ScalarFilterValue`).
+Объектные варианты — `TreeFilterValue` у иерархического фильтра «tree» (см. ниже) и `FeaturesFilterValue` у фильтра-приёмника [[containers#StructuredDataContainer|StructuredData]]; остальные фильтры хранят скалярное или массивное значение (`ScalarFilterValue`).
 
 **ConfigFilter** — описание фильтра в конфиге страницы: `name`, `defaultValue`, `valueType`, `relatedDataSource` (откуда брать список вариантов), `resetFilters` (сбрасываемые при изменении фильтры). Имя фильтра типизируется branded-типом [[types#Branded types|FilterName]] (`asFilterName`).
 
@@ -372,7 +374,7 @@ interface SelectedFilter {
 | `$card:<слой>:<поле>` | атрибут объекта карточки, если карточка открыта на этом слое |
 | `%geometry`, `%extent`, `%zoom`, `%project[.name\|.alias]` | системные значения, см. выше |
 | `#field`, `#field.path` | поле `response.result.features[0].properties` последней успешной Python-задачи текущей цепочки [[actions\|Actions]] |
-| `$event`, `$event.path` | полный снимок исходного клика / его свойство |
+| `$event`, `$event.path` | полный снимок исходного события / его свойство. В цепочке `event: "save"` `$event.value` — черновик таблицы, в `onError` `$event.error` — ошибка шага |
 | `$params`, `$params.path` | параметры открытой модалки / их свойство |
 
 Свойства: `.min` / `.max` — границы диапазона, `.lN` — уровень tree-фильтра, любое другое `.prop` — свойство строки `relatedDataSource`, выбранной фильтром.
@@ -421,16 +423,22 @@ interface SelectedFilter {
 interface ConfigLayer {
   name: string;          // идентификатор слоя в ГИС
   clientStyle?: ClientStyle; // стиль слоя только на этой странице, см. ниже
-  opacity: number;       // прозрачность 0–1
-  condition?: string;    // EQL-фильтр для отображения объектов
+  alias?: string;
+  opacity?: number;      // прозрачность 0–1
+  condition?: string | string[]; // EQL-фильтр для отображения объектов
   query?: string;        // EQL-запрос
-  parameters?: object;   // параметры запроса
-  isVisible: boolean;    // видимость при загрузке страницы
-  selectable: boolean;   // можно ли кликать по объектам
-  filterZoomTo: boolean; // приблизить карту к результатам фильтра
+  parameters?: Record<string, unknown>; // параметры запроса
+  geometries?: unknown[];
+  isVisible?: boolean;   // видимость при загрузке страницы
+  selectable?: boolean;  // можно ли кликать по объектам
+  filterZoomTo?: boolean; // приблизить карту к результатам фильтра
   searchFields?: string[]; // поля для поиска по слою
   minScale?: number;     // минимальный масштаб отображения
   maxScale?: number;     // максимальный масштаб отображения
+  maxZoomTo?: number;    // максимальный зум при приближении к объекту
+  hiddenAttributes?: string[];
+  customFeatureSelect?: CustomFeatureSelect; // стили выделения объекта на карте
+  disableDrag?: boolean;
   notifications?: ConfigNotifications; // "all" | "my" | string[] — чьи изменения слоя применять, см. [[#Фильтр уведомлений по автору — notifications]]
 }
 ```
@@ -439,7 +447,7 @@ interface ConfigLayer {
 
 `query` и `parameters` слоя проходят ту же подстановку, что и условия источников данных: фильтры страницы (`%name`, `%name.min` / `.max`, `%name.lN`), атрибуты карточки (`{attributeName}`, `$card:<layer>:<field>`), системные значения карты `%geometry` / `%extent` / `%zoom` (см. [[#Системные фильтры карты]]) и значения проекта `%project` / `%project.name` / `%project.alias` (см. [[#Текущий проект]]). В UI значение параметра переключается на подстановку кнопкой «%» в панели фильтров слоя — список предлагает фильтры текущей страницы плюс шесть системных плейсхолдеров.
 
-**DashboardLayerPayload** — обновление состояния слоя в runtime: `{ name: string, isVisible?: boolean, condition?: string, ... }`. Вызывается через `setDashboardLayer` из контекста. Имя слоя типизируется branded-типом [[types#Branded types|LayerName]] (`asLayerName`).
+**DashboardLayerPayload** — обновление состояния слоя в runtime: `{ name: string; isVisible?: boolean }`. Вызывается через `setDashboardLayer` из контекста. Имя слоя типизируется branded-типом [[types#Branded types|LayerName]] (`asLayerName`).
 
 **layerInfos** — метаданные слоёв (`QueryLayerServiceInfoDc[]`), передаются через DashboardProvider. Используются для: форматирования значений атрибутов по их типу (`Int32`, `DateTime`, `String` и т.д.), отображения иконки слоя в шапке, резолва связанных атрибутов (join).
 
@@ -502,7 +510,7 @@ interface ConfigLayer {
 | `IconContainer` | `icon`, `alias`, `link`, `text` |
 | `ImageContainer` | `alias`, `text`, `button`, `image` |
 | `SlideshowContainer` | `slideshow`, `alias` (опционален) |
-| `StructuredDataContainer` | `data` — представление `type: "table"` (обязателен), `alias` |
+| `StructuredDataContainer` | `data` — представление `type: "table"` (обязателен); `alias` допустим по типам и валидатору, но контейнер его не рисует — подпись задаётся слотом `title` |
 | `UploadContainer` | `uploader` |
 | `AttachmentContainer` | `alias`; `value` — источник вложений, если не задан `relatedDataSource` |
 | `EditContainer` (базовый, `templateName: "Edit"`) | `alias`, `value` |
@@ -537,7 +545,7 @@ interface ConfigLayer {
 
 **Гейт по наличию слота.** Слой рисуется **только** если узел действительно несёт ребёнка с `id: "bgImage"` — это проверяет [[utils|утилита]] `hasContainerBgImage`. Без слота в DOM не появляется ничего: ни обёртки, ни пустого абсолютного `div`. Тот же признак включает и хост: корень контейнера получает `$hasBgImage` и вместе с ним `position: relative` + `isolation: isolate` (`bgImageHostMixin`). Изоляция принципиальна — отрицательный `z-index` слоя ложится под содержимое хоста только внутри его собственного stacking-контекста, иначе ушёл бы под фон ближайшего предка и пропал. Гейт по `$hasBgImage` тоже не декоративный: `position: relative` меняет containing block для абсолютно позиционированных потомков (контролы слайдшоу, подписи прогресса), поэтому включается лишь там, где автор конфига попросил фон.
 
-Признак попадает на корень двумя путями: контейнеры на [[hooks|`useContainerRoot`]] / `useWrapperSize` получают `$hasBgImage` готовым в пропсах корня, а те, что ставят `id`/`style` руками (`Title`, `Icon`, `Tabs`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground`, `OneColumn`, `TwoColumn`, `DefaultAttributes`, `PagesContainer`, подтипы `Edit*`), берут его хуком [[hooks|`useBgImageHost`]].
+Признак попадает на корень двумя путями: контейнеры на [[hooks|`useContainerRoot`]] / `useWrapperSize` получают `$hasBgImage` готовым в пропсах корня, а те, что ставят `id`/`style` руками (`Title`, `Icon`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground`, `OneColumn`, `TwoColumn`, `DefaultAttributes`, `PagesContainer`, подтипы `Edit*`), берут его хуком [[hooks|`useBgImageHost`]].
 
 **Две опции-компаньона фона.** Обе живут в [[options#ConfigLayoutOptions|`ConfigLayoutOptions`]] и, в отличие от остальных опций контейнера, **не входят ни в один `<Name>Options`** — их читают хук хоста и слой фона напрямую из `options`, поэтому они допустимы у любого контейнера:
 
@@ -590,7 +598,7 @@ interface ConfigLayer {
 > - `options.outflow` без слота `bgImage` — ошибка `orphan-option`: вытекать нечему, опция молча не работает. `options.innerPadding` так не проверяется — это обычный отступ, осмысленный и без картинки.
 > - У `DataSource`/`DataSourceProgress` валидатор **резолвит `options.innerTemplateName`** и проверяет детей по слотам внутреннего шаблона; пропуск опции — ошибка `missing-inner-template`.
 > - Контейнер без записи в карте (например `ContainersGroup` — в том числе как внутренний шаблон с произвольной вёрсткой) на слоты не проверяется. Туда же попадает опечатка в `innerTemplateName`: неизвестное имя правила не находит, и дети не проверяются — как и рантайм, который молча откатывается на `ContainersGroup`.
-> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`); `options.saveToLayer` стоит только на источнике со слоем — без `relatedDataSource` или на источнике, объявленном без `layerName`, это `save-to-layer-without-layer`, а без `editMode` — предупреждение `orphan-option`. Списки значений колонок проверяет `validateStructuredDataLists.ts`: неизвестный `control` (допустимы `dropdown`, `chips`, `textarea`) — ошибка `invalid-control`; списочный `control` (`dropdown`/`chips`) без списка, `control: "textarea"` у нестроковой колонки, у колонки цвета или вложений или вместе со списком значений, `attributeValue`/`attributeAlias` без `relatedDataSource`, `variants` вместе с `relatedDataSource` и список у колонки цвета или вложений — предупреждения `orphan-option`; справочник, не объявленный среди `dataSources` конфига, — предупреждение `unknown-list-source` (предупреждение, а не ошибка: слой страницы редактор регистрирует источником только при сохранении).
+> - У `StructuredData` сверх слотов проверяется собственный набор инвариантов (`validateStructuredData.ts`): есть ребёнок `data` с `type: "table"` (`missing-view`); у редактируемой таблицы задан `options.filterName` (`missing-filter-name`), и такой фильтр объявлен на странице с `valueType: "features"` (`invalid-filter-value-type`); без `relatedDataSource` описана схема (`missing-schema`); имена атрибутов уникальны (`duplicate-attribute`); `options.saveToLayer` стоит только на источнике со слоем — без `relatedDataSource` или на источнике, объявленном без `layerName`, это `save-to-layer-without-layer`, а без `editMode` — предупреждение `orphan-option`. Цепочка с `event: "save"` меняет эти правила (`validateStructuredDataSaveChain.ts`): `options.saveToLayer` рядом с ней игнорируется — предупреждение `orphan-option`; `filterName` обязателен только таблице без источника, и цепочка должна писать этот фильтр — иначе предупреждение `save-chain-skips-filter`; шагу `saveToLayer` нужен источник со слоем — иначе `save-to-layer-without-layer`. Списки значений колонок проверяет `validateStructuredDataLists.ts`: неизвестный `control` (допустимы `dropdown`, `chips`, `textarea`) — ошибка `invalid-control`; списочный `control` (`dropdown`/`chips`) без списка, `control: "textarea"` у нестроковой колонки, у колонки цвета или вложений или вместе со списком значений, `attributeValue`/`attributeAlias` без `relatedDataSource`, `variants` вместе с `relatedDataSource` и список у колонки цвета или вложений — предупреждения `orphan-option`; справочник, не объявленный среди `dataSources` конфига, — предупреждение `unknown-list-source` (предупреждение, а не ошибка: слой страницы редактор регистрирует источником только при сохранении).
 > - У `ControlsGroup` и `Tabs` свой набор инвариантов (`validateControlsGroup.ts`). Ребёнок `ControlsGroup` не из `button`/`uploader`/`dropdown`/`text`/`chips`/`checkbox` — предупреждение `invalid-group-child`, фильтр без `options.filterName` — `missing-filter-name`. У `Tabs` ребёнок с `type`, отличным от `"button"`, — ошибка `invalid-group-child`; старые опции вида (`radius`, `column`, `bgColor`, `noBg`, `onlyIcon`, `shownItems`, `maxLength`, `wordBreak`) — предупреждение `removed-option`; одинаковые id вкладок во всём виджете — предупреждение `duplicate-tab-id`. `tabId` действий `selectTab` (в вызовах, определениях и ветках callback) проверяется как entity-ref — `dangling-ref`.
 
 ### Сводный пример с двумя уровнями `id`
@@ -659,9 +667,9 @@ interface ConfigLayer {
 Создаётся `FeatureCardProvider`. Содержит данные конкретного выбранного объекта на карте:
 
 - **Атрибуты** (`attributes: ClientFeatureAttribute[]`) — все атрибуты объекта с alias, type, value
-- **Редактирование** (`controls`, `changeControls`, `saveControls`) — изменение значений атрибутов
+- **Редактирование** (`controls`, `changeControls`) — изменение значений атрибутов
 - **Метаданные** (`layerInfo`, `feature`) — информация о слое и самом объекте
-- **Состояние** (`isEditable`, `isLoading`, `isEdit`) — режим просмотра/редактирования
+- **Состояние** (`editMode`, `isFeatureEditable`, `hasCopyRights`, `editOnly`, `loading`, `isDataLoading`) — режим просмотра/редактирования и загрузка данных
 
 Нужен, когда компонент находится внутри карточки объекта (FeatureCard) и отображает или редактирует атрибуты.
 
@@ -674,6 +682,9 @@ interface ConfigLayer {
 - **Карта** (`ewktGeometry`, `ewktExtent`, `zoomLevel`) — геометрический фильтр, экстент видимой области и уровень зума
 - **Тема** (`themeName`) — `"light"` | `"dark"`
 - **Язык** (`language`) — текущий язык интерфейса
+- **Проект** (`projectName`, `projectAlias`) — значения плейсхолдеров `%project`, `%project.name`, `%project.alias`
+- **Уведомления** (`notification`) — показ и обновление уведомлений (`add`, `update`, `close`)
+- **Создание объектов** (`onCreateFeature`) — обработчик запуска редактора нового объекта
 
 Нужен везде: каждый компонент, делающий запрос или выводящий текст, зависит от GlobalContext.
 
@@ -890,7 +901,7 @@ export const elementComponents = {
   chart: ElementChart,
   image: ElementImage,
   icon: ElementIcon,
-  // ... 15 элементов
+  // ... 16 элементов
 } as const satisfies ElementComponentRegistry;
 ```
 
@@ -898,9 +909,9 @@ export const elementComponents = {
 
 Разрешение:
 - [[utils|утилита]] `getContainerComponent(templateName)` → `FC<ContainerProps> | null`
-- [[utils|утилита]] `getRenderElement(props)` → `ReactNode`
+- [[utils|утилита]] `getRenderElement(props)` → `RenderElementFunction`: функция, которая рендерит узел по `id`
 
-**Расширение:** клиент может добавить свои контейнеры под новыми значениями `ContainerTemplate`, а элементы — под новыми строковыми литералами `type` (`ConfigElementType`). Рендеринг автоматически использует новые компоненты.
+**Расширение:** новый контейнер или элемент добавляется в саму библиотеку — записью в реестр и типы, см. [[types#Как добавить новый контейнер|Как добавить новый контейнер]]. API для регистрации извне у реестров нет; хост подменяет только компоненты из пропа `components` провайдера (`LayerItem`, `ProjectPanelMenu`, `ProjectPagesMenu`).
 
 ---
 

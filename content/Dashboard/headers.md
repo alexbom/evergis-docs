@@ -46,7 +46,7 @@ Shared-компоненты в `headers/components/`:
 
 | Опция | Тип | Описание |
 |---|---|---|
-| `url` | `string` | URL логотипа (через `image` из `useDashboardHeader`) |
+| `url` | `string` | Адрес, который открывается в новой вкладке по клику на логотип. Не задан — клик ничего не делает. Саму картинку логотипа задаёт слот `icon` |
 
 Остальные данные (image, icon, tooltip, themeName) приходят из `useDashboardHeader`, который читает `projectInfo.content.dashboardConfiguration.header.options` напрямую и нормализует.
 
@@ -74,7 +74,13 @@ DefaultHeaderContainer (image, isDark)
 
 ```tsx
 // HeaderTemplate.Default в контексте WidgetType.Dashboard
-{ header: { templateName: "Default", options: { url: "/logo.svg" } } }
+{
+  header: {
+    templateName: "Default",
+    options: { url: "https://example.com" },
+    children: [{ id: "icon", type: "svg", value: "logo-resource-id", options: { width: 32, height: 32 } }]
+  }
+}
 ```
 
 ---

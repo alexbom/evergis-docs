@@ -164,7 +164,7 @@ Resolves контейнер из реестра — через `getContainerComp
 
 `(type?: ConfigControl["type"]) => ContainerTemplate`
 
-Маппинг типа контрола на `ContainerTemplate`: `chips` → `EditChips`, `checkbox` → `EditCheckbox`, `string` → `EditString`, `text` → `EditText`, иначе → `EditDropdown`.
+Маппинг типа контрола на `ContainerTemplate`: `chips` → `EditChips`, `checkbox` → `EditCheckbox`, `string` → `EditString`, `text` → `EditText`, иначе → `EditDropdown`. Файл `utils/getControlTemplateName.ts` не реэкспортируется через `utils/index.ts`.
 
 ---
 
@@ -238,7 +238,7 @@ getDataSourceAutoSyncLayers({
 
 Резолвит `layerInfo` источника данных и накладывает поверх атрибуты из его конфига (см. [[concepts#Настройка атрибутов источника — секция attributes|секцию `attributes`]]). База — реальный слой по `layerName`, а если слоя нет (EQL, python) — атрибуты из ответа; наложение делегируется **mergeAttributeConfigurations**.
 
-Возвращает `null`, когда атрибутов нет вообще: потребители отличают по этому «источник без описания атрибутов» от загруженного, и non-null сломал бы их loading/empty-state. Синтетическому `layerInfo` намеренно **не задаётся `name`** — по нему ищут скрытые атрибуты слоя и рендерят элемент `layerName`, имя источника дало бы ложные срабатывания. Если накладывать нечего, возвращается исходный объект слоя (идентичность сохраняется ради мемоизации).
+Возвращает `null`, когда нет ни слоя, ни атрибутов: потребители отличают по этому «источник без описания атрибутов» от загруженного, и non-null сломал бы их loading/empty-state. Синтетическому `layerInfo` намеренно **не задаётся `name`** — по нему ищут скрытые атрибуты слоя и рендерят элемент `layerName`, имя источника дало бы ложные срабатывания. Если накладывать нечего, возвращается исходный объект слоя (идентичность сохраняется ради мемоизации).
 
 ---
 
@@ -469,7 +469,7 @@ const resolved = resolveElementStrings(
 
 `(url?: string) => string`
 
-Если URL начинается с `http` — возвращает как есть. Иначе добавляет префикс `/sp/resources/file/`. Пустая строка при `!url`.
+Если адрес уже готов — начинается со схемы (`http:`, `https:`, `data:` и т.п.) или с `/` — возвращает как есть. Иначе считает его идентификатором ресурса и добавляет префикс `/sp/resources/file/`. Пустая строка при `!url`.
 
 ---
 
@@ -521,23 +521,23 @@ const tabIds = getTabIds(config.children); // ["tab_info", "tab_docs"]
 
 `(attribute: ClientFeatureAttribute) => ContainerTemplate`
 
-Маппинг `AttributeType` на `ContainerTemplate` для Edit-контейнеров: `Boolean` → `EditBoolean`, `Int32/Int64/Double` → `EditNumber`, `DateTime` → `EditDate`, `Resource` → `EditAttachment`, иначе → `EditString`.
+Маппинг `AttributeType` на `ContainerTemplate` для Edit-контейнеров: атрибут с `subType === StringSubType.Attachments` → `EditAttachment` (проверяется первым); далее по `AttributeType`: `Boolean` → `EditBoolean`, `Int32/Int64/Double` → `EditNumber`, `DateTime` → `EditDate`, иначе → `EditString`.
 
 ---
 
 ### getDisplayTemplateNameFromAttribute
 
-`(attribute?: ClientFeatureAttribute) => ContainerTemplate | undefined`
+`(attribute?: ClientFeatureAttribute) => ContainerTemplate | null`
 
-Для display-режима (не edit): возвращает специальный `ContainerTemplate` для атрибута, если он требует особого рендера (например, `AttributeType.Resource` → `ContainerTemplate.Attachment`). Используется в [[hooks|хуке]] `useRenderContainer` для переопределения template дочернего контейнера в `OneColumn`/`TwoColumn`.
+Для display-режима (не edit): возвращает специальный `ContainerTemplate` для атрибута, если он требует особого рендера (`subType === StringSubType.Attachments` → `ContainerTemplate.Attachment`), иначе `null`. Используется в [[hooks|хуке]] `useRenderContainer` для переопределения template дочернего контейнера в `OneColumn`/`TwoColumn`.
 
 ---
 
 ### getThemeByName
 
-`(themeName?: ThemeName) => DefaultTheme`
+`(themeName: ThemeName) => DefaultTheme`
 
-Возвращает объект темы (`ITheme`) для `ThemeProvider`. Используется в шапках `FeatureCard*Header` для принудительной темы шапки независимо от глобальной.
+Возвращает объект темы для `ThemeProvider`: `ThemeName.Dark` → `darkTheme`, любое другое значение → `defaultTheme`. Используется в шапках `FeatureCard*Header` для принудительной темы шапки независимо от глобальной.
 
 ---
 
@@ -610,6 +610,8 @@ const tabIds = getTabIds(config.children); // ["tab_info", "tab_docs"]
 | `getFilterTokenValue({ name, prop, store, mode })` | значение токена фильтра из стора: `.min` / `.max`, `.lN`, `.prop`, дефолт |
 | `formatConditionSection(section, sources, options?)` | одна секция условия (без разбора `$(params)`) |
 | `getSingleToken(segments)` | токен, если строка целиком — один токен (значение уходит с типом) |
+| `joinConfigSegments(segments, formatToken)` | склейка сегментов: токен заменяется своим форматом, незнакомый остаётся как написан |
+| `getDashboardStore(sources)` | стор фильтров и датасорсов дашборда; вне дашборда — стор своего виджета |
 
 Общая грамматика использует `CONFIG_TOKEN_REGEXP` и добавленные в `tokenizeConfigString` префиксы [[actions|Actions]]. Виды токенов: `filter` (`%name[.prop]`, `$dashboard:name[.prop]` — поле `scope`), `dataSource` (`$dashboard:<датасорс>:<поле>`), `card` (`$card:<слой>:<поле>`), `attribute` (`{name}`), `action` (`#field`, `$event[.path]`, `$params[.path]`). У `action` поле `scope` равно `"result"`, `"event"` или `"parameters"`, поле `path` задаёт путь свойства. Незнакомый токен (`known: false`) остаётся в строке как написан.
 
@@ -935,7 +937,7 @@ const sources = getUpdatedDataSources(responses, requestedSources, otherSources)
 
 `(rawValue: unknown) => Attachment[]`
 
-Парсит сырое значение атрибута (строка, массив, JSON) в массив `Attachment` (`{ link, name, mimeType, uploadedAt, isExternal }`).
+Парсит сырое значение атрибута (строка, массив, JSON) в массив `Attachment` (`{ link, name, mimeType, date?, isExternal }`). Массив возвращает как есть, строку разбирает как JSON, остальное и ошибку разбора — `[]`.
 
 ---
 
@@ -943,7 +945,7 @@ const sources = getUpdatedDataSources(responses, requestedSources, otherSources)
 
 `(features?: FeatureDc[], mapping?: { attributeLink?, attributeName?, attributeMime?, attributeDate? }) => Attachment[]`
 
-Извлекает вложения из features связанного источника данных согласно маппингу полей.
+Извлекает вложения из features связанного источника данных согласно маппингу полей. Умолчания имён полей: `link`, `name`, `mimeType`, `date`. Feature без значения в поле ссылки пропускается; `name` без значения заменяется ссылкой; `isExternal` — ссылка начинается с `http://` или `https://`.
 
 ---
 
@@ -957,9 +959,9 @@ const sources = getUpdatedDataSources(responses, requestedSources, otherSources)
 
 ### getFileTypeIcon
 
-`(fileType: FileType) => string`
+`(fileType?: FileType) => string`
 
-Возвращает URL иконки-заглушки по типу файла (для preview, когда сам файл не загружен или не является изображением).
+Возвращает URL иконки-заглушки по типу файла (для preview, когда сам файл не загружен или не является изображением). Для неизвестного типа и `undefined` — общая иконка файла.
 
 ---
 
@@ -1104,6 +1106,18 @@ const sources = getUpdatedDataSources(responses, requestedSources, otherSources)
 
 ---
 
+### findDashboardNode
+
+`(root: unknown, id: string | undefined) => ConfigContainerChild | undefined`
+
+Ищет первое совпадение `id` только в ветвях `children`, `header`, `modals`. Массивы обходятся в исходном порядке; повторно посещённые объекты пропускаются. `actions`, `parameters`, данные записей и прочие метаданные не обходятся, поэтому совпавший `action.id` не подменяет визуальный узел.
+
+```ts
+const chart = findDashboardNode(config, "chart_sales");
+```
+
+---
+
 ## Связанные разделы
 
 [[hooks|Хуки]] | [[concepts|Основные понятия]] | [[containers|Контейнеры]] | [[elements|Элементы]] | [[types|Типы]]
@@ -1111,16 +1125,6 @@ const sources = getUpdatedDataSources(responses, requestedSources, otherSources)
 ## Утилиты Actions
 
 Публичные функции экспортируются из `actions/index.ts`. Отдельный entry point `@evergis/react/dist/dashboardActions` содержит `validateDashboardActions` и базовые типы определений, вызовов, callback и диагностики. Грамматика и сценарии — [[actions|Actions]].
-
-### findDashboardNode
-
-`(root: unknown, id: string | undefined) => ConfigContainerChild | undefined`
-
-Ищет первое совпадение `id` только в ветвях `children`, `header`, `modals`. Массивы обходятся в исходном порядке; повторно посещённые объекты пропускаются. `actions`, `parameters`, данные записей и прочие метаданные не обходятся, поэтому совпавший `action.id` не подменяет визуальный узел. Экспортируется из `utils/index.ts`.
-
-```ts
-const chart = findDashboardNode(config, "chart_sales");
-```
 
 ### resolveTabTarget (internal)
 
@@ -1153,7 +1157,7 @@ getClearedFilters({ view_mode: { value: "map" } }, current, configFilters); // {
 
 `(invocation: ConfigActionInvocation, scopes: ActionScopes) => ResolvedAction`
 
-Inline-вызов нормализуется с `event: "click"` по умолчанию. Ссылка ищется от последнего scope к первому; локальное определение заменяет дальнее целиком. `options` объединяются через **mergeActionParameters**; наличие поля `callback` у ссылки заменяет callback определения. Неизвестный ID выдаёт ошибку.
+Inline-вызов нормализуется с `event: "click"` по умолчанию. Ссылка ищется от последнего scope к первому; локальное определение заменяет дальнее целиком. `options` объединяются через **mergeActionParameters**; наличие поля `callback` у ссылки заменяет callback определения, поля `onError` — `onError` определения. Неизвестный ID выдаёт ошибку.
 
 ```ts
 const action = resolveActionInvocation({ id: "calculate", options: { parameters: { limit: 200 } } }, scopes);
@@ -1196,7 +1200,9 @@ const matched = evaluateActionCondition("#price > %price", context);
 
 **Возвращает:** фабрика — `ActionRuntime` (`start`, `cancel`, `cancelAll`); исполнитель — `Promise<ActionExecutionContext>`. `start(request)` возвращает handle с `completion`, `cancel`, `signal`, `runId`, `sourceKey`, `scopes`. `completion` разрешается результатом со статусом `completed` / `cancelled` / `failed`; ошибка хранится в результате `failed`.
 
-Callback выполняется до следующего вызова массива. Повторный запуск отменяет только прежнюю цепочку с тем же `sourceKey`; контекст клика и реестры фиксируются, живые фильтры читает `getSources`. Циклы допустимы, исполнитель периодически отдаёт управление браузеру.
+Callback выполняется до следующего вызова массива. Повторный запуск отменяет только прежнюю цепочку с тем же `sourceKey`; контекст клика и реестры фиксируются, живые фильтры читает `getSources`. Циклы допустимы, исполнитель периодически отдаёт управление браузеру. `handlers` запроса передаются в `control` по ссылке, без клонирования.
+
+Сбой шага (разрешение ссылки, `options` после подстановок, исполнение) уходит в `onError` этого шага: в контекст добавляется `event.error`, очередь заменяется веткой `onError`, остаток цепочки не выполняется, а в конце исполнитель бросает `ActionHandledError` — итог `failed`, общее уведомление провайдер не показывает. Отмена (`signal.aborted`, ошибка с `cancelled: true`) в `onError` не попадает. Карта условий без совпадения и без `else` ошибку не обрабатывает. Подробнее — [[actions#Обработка ошибок шага (onError)|Actions]].
 
 ```ts
 const runtime = createActionRuntime({ execute, getSources });
@@ -1204,11 +1210,31 @@ const run = runtime.start({ sourceKey: "sales/row/1", actions, scopes, context }
 const result = await run.completion;
 ```
 
+### getEventInvocations / getInvocationEvent
+
+`getEventInvocations(actions: unknown, scopes: ActionScopes, event: ActionEvent) => ConfigActionInvocation[]`; `getInvocationEvent(invocation, scopes) => ActionEvent`.
+
+Вызовы узла, которые запускает событие: событие берётся у вызова, иначе у определения, иначе `"click"`; неразрешимая ссылка сравнивается по своему `event`. Смотрит только верхний уровень массива. Используется привязкой кликов (`"click"`), контейнером StructuredData (`"save"`) и валидаторами.
+
+```ts
+const saveActions = getEventInvocations(elementConfig?.actions, scopes, "save");
+```
+
+### collectActionSteps
+
+`(invocations: readonly ConfigActionInvocation[], scopes: ActionScopes) => ResolvedAction[]`
+
+Все шаги цепочки: сами вызовы, их `callback` и `onError` со всеми ветками карты условий, включая `else`. Ссылки разворачиваются, неразрешимые пропускаются; каждый объект-вызов обходится один раз, поэтому циклы конечны. Нужна, чтобы узнать, есть ли в save-цепочке `saveToLayer` (ограничения схемы StructuredData, проверки валидатора).
+
+```ts
+const writesToLayer = collectActionSteps(saveActions, scopes).some(({ type }) => type === "saveToLayer");
+```
+
 ### validateDashboardActions
 
 `(config: unknown) => ActionValidationIssue[]`
 
-Проверяет реестры root/page/modal отдельно от визуальных вызовов: структуру, дубли ID внутри scope, разрешение ссылок, параметры пяти действий (`runTask`, `setFilters`, `openUrl`, `openModal`, `selectTab`), callback и его синтаксис, ссылки на задачи/модалки. Циклы ссылок допустимы. Диагностика содержит `path`, `code`, `message`, `ownerId?`, `severity: "error" | "warning"`; не-объект даёт пустой список. Включение в клиентский валидатор — [[setup#Подключение Actions|Подключение Actions]].
+Проверяет реестры root/page/modal отдельно от визуальных вызовов: структуру, дубли ID внутри scope, разрешение ссылок, параметры семи действий (`runTask`, `setFilters`, `openUrl`, `openModal`, `selectTab`, `saveToLayer`, `showNotification`), `callback` и `onError` и их синтаксис, ссылки на задачи/модалки. Размещение: `saveEventPlacement` — `event: "save"` не у StructuredData или внутри `callback`/`onError` (error), у StructuredData без `editMode` (warning); `saveToLayerPlacement` — `saveToLayer` вне save-цепочки (error). Клиентский валидатор дополнительно проверяет save-цепочку StructuredData: `saveToLayer` без источника-слоя (`save-to-layer-without-layer`), цепочку без источника, не пишущую `filterName` (`save-chain-skips-filter`, warning), и игнорируемую `options.saveToLayer` (`orphan-option`). Циклы ссылок допустимы. Диагностика содержит `path`, `code`, `message`, `ownerId?`, `severity: "error" | "warning"`; не-объект даёт пустой список. Включение в клиентский валидатор — [[setup#Подключение Actions|Подключение Actions]].
 
 ```ts
 const issues = validateDashboardActions(config);

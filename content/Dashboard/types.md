@@ -186,7 +186,7 @@ const child: StrictConfigContainerChild = {
 
 | Миксин | Поля | Кто подмешивает | Зачем |
 |---|---|---|---|
-| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Task`, `TwoColumn`, `Upload`, `Vote` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
+| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `ControlsGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `TwoColumn`, `Upload`, `Vote` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
 | `NumericSizeOptions` | `width?: number`, `height?: number` | `ElementChart`, `ElementSvg`, `ElementControl` (только `width`) | размеры, которые обязаны остаться **числом в пикселях**: значение уходит в вычисления геометрии графика или в HTML-атрибут, где `"100%"` не работает |
 
 `ContainerBoxOptions` даёт `CssSize` (число = px, строка = любое CSS-значение); `"100%"` включает fill-режим обёртки (см. [[utils|`getWrapperSizeStyle`]]). `NumericSizeOptions`, наоборот, сужает те же имена до `number` — поэтому у `ElementChart` в таблице ниже `width`/`height` числовые, а у `ChartContainer` — `CssSize`.
@@ -197,7 +197,7 @@ const child: StrictConfigContainerChild = {
 
 | Component | `type` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`, `iconTop`) + `icon`, `radius`, `title`, `noMargin`, `withDivider` |
+| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`, `iconTop`, `disabled`) + `icon`, `radius`, `title`, `noMargin`, `withDivider` |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
 | `ElementChart` | `"chart"` | `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
@@ -408,8 +408,8 @@ interface BgImageLayerProps {
 | `containers/FiltersContainer/constants.ts` | константы для рендера фильтров |
 | `containers/AttachmentContainer/types.ts` | `FileType` enum (`XLSX`, `PDF`, `CSV`, ... — 16 типов), `IMAGE_FILE_TYPES`, `AttachmentViewMode`, `Attachment` |
 | `containers/AttachmentContainer/constants.ts` | MIME-типы, лимиты, расширения |
-| `containers/StructuredDataContainer/types.ts` | `DraftRowState` (`"pristine" \| "created" \| "updated" \| "deleted"`), `DraftRow` (`key`, `featureId?`, `properties`, `state`), `StructuredDataAttribute` — атрибут схемы после слияния `attributesDescription` с атрибутами источника (`hidden` и `defaultValue` — только из конфига; плюс `control` и `listOptions` — они есть только у схемы **представления**, см. [[containers#StructuredDataContainer\|Контейнеры]]), `StructuredDataContextValue` (`schema`, `rows`, `loading`, `canEdit`, `canDelete`, `onCellChange`, `onRowDelete`) |
-| `containers/StructuredDataContainer/constants.ts` | `STRUCTURED_DATA_VIEW_SLOT` (`"data"`), типы атрибутов по группам, `DEFAULT_ATTRIBUTE_TYPE`, `DEFAULT_ATTRIBUTE_CONTROL` (`"dropdown"` — контрол колонки со списком, когда `control` не задан), `SAVE_ERROR_DURATION` |
+| `containers/StructuredDataContainer/types.ts` | `DraftRowState` (`"pristine" \| "created" \| "updated" \| "deleted"`), `DraftRow` (`key`, `featureId?`, `properties`, `state`), `StructuredDataAttribute` — атрибут схемы после слияния `attributesDescription` с атрибутами источника (`hidden` и `defaultValue` — только из конфига; плюс `control` и `listOptions` — они есть только у схемы **представления**, см. [[containers#StructuredDataContainer\|Контейнеры]]), `StructuredDataContextValue` (`elementConfig?`, `widgetType?`, `schema`, `rows`, `loading`, `canEdit`, `locked` — идёт сохранение через actions, ячейки только на чтение, `canDelete`, `onCellChange`, `onRowDelete`) |
+| `containers/StructuredDataContainer/constants.ts` | `STRUCTURED_DATA_VIEW_SLOT` (`"data"`), типы атрибутов по группам, `DEFAULT_ATTRIBUTE_TYPE`, `DEFAULT_ATTRIBUTE_CONTROL` (`"dropdown"` — контрол колонки со списком, когда `control` не задан), `LIST_ATTRIBUTE_CONTROLS` (`dropdown`, `chips` — без списка значений не действуют), `SAVE_ERROR_DURATION`, `STRUCTURED_DATA_SAVE_EVENT` (`"save"` — событие actions, заменяющее стандартную запись) |
 | `containers/DataSourceContainer/constants.ts` | константы раскладки плиток источника |
 | `containers/TaskContainer/types.ts` | `TaskButtonProps` (`title`, `icon?`, `status`, `statusColors?`, `isWaiting`, `isDisabled`, `onClick`) — пропсы кнопки запуска; `TaskSlotButtonProps` — то же + `type?`, `buttonConfig: TaskButtonChild` для кнопки из слота `button` |
 | `elements/ElementButton/constants.ts` | `ELEMENT_BUTTON_APPEARANCE_KEYS` — опции внешнего вида, переводящие кнопку-ссылку на `IconButton`; `ELEMENT_BUTTON_COLOR_FLAGS`; `DEFAULT_ELEMENT_BUTTON_VARIANT` (`"solid"`) |
@@ -425,7 +425,7 @@ interface BgImageLayerProps {
 | `hooks/useChartAxisTitles.ts` | `ChartAxisTitle` (`title`, `color?`) — подпись оси одной стороны; `color` задан, только если на стороне одна серия |
 | `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `loading`) |
 | `components/ContainerBackground/types.ts` | `ContainerBackgroundProps` — `Pick<ContainerProps, "elementConfig" \| "renderElement">` |
-| `components/ContainerBackground/styled.ts` | `BgImageHostProps` (`$hasBgImage`), слой `ContainerBackgroundLayer`, миксин `bgImageHostMixin` |
+| `components/ContainerBackground/styled.ts` | `BgImageHostProps` (`$hasBgImage`, `$innerPadding`), слой `ContainerBackgroundLayer`, миксин `bgImageHostMixin` |
 | `grid/types.ts` | Типы сетки: `GridAxis` (`"row"` \| `"column"`), `GridEditAction` (union операций `delete`/`merge`/`split`/`swap`/`addRow`/`addCell`), `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue` — значение контекста сессии редактирования |
 
 ---
@@ -517,7 +517,7 @@ type MarkdownTypography = Partial<Record<MarkdownTypographyTag, MarkdownTagTypog
 | Тип | Содержимое | Назначение |
 |---|---|---|
 | `ConfigDataSource` | `name`, `alias`, `attributes?`, `condition`, `ds`, `layerName`, `limit`, `offset`, `query`, `parameters`, `resourceId`, `fileName`, `methodName`, `url`, `type`, `autoSyncLayer`, `autoSyncLayers?`, `notifications?: ConfigNotifications`, `debounce?` | Описание запроса в конфиге страницы (см. [[concepts#Источники данных\|Основные понятия]]) |
-| `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `stringFormat?: AttributeFormatConfigurationDc` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
+| `ConfigDataSourceAttribute` | `attributeName`, `alias?`, `type?`, `description?`, `stringFormat?: AttributeFormatConfiguration` | Элемент `ConfigDataSource.attributes` — настройки атрибута источника, накладываемые поверх атрибутов слоя/ответа EQL. `stringFormat` мержится по полям, поэтому задаётся только переопределяемое |
 | `ConfigAttributeDescription` | `attributeName`, `type?`, `subType?`, `alias?`, `description?`, `isEditable?`, `stringFormat?`, `width?`, `resizable?`, `multiline?`, `colorPicker?`, `style?`, `parentResourceId?`, `fileExtensions?`, `control?: ConfigAttributeControl`, `variants?: ChipOption[]`, `relatedDataSource?`, `attributeValue?`, `attributeAlias?`, `hidden?`, `defaultValue?: string \| number \| boolean` | Элемент `options.attributesDescription` — описание атрибута структуры [[containers#StructuredDataContainer\|StructuredDataContainer]]. Повторяет форму `AttributeConfigurationDc`, но со `stringFormat` пакета и полями раскладки, вида, загрузки вложений, списка значений, скрытости и значения новой строки, которых в серверном контракте нет |
 | `ConfigAttributeControl` | `"dropdown" \| "chips" \| "textarea"` | Способ правки колонки: выбор из списка (`variants` либо справочник `relatedDataSource`) — выпадающий список (по умолчанию) или ряд кнопок, — либо многострочный ввод строки (`textarea`) |
 | `ConfigNotifications` | `"all" \| "my" \| string[]` | Фильтр серверных уведомлений по автору изменения (`senderName`): `"all"` — любые (по умолчанию), `"my"` — только текущего пользователя, массив — только перечисленных (текущий пользователь неявно не добавляется, `"my"` внутри массива — обычное имя). Уведомление без автора (системная задача) применяется всегда. Поле с этим типом есть у `ConfigDataSource`, `ConfigLayer` и `ConfigMiscOptions` (`options` корня); приоритет — источник → слой → корень, см. [[concepts#Фильтр уведомлений по автору — notifications\|Основные понятия]] |
@@ -701,25 +701,26 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 
 ## Типы Actions
 
-Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по пяти `type`; сценарии — [[actions|Actions]].
+Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по семи `type`; сценарии — [[actions|Actions]].
 
 ### Определения и вызовы
 
 | Тип | Контракт |
 |---|---|
-| `ActionEvent` | `"click"` |
-| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab"` |
+| `ActionEvent` | `"click" \| "save"`; `save` — галка «Сохранить» у StructuredData |
+| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab" \| "saveToLayer" \| "showNotification"` |
 | `ActionParameters` | `Record<string, unknown>` |
-| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId` |
+| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId`; `saveToLayer`: `Record<string, never>`; `showNotification`: `title?`, `description?`, `error?: boolean`, `duration?: number` |
+| `ActionErrorData` | `message: string`, `status?: string` — ошибка шага в его `onError` (`$event.error`) |
 | `TabTarget` | Владелец вкладки: `{ kind: "modal"; modalId }` \| `{ kind: "widget" }` |
 | `TabTargets` | `getSelectedTabId(tabId)` — выбор у владельца вкладки; `selectTab(tabId)` — выбрать, `false`, если вкладка нигде не объявлена |
-| `ConfigActionDefinition` | Обязательные `id`, `type`, `options`; необязательные `event`, `callback` |
-| `ConfigActionInline` | `type`, `options`, `event?`, `callback?`; `id?: never` |
-| `ConfigActionReference` | `id`, `event?`, `options?: ActionParameters`, `callback?`; `type?: never` |
+| `ConfigActionDefinition` | Обязательные `id`, `type`, `options`; необязательные `event`, `callback`, `onError` |
+| `ConfigActionInline` | `type`, `options`, `event?`, `callback?`, `onError?`; `id?: never` |
+| `ConfigActionReference` | `id`, `event?`, `options?: ActionParameters`, `callback?`, `onError?`; `type?: never` |
 | `ConfigActionInvocation` | `ConfigActionInline \| ConfigActionReference` |
 | `ConfigActionCallback` | Один вызов либо `{ [condition: string]: ConfigActionInvocation }`; `else` — необязательная запасная ветка |
 | `ConfigActionScope` / `ActionScopes` | `readonly ConfigActionDefinition[]` / readonly-массив реестров от внешнего к внутреннему |
-| `ResolvedAction` | Действие после разрешения ссылки: дискриминированные `type`/`options`, обязательный `event`, необязательные `id`, `callback` |
+| `ResolvedAction` | Действие после разрешения ссылки: дискриминированные `type`/`options`, обязательный `event`, необязательные `id`, `callback`, `onError` |
 
 `ConfigContainer.actions`, `ConfigModal.actions`, `PageChild.actions` содержат определения. У поддерживаемых `<Name>Config` массив `actions` содержит вызовы. Базовый `ConfigContainerChild.actions` допускает оба варианта, поэтому форму в конкретном месте JSON проверяет [[utils#validateDashboardActions|validateDashboardActions]]. `actions` находятся на узле, вне `options`.
 
@@ -737,14 +738,18 @@ const inline: ConfigActionInvocation = {
 
 | Тип | Поля |
 |---|---|
-| `ActionEventData` | `[key: string]: unknown`, `nodeId?`, `recordId?: string \| number`, `sourceKey?` |
+| `ActionEventData` | `[key: string]: unknown`, `nodeId?`, `recordId?: string \| number`, `sourceKey?`, `error?: ActionErrorData` |
 | `ActionExecutionContext` | `sources: ConfigStringSources`, `event?`, `parameters?`, `taskResponse?: unknown` |
 | `ActionBindingOptions` | `type?`, `elementConfig?`, `attributes?`, `eventData?`, `sourceKey?`, `disabled?` |
 | `ActionBindingResult` | `hasActions`, `trigger`, `onClick?`, `onKeyDown?`, `role?: "button"`, `tabIndex?` |
 | `ActionCancelReason` | `"restart" \| "user" \| "lifecycle"` |
-| `ActionExecutionControl` | `signal`, `runId`, `scopes`, `sourceKey` |
+| `ActionStepHandlers` | `Partial<Record<"saveToLayer", () => Promise<void>>>` — шаги, которые исполняет запустивший цепочку узел (StructuredData) |
+| `ActionExecutionControl` | `signal`, `runId`, `scopes`, `sourceKey`, `handlers?: ActionStepHandlers` |
+| `ActionRunRequest` | `sourceKey`, `actions`, `scopes`, `context`, `handlers?` |
 | `ActionRunHandle` | Контроль + `completion: Promise<ActionRunResult>`, `cancel(reason?)` |
-| `ActionRunResult` | `status: "completed" \| "cancelled" \| "failed"`, `context`, `error?` |
+| `ActionRunResult` | `status: "completed" \| "cancelled" \| "failed"`, `context`, `error?`. Ошибка, пойманная `onError`, — `failed` с `error: ActionHandledError` |
+| `ActionHandledError` | `Error` с `handled: true` и `original` — исходной ошибкой шага; общее уведомление «Ошибка действия» на неё не показывается |
+| `WidgetActionsValue` | `start(actions, scopes, context, sourceKey, scopeSignal?, handlers?)` → `Promise<ActionRunResult> \| undefined` (`undefined` — виджет неактивен или область закрыта) |
 | `ActionNavigation` / `ActionNavigationFactory` | `{ open(url, target?), dispose() }` / `(reserve: boolean) => ActionNavigation` |
 | `ActionValidationIssue` | `path`, `code`, `message`, `ownerId?`, `severity: "error" \| "warning"` |
 
@@ -773,7 +778,7 @@ Snapshot передаётся хосту через `onModalContextChange`; entr
 | `PythonExecutionSnapshot` | `taskId`, `status`, `log`, `lastMessage`, `error`, `loading`, `executionTime`, `result` |
 | `TaskExecutionContextValue` | `runTask`, `entries`, `openLog`, `closeLog`, `dismissTask`, `logRunId` |
 
-`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Пять действий|Actions]].
+`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Семь действий|Actions]].
 
 У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
 

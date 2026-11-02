@@ -73,7 +73,7 @@ const downloadByIndex = useAttachmentDownload(items);
 
 **Назначение:** Извлечение списка вложений (`Attachment[]`) из атрибута объекта или связанного источника данных. Используется в `AttachmentContainer` и `EditAttachmentContainer`.
 
-**Параметры:**
+**Параметры:** объект
 
 | Параметр | Тип |
 |---|---|
@@ -95,7 +95,7 @@ const { items } = useAttachmentItems({ type, elementConfig });
 
 **Назначение:** Превращает список `Attachment[]` в `IPreviewImage[]` для компонента `Preview` из `@evergis/uilib-gl`. Для изображений из защищённого хранилища загружает blob через `api.catalog.getFile`, кэширует `URL.createObjectURL`, отслеживает loading/error. Для внешних URL — отдаёт ссылку напрямую. Для не-изображений — иконку типа файла через `getFileTypeIcon`.
 
-**Параметры:**
+**Параметры:** объект
 
 | Параметр | Тип |
 |---|---|
@@ -215,14 +215,15 @@ return (
 |---|---|---|
 | `dataSources` | `ConfigDataSource[]` | Источники данных страницы |
 | `chartId` | `string` | ID элемента чарта |
-| `width`, `height` | `number \| string` | Размеры |
+| `width` | `number \| string` | Ширина |
+| `height` | `number` | Высота |
 | `fontColor` | `string` | Цвет текста осей |
 | `relatedAttributes` | `ConfigRelatedDataSource[]` | Связанные атрибуты |
 | `defaultColor` | `string` | Цвет по умолчанию |
 | `markers` | `BarChartMarker[] \| string` | Маркеры |
 | `showMarkers` | `number` | Шаг показа маркеров |
 
-**Возвращает:** `[customize]` — функция кастомизации для передачи в чарт
+**Возвращает:** `[customize, onChange]` — `customize` — функция кастомизации для передачи в чарт; `onChange(range)` — перерисовывает линию и заливку по выбранному диапазону (в процентах ширины)
 
 Текст делений шкал хук **не форматирует**: это делает **useChartAxisTickFormat** ещё в генераторе оси (`tickFormat`), до того как d3 измерит ширину шкалы. В `customize` подписи делений осей Y только укорачиваются многоточием (`wrap`: текст длиннее 60px — 80px минус поля по 10px) и перекрашиваются в `fontColor`. От **useChartAxisAttributes** хук берёт только `strokeColors` — цвета линий и градиентной заливки по порядку серий (не задан — `defaultColor`).
 
@@ -704,8 +705,8 @@ const blobUrl = useFetchImageWithAuth(imageUrl);
 | Параметр | Тип |
 |---|---|
 | `url` | `string \| null` |
-| `transform` | `(response: Response) => Promise<T>` |
-| `cleanup` | `(data: T) => void` |
+| `transform` | `(response: Response) => Promise<T \| null>` |
+| `cleanup` | `((data: T) => void)?` |
 
 **Возвращает:** `T | null`
 
@@ -755,11 +756,11 @@ const layer = getConfigLayer("myLayer");
 
 ## useGlobalContext
 
-**Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, ewktExtent, zoomLevel, themeName, language).
+**Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, ewktExtent, zoomLevel, themeName, language, projectName, projectAlias, notification).
 
 **Параметры:** нет
 
-**Возвращает:** `GlobalContextProps` (без `children`)
+**Возвращает:** `{ t, language, themeName, api, ewktGeometry, ewktExtent, zoomLevel, projectName, projectAlias, notification }` — поля `GlobalContext`, `t` всегда определён
 
 Если хост не передал свой `t` (так в Storybook), хук отдаёт запасной переводчик: он возвращает `defaultValue` (или ключ) и сам подставляет переменные `{{name}}` из опций вызова (`interpolateTranslation`), как это сделал бы i18next.
 
@@ -788,9 +789,9 @@ const renderElement = useHeaderRender(header);
 
 **Назначение:** Возвращает функцию проверки — нужно ли скрыть элемент при пустом источнике данных.
 
-**Параметры:** `type: WidgetType`
+**Параметры:** `type?: WidgetType` (default `Dashboard`)
 
-**Возвращает:** `(dataSourceName?: string) => boolean`
+**Возвращает:** `(dataSourceName: string) => boolean` — `false`, если имя пустое
 
 ```ts
 const checkIfEmpty = useHideIfEmptyDataSource(type);
@@ -801,7 +802,11 @@ if (checkIfEmpty(item.options?.hideIfEmptyDataSource)) return null;
 
 ## useProjectDashboardInit
 
-**Назначение:** Инициализация данных дашборда при монтировании (загрузка данных текущей страницы). Используется в клиентской части `client-new`.
+**Назначение:** Инициализация конфигурации дашборда проекта: если у проекта нет `content.dashboardConfiguration`, записывает в него конфиг по умолчанию (заголовок — `alias` или `name` проекта) через `updateProject`. Используется в клиентской части `client-new`.
+
+**Параметры:** нет
+
+**Возвращает:** `() => void` — функция инициализации; ничего не делает, если проекта нет или конфигурация уже задана
 
 ---
 
@@ -1079,6 +1084,8 @@ const title = resolveConfigString("Показатели за $dashboard:year г�
 
 **Параметры:** `type: WidgetType`
 
+**Возвращает:** `ConfigFilterStore | undefined`
+
 ---
 
 ## useWrapperSize
@@ -1147,7 +1154,7 @@ return <div role={binding.role} tabIndex={binding.tabIndex}
 
 **Параметры:** `type: WidgetType`.
 
-**Возвращает:** `useWidgetActions` — `{ start(actions, scopes, context, sourceKey, scopeSignal?) }`; `useActionContext` — `ActionExecutionContext | undefined`; `useActionScope` — `{ scopes, key, signal? } | undefined`. `scopes` располагаются от внешнего реестра к внутреннему.
+**Возвращает:** `useWidgetActions` — `{ start(actions, scopes, context, sourceKey, scopeSignal?, handlers?) }`, `start` возвращает `Promise<ActionRunResult> | undefined` (`undefined` — виджет неактивен или область закрыта), `handlers` — шаги, которые исполняет запустивший цепочку узел; `useActionContext` — `ActionExecutionContext | undefined`; `useActionScope` — `{ scopes, key, signal? } | undefined`. `scopes` располагаются от внешнего реестра к внутреннему.
 
 ```ts
 const context = useActionContext(type);
