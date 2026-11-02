@@ -282,17 +282,12 @@ import { replaceObject } from "find-and";
 
 ## Проверка конфигурации в client-new
 
-`validateDashboardConfig` также вызывает адаптер `validateConditionalFormatting`, который импортирует общий pure-валидатор из `@evergis/react/dist/dashboardConditionalFormatting`. Его диагностика получает клиентский код `invalid-conditional-formatting`, `ownerId` преобразуется в `parentId`. Проверяются правила корня, children, header и modals; опции, метаданные источников и значения override не обходятся как конфиговые узлы. Подробнее — [[conditional-formatting#Проверка конфигурации|проверка условий]].
+`validateDashboardConfig` также вызывает адаптер `validateConditionalFormatting`, который импортирует общий валидатор `validateDashboardConditionalFormatting` из `@evergis/react`. Его диагностика получает клиентский код `invalid-conditional-formatting`, `ownerId` преобразуется в `parentId`. Проверяются правила корня, children, header и modals; опции, метаданные источников и значения override не обходятся как конфиговые узлы. Подробнее — [[conditional-formatting#Проверка конфигурации|проверка условий]].
 
 
 **useValidateDashboardConfig** вызывается клиентским DashboardProvider и в dev-сборке проверяет реальный `projectInfo.content.dashboardConfiguration` через `validateDashboardConfig`; подменный `config` превью не проверяет. В production хук ничего не делает. Проверка слотов использует `src/components/Dashboard/utils/constants.ts` (`CONTAINER_SLOT_MAP`), а не реестр компонентов библиотеки; проблемы выводятся в консоль, рендер не блокируется.
 
-После перехода кнопок на [[components#ContainerButton (internal)|ContainerButton]] карта отстаёт от библиотеки:
-
-- Для `Vote` в ней по-прежнему записан пустой набор слотов: корректные `submitButton` / `createButton` / `saveButton` / `deleteButton` могут получить `unexpected-slot`, хотя библиотека их рендерит.
-- Для `ExportPdf` записи нет: валидатор не проверяет фиксированный слот `button`. Библиотека ищет узел с `id: "button"` и `type: "button"`; без него кнопки экспорта нет.
-
-При авторинге сверяйте кнопки с [[authoring|Правилами генерации]] и [[containers|Контейнерами]]; предупреждение текущего валидатора не является поводом удалять новые слоты Vote.
+Для `ExportPdf` в карте записи нет: валидатор не проверяет фиксированный слот `button`. Библиотека ищет узел с `id: "button"` и `type: "button"`; без него кнопки экспорта нет. При авторинге сверяйте кнопку с [[authoring|Правилами генерации]] и [[containers|Контейнерами]].
 
 ---
 
@@ -350,9 +345,9 @@ import { replaceObject } from "find-and";
 
 `isModalNotificationAllowed` заполняется `useModalNotifications(config, pageIndex)`. Дашборд передаёт `config` превью либо `projectInfo.content.dashboardConfiguration`, карточка — `layerInfo.configuration.cardConfiguration`. Явный аргумент `notificationsOverride` у `useNotificationsFilter` задаёт `config.options.notifications` и слои именно этой страницы: фильтрация уведомлений карточки не берёт настройки соседнего дашборда.
 
-Клиентская обёртка `validateActions` вызывает публичный `validateDashboardActions` из `@evergis/react/dist/dashboardActions` и переводит диагностику в `ConfigIssue`: `code: "invalid-action"`, `parentId: issue.ownerId`, сохранённые `path`, `severity`, `message`. Её вызывает `validateDashboardConfig`; превью редактора также показывает ошибки Actions.
+Клиентская обёртка `validateActions` вызывает публичный `validateDashboardActions` из `@evergis/react` и переводит диагностику в `ConfigIssue`: `code: "invalid-action"`, `parentId: issue.ownerId`, сохранённые `path`, `severity`, `message`. Её вызывает `validateDashboardConfig`; превью редактора также показывает ошибки Actions.
 
-Параметры Python-ресурса собираются общими утилитами `@evergis/react/dist/taskParameters`. Клиентские `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` в форме запуска инструмента переэкспортируют библиотечную реализацию; форма и [[actions|runTask]] используют одну обработку схемы и дефолтов.
+Параметры Python-ресурса собираются общими утилитами `@evergis/common`. Клиентские `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` в форме запуска инструмента переэкспортируют их оттуда; форма и [[actions|runTask]] используют одну обработку схемы и дефолтов.
 
 Для тестовых хостов доступен `actionNavigation(reserve)` — фабрика `{open(url,target), dispose()}` вместо настоящей навигации; production использует браузер по умолчанию. [[actions|Полный контракт]].
 

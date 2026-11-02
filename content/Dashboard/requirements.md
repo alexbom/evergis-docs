@@ -94,9 +94,7 @@ Actions используют существующие React, API, SignalR и у�
 
 | Импорт | Назначение |
 |---|---|
-| `@evergis/react` | Штатные провайдеры, хуки и типы Actions/задач/модалок |
-| `@evergis/react/dist/dashboardActions` | Общие типы и проверка Actions; клиентский валидатор использует этот entry point |
-| `@evergis/react/dist/dashboardConditionalFormatting` | Чистый валидатор `validateDashboardConditionalFormatting` и типы `ConfigConditions`, `ConfigConditionalOverride`, `ConditionalFormattingValidationIssue` для JSON-конфигов; см. [[conditional-formatting\|Условное форматирование]] |
-| `@evergis/react/dist/taskParameters` | `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` и типы схемы; общий код формы и исполнения задачи |
+| `@evergis/react` | Штатные провайдеры, хуки и типы Actions/задач/модалок, проверка Actions (`validateDashboardActions`), проверка условий (`validateDashboardConditionalFormatting`) и типы `ConfigConditions`, `ConfigConditionalOverride`, `ConditionalFormattingValidationIssue` для JSON-конфигов; см. [[conditional-formatting\|Условное форматирование]] |
+| `@evergis/common` | `SchemaResolver`, `buildDefaultForSchema`, `getPrimaryType`, `mergeHiddenFieldDefaults`, `orderPropertyKeys` и типы схемы; общий код формы и исполнения задачи |
 
 Нужны `GlobalProvider` с `api` для задач и Dashboard/FeatureCard-провайдер для областей Actions и модалок. Уведомления подключаются через `GlobalProvider.notification`, политика autoSync модального окна — через `isModalNotificationAllowed` хоста. Подключение client-new описано только в [[setup|Подключении]].

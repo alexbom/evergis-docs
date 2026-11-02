@@ -1124,7 +1124,7 @@ const chart = findDashboardNode(config, "chart_sales");
 
 ## Утилиты Actions
 
-Публичные функции экспортируются из `actions/index.ts`. Отдельный entry point `@evergis/react/dist/dashboardActions` содержит `validateDashboardActions` и базовые типы определений, вызовов, callback и диагностики. Грамматика и сценарии — [[actions|Actions]].
+Публичные функции экспортируются из `actions/index.ts` и доступны из `@evergis/react` — в том числе `validateDashboardActions` и базовые типы определений, вызовов, callback и диагностики. Грамматика и сценарии — [[actions|Actions]].
 
 ### resolveTabTarget (internal)
 

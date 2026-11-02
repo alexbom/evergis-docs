@@ -116,10 +116,10 @@ Action-подстановки `#result`, `$event` и `$params` запрещен�
 
 В client-new `validateDashboardConfig` включает общий валидатор и возвращает ошибки с кодом `invalid-conditional-formatting`, точным `path`, `parentId` владельца и `severity`. Он проверяет root/header/children/modals; ловит неверный формат `conditions`, синтаксис выражений, action-only токены, посторонние ключи override и неверные типы `options`/`style`/`visibility`. Строки внутри допустимого статического payload не проверяются как выражения.
 
-Для серверного инструмента или отдельного теста используется чистая точка входа без UI:
+Сам валидатор — чистая функция и рендера не требует, но отдельной сборки без UI нет: импорт загружает весь пакет с его зависимостями, поэтому серверному инструменту или отдельному тесту нужна среда, которая их загрузит.
 
 ```ts
-import { validateDashboardConditionalFormatting } from "@evergis/react/dist/dashboardConditionalFormatting";
+import { validateDashboardConditionalFormatting } from "@evergis/react";
 
 const issues = validateDashboardConditionalFormatting(config);
 // { path, ownerId?, message, severity }[]
