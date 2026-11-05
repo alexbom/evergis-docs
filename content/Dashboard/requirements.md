@@ -24,6 +24,9 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 Утилиты:
 `formatDataSourceCondition`, `applyTreeFilterToCondition`, `applyQueryFilters`, `fetchQueryDescription`, `getContainerComponent`, `isRootOwningContainer`, `getRenderElement`, `getFilterComponent`, `getDashboardHeader`, `getFeatureCardHeader`, `getDataSourceLayerInfo`, `mergeAttributeConfigurations`, `getWrapperSizeStyle`, `hasContainerBgImage`, `isTreeFilterValue`, `isFeaturesFilterValue`, `isFillSize`, `isFrSize`, `toCssSize`, `toRenderableValue`, `isVisibleContainer`, `checkEqualOrIncludes`, `createConfigPage`, `createConfigLayer`
 
+Импорты клиентской части сверх перечисленных:
+`DashboardWrapper`, `DashboardPlaceholderWrap`, `DashboardPlaceholder`, `DashboardsProps`, `DashboardLayerPayload`, `SelectedFilters`, `DataSourcePromise`, `FetchedDataSource`, `ConfigFilter`, `ActionScopes`, `ConfigActionScope`, `ResolvedAction`, `GetLayerExtentQuery`, `getPagesFromConfig`, `getPagesFromProjectInfo`, `getLayerInfo`, `getDataSourceAutoSyncLayers`, `getMapViewDataSources`, `getModalsDataSources`, `selectUpdatingDataSources`, `collectActionSteps`, `getEventInvocations`, `validateDashboardActions`, `validateDashboardConditionalFormatting`
+
 ## @evergis/api
 
 `Api`, `ArchiveTimelineItemDc`, `AttributeConfigurationDc`, `AttributeConfigurationType`, `AttributeIconDc`, `AttributeIconType`, `AttributeType`, `AttributesConfigurationDc`, `CatalogResourceDc`, `EqlRequestDc`, `ExtendedProjectInfoDc`, `FeatureDc`, `OgcGeometryType`, `PagedFeaturesListDc`, `PositionDc`, `ProxyServiceInfoDc`, `QueryLayerServiceConfigurationDc`, `QueryLayerServiceInfoDc`, `RemoteTaskStatus`, `STORAGE_TOKEN_KEY`, `StringAttributeConfigurationDc`, `StringSubType`, `TaskPrototypeDto`
@@ -51,13 +54,20 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 ## Redux
 
 Слайс `dashboard`:
-- `getProjectDataSources`, `setProjectDataSources`
+- `getProjectDataSources`, `setProjectDataSources`, `mergeProjectDataSources`
 - `getProjectDataSourcesAreLoading`, `setProjectDataSourcesAreLoading`
-- `getProjectPageIndex`
-- `getReferenceLayerInfos`
+- `getProjectDataSourceFilters`, `setProjectDataSourceFilters`, `getFiltersUpdating`
+- `getProjectPageIndex`, `setProjectPageIndex`, `nextProjectPageIndex`, `prevProjectPageIndex`
+- `getProjectSelectedTabId`, `setProjectSelectedTabId`
+- `getProjectOpenedModalIds`, `toggleProjectModal`
+- `getDashboardLayers`, `setDashboardLayer`
+- `getReferenceLayerInfos`, `mergeReferenceLayerInfos`
+
+Слайс `feature`:
+- `getFeatureDataSources`, `setFeatureDataSources`, `getFeatureOpenedModalIds`
 
 Слайс `project`:
-- `getProjectGeometryFilter`
+- `getProjectGeometryFilter`, `getProjectInfo`
 
 ## Прочие зависимости
 
@@ -69,8 +79,10 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 | `react-markdown` | `ElementMarkdown` — рендеринг Markdown |
 | `rehype-raw`, `rehype-sanitize`, `remark-gfm` | Плагины для `react-markdown` |
 | `find-and` | Не нужен ни библиотеке, ни клиентскому Dashboard: узлы ищет [[utils#findDashboardNode\|findDashboardNode]], подменяет `replaceDashboardNode`. `replaceObject` фигурирует только в примере хоста для `onContainerChange` ([[setup#Сохранение изменений раскладки\|Подключение]]) |
-| `@evergis/common` | `isObject`, `formatAttributeValue`, `FeatureAttributeValue`, `ThemeName`, `ProjectInfo`, `transparentizeColor`, `stretchPalette`, `formatDate` и др. — общие утилиты и типы |
-| `jsPDF`, `html2canvas` | `useExportPdf` — экспорт в PDF |
+| `react-redux`, `react-i18next` | Только client-new: селекторы и `dispatch` в хуках Dashboard, `useTranslation` в `DashboardSoon` |
+| `@evergis/common` | Утилиты: `isObject`, `isNumeric`, `formatAttributeValue`, `formatDate`, `getDate`, `transparentizeColor`, `adjustColor`, `stretchPalette`, `roundTotalSum`, `geometryToEwkt`, `isLayerService`. Типы: `FeatureAttributeValue`, `ThemeName`, `ProjectInfo`, `DateFormat`, `RawDateType`, `EditGeometryType`, `AttributeFormatConfiguration`, `ClientStyle`, `SelectedFeature` и др. |
+| `jspdf`, `html2canvas` | `useExportPdf` — экспорт в PDF |
+| `@turf/turf` | `bbox` в `hasFeatureExtent` — есть ли у объекта геометрия с координатами (действие [[actions#Восемь действий\|`zoomTo`]]) |
 | `d3` | `FEATURE_CARD_DEFAULT_COLORS` (`d3.schemeAccent`) для цветовой палитры карточки |
 | `maplibre-gl` | Типы `CircleLayerSpecification`, `FillLayerSpecification`, `LineLayerSpecification` для `CustomFeatureSelect` |
 | `@xterm/xterm`, `@xterm/addon-fit` | `LogTerminal` — вывод лога Python-задачи в `TaskContainer` |
@@ -86,7 +98,7 @@ Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerIte
 
 ## Actions
 
-Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает ресурсы с `taskResourceSubType: "PythonTask"` независимо от `taskType`, а также прежние `taskType: "pythonService"` или `"PythonTask"`. Необязательные строки `fileName` и `methodName` задаются в `ConfigTask` и переопределяются `runTask.options`. Чтение схемы сохраняется; ответ 400 `Python importMethod is required` допускает запуск только при наличии обоих полей из действия/запроса или задачи страницы. Тогда доступны только явно переданные аргументы задачи и запуска; схема и `userConfiguration` не используются. Подробности — [[actions#Семь действий|runTask]].
+Actions используют существующие React, API, SignalR и уведомления; отдельный серверный модуль Actions и библиотека исполнения JavaScript не нужны. `runTask` поддерживает ресурсы с `taskResourceSubType: "PythonTask"` независимо от `taskType`, а также прежние `taskType: "pythonService"` или `"PythonTask"`. Необязательные строки `fileName` и `methodName` задаются в `ConfigTask` и переопределяются `runTask.options`. Чтение схемы сохраняется; ответ 400 `Python importMethod is required` допускает запуск только при наличии обоих полей из действия/запроса или задачи страницы. Тогда доступны только явно переданные аргументы задачи и запуска; схема и `userConfiguration` не используются. Подробности — [[actions#Восемь действий|runTask]].
 
 Условия callback вычисляются локально; EQL источников продолжает исполняться сервером. Новая вкладка подчиняется правилам пользовательского жеста браузера; при блокировке отображается ссылка. [[actions|Ограничения и проверка]].
 

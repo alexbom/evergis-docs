@@ -340,6 +340,12 @@ const renderResultOptions = useCallback(
 
 **Props (`ContainerProps & { filter? }`):** `{ elementConfig, config, type, renderElement, filter?: string }`
 
+**Подпись чипа:** массив — через запятую (`valueType: "range"` — через ` - `), даты форматируются. У `number` — значение с единицами `unitsLabel`, у `boolean` — «Да» / «Нет» (ключи `yes` / `no` неймспейса `dashboard`) с префиксом `label:`, если подпись задана (см. [[utils#scalarFilterValue|scalarFilterValue]]). `0` и `false` считаются выбранным значением и дают чип.
+
+**Сброс:** крестик пишет в фильтр `""`, а с пропом `filter` и `valueType: "array"` убирает значение из массива. Текстовому фильтру он дополнительно ставит `keepEmpty: true` — пустая строка уйдёт в параметры запроса (см. [[concepts#Фильтры|Фильтры]]).
+
+**Когда не рисуется:** контейнер развёрнут, ничего не выбрано или ещё не пришёл `relatedDataSource` какого-либо из фильтров. Фильтры без `relatedDataSource` показ не задерживают.
+
 ---
 
 ## Loading

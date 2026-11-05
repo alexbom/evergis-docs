@@ -53,7 +53,7 @@ interface ConfigOptions
 | `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла |
 | `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки (grid)\|Режим сетки]] |
 | `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
-| `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. Игнорируется, если сохранение задано actions с `event: "save"`: в слой тогда пишет шаг [[actions#Семь действий\|`saveToLayer`]]. См. [[containers#StructuredDataContainer\|StructuredData]] |
+| `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. Игнорируется, если сохранение задано actions с `event: "save"`: в слой тогда пишет шаг [[actions#Восемь действий\|`saveToLayer`]]. См. [[containers#StructuredDataContainer\|StructuredData]] |
 | `autoHeight` | `boolean` | Сетка растёт под содержимое: `height` становится минимумом (`min-height`), треки — `minmax(auto, Nfr)`, внутренний скролл трека снимается. Читается у **каждого** узла (сетка, `GridRow`, вложенная сетка) и вверх не поднимается. См. [[containers#Рост под содержимое (autoHeight)\|Рост под содержимое]] |
 | `fixedHeight` | `boolean` | Высотой сетки распоряжается внешняя раскладка: у корневой строки не рендерится ручка нижней границы, и высоту нельзя утянуть мышью. Нужен сеткам, растянутым на бокс панели фиксированного экрана или дока. Читается только у **корневого** узла сетки в `editMode`; у вложенных ручки высоты нет и так |
 | `twoColumns` | `boolean` | Двухколоночная раскладка (Chart-легенда / fallback ChartContainer) |
@@ -301,14 +301,16 @@ interface ConfigOptions
 | `variants` | `IOption[] \| ChipOption[]` | Список вариантов для Chips/Dropdown |
 | `multiSelect` | `boolean` | Множественный выбор |
 | `withTime` | `boolean` | Включить выбор времени (EditDate) |
-| `step` | `number` | Шаг RangeNumber |
-| `minValue` | `number \| Date` | Минимум диапазона |
-| `maxValue` | `number \| Date` | Максимум диапазона |
+| `step` | `number` | Шаг ползунка и кнопок (фильтры `rangeNumber` и `number`, контрол `EditNumber`) |
+| `minValue` | `number \| Date` | Минимум диапазона (`rangeNumber`, `rangeDate`) или значения (`number`) |
+| `maxValue` | `number \| Date` | Максимум диапазона (`rangeNumber`, `rangeDate`) или значения (`number`) |
+| `view` | `NumberFilterView` | Вид фильтра `number`: `"input"` (по умолчанию), `"slider"`, `"stepper"` — см. [[containers#FiltersContainer\|FiltersContainer]] |
+| `unitsLabel` | `string` | Подпись единиц фильтра `number`: `%`, `тенге` |
 | `noEmptyOption` | `boolean` | Запретить пустой выбор |
 | `fileExtensions` | `string` | Допустимые расширения файлов (например, `".pdf,.png"`) |
 | `editOnly` | `boolean` | Оставить таблице ([[elements#ElementTable\|`table`]]) только правку существующих строк: кнопки «Добавить» и колонки удаления не будет. Поверх `editMode` контейнера. Опция объявлена у представления, а читает её [[containers#StructuredDataContainer\|контейнер]] — кнопка добавления его |
 
-**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditTextContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild`, `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`), `StructuredDataContainer` (`filterName`).
+**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditTextContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild` (`view` и `unitsLabel` — только фильтр `number`), `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`), `StructuredDataContainer` (`filterName`).
 
 ---
 

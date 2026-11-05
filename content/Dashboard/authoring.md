@@ -149,6 +149,22 @@
 - `id` — идентифицирует узел в `children` (для React key и адресации),
 - `options.filterName` — связывает фильтр со страничным `ConfigFilter.name` (подстановка `%filterName` в `condition`, сброс).
 
+### Одиночные фильтры `number` и `boolean`
+
+Справочник (`relatedDataSource`) им не нужен, но `ConfigFilter` с этим `name` в `filters` страницы обязателен: без него контрол не рисуется. Вид `number` задаёт `options.view` (`input` / `slider` / `stepper`), подпись `boolean` — `options.label`. В ряд `ControlsGroup` они не встают: там допустимы только `dropdown` / `text` / `chips` / `checkbox`.
+
+```tsx
+// filters страницы: [{ name: "discount" }, { name: "onlyActive", defaultValue: true }]
+{
+  id: "filters_block",
+  templateName: "Filters",
+  children: [
+    { id: "discount_filter", type: "number", options: { filterName: "discount", label: "Скидка", view: "slider", minValue: 0, maxValue: 50, step: 5, unitsLabel: "%" } },
+    { id: "active_filter", type: "boolean", options: { filterName: "onlyActive", label: "Только активные" } },
+  ],
+}
+```
+
 ### Фильтр-приёмник `StructuredData`
 
 Контейнер [[containers#StructuredDataContainer|StructuredData]] не читает фильтр, а **пишет** в него результат правки. Пара нужна только редактируемой таблице: без `options.editMode` править нечего, и фильтр не понадобится. Требования к паре:

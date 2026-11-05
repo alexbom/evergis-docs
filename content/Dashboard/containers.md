@@ -924,13 +924,15 @@
 | `chips` | `ChipsFilter` | Мультиселект в виде чипов |
 | `barChart` | `BarChartFilter` | Интерактивный барчарт — клик по бару выбирает значение |
 | `tree` | `TreeFilter` | Иерархический справочник — поэлементный выбор узлов дерева из `relatedDataSource` (см. [[concepts\|Основные понятия]]) |
+| `number` | `NumberFilter` | Одно число: поле ввода, ползунок или кнопки «плюс/минус» (`view`). Справочник не нужен. Из поля значение записывается по уходу или Enter, вне границ притягивается к ним; от ползунка и кнопок — с задержкой |
+| `boolean` | `BooleanFilter` | Одиночный переключатель с подписью `label`, значение `true`/`false`. Справочник не нужен. Без `defaultValue` выглядит выключенным, но ключ не уходит, пока его не тронули |
 | `dropdown` | `DropdownFilter` | Выпадающий список (default) |
 
 **Опции дочернего элемента фильтра (`FilterChildOptions`):**
 
 Тип фильтра задаётся полем `type` дочернего элемента (один из **FilterType**), не через опции.
 
-Набор `FilterChildOptions` — объединение того, что реально читают все восемь реализаций фильтра: `dropdown` берёт `variants`/`noEmptyOption` и иконку, `text` — `searchFilterName` и `multiSelect`, `chips` — цвета и иконку, `rangeNumber` — `step` и границы, `rangeDate` — `withTime`, `barChart` — геометрию столбцов и палитру.
+Набор `FilterChildOptions` — объединение того, что реально читают все десять реализаций фильтра: `dropdown` берёт `variants`/`noEmptyOption` и иконку, `text` — `searchFilterName` и `multiSelect`, `chips` — цвета и иконку, `rangeNumber` — `step` и границы, `rangeDate` — `withTime`, `barChart` — геометрию столбцов и палитру, `number` — `view`, `unitsLabel`, `step` и границы, `boolean` — `label`.
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -941,9 +943,11 @@
 | `placeholder` | `string` | Placeholder |
 | `control` | `ConfigControl` | Одиночный маппинг поля источника |
 | `controls` | `ConfigControl[]` | Маппинг полей источника |
-| `minValue` | `number \| Date` | Минимум диапазона (`rangeNumber`/`rangeDate`) |
-| `maxValue` | `number \| Date` | Максимум диапазона (`rangeNumber`/`rangeDate`) |
-| `step` | `number` | Шаг ползунка (`rangeNumber`) |
+| `minValue` | `number \| Date` | Минимум диапазона (`rangeNumber`/`rangeDate`) или значения (`number`) |
+| `maxValue` | `number \| Date` | Максимум диапазона (`rangeNumber`/`rangeDate`) или значения (`number`) |
+| `step` | `number` | Шаг ползунка и кнопок (`rangeNumber`, `number`). На ползунке значения кратны шагу от минимума: максимум, не кратный шагу, недостижим |
+| `view` | `"input" \| "slider" \| "stepper"` | Вид фильтра `number`, по умолчанию `input`. У `slider` без границ шкала 0…100 |
+| `unitsLabel` | `string` | Единицы фильтра `number`: `%`, `тенге`. У поля и кнопок стоят рядом с полем, у ползунка — при значении над шкалой |
 | `withTime` | `boolean` | Включить выбор времени (`rangeDate`) |
 | `multiSelect` | `boolean` | Множественный выбор |
 | `variants` | `IOption[] \| ChipOption[]` | Статический список вариантов (`dropdown`, `chips`) |
@@ -1113,6 +1117,7 @@
 | `attributes` | `string[]` | Список имён атрибутов для отображения. Пустой массив = все атрибуты слоя |
 | `useProjectHiddenAttributes` | `boolean` | Если `true` — список `attributes` фильтруется по `hiddenAttributes` слоя проекта (хук [[hooks\|`useLayerHiddenAttributes`]]). По умолчанию `false` — атрибуты, скрытые в проекте, всё равно отображаются |
 | `hideEmpty` | `boolean` | Скрыть пустые атрибуты |
+| `width`, `height`, `overflow` | `CssSize`, `CssSize`, `Overflow` | `ContainerBoxOptions` — размеры корня блока. В режиме `attributes` действуют на каждый блок (см. [[types#Общие миксины размеров\|Типы]]) |
 | `innerTemplateStyle` | `object` | Кастомные CSS-стили внутренних элементов |
 
 ```tsx
@@ -1240,6 +1245,8 @@
 | `innerTemplateStyle` | `CSSProperties` | Стили самой плитки. Заданы — перебивают авторский `style` узла целиком, а не мержатся с ним |
 
 Опции `align`, `columns` и `gap` тоже входят в `RoundedBackgroundContainerOptions`, но отвечают за раскладку **ряда плиток**, а не одной плитки — описаны у [[containers#DataSourceContainer|DataSourceContainer]].
+
+**Опции слотов** читаются с самих детей, а не с хоста: `noUnits` у `value` и `alias` убирает единицы из отформатированного значения атрибута (у `units` они не выводятся всегда), `width` у `icon` задаёт ширину обёртки иконки (по умолчанию `1rem`).
 
 > [!info] Опции читаются из `options` хоста
 > Плитка получает `elementConfig` контейнера `DataSource`, поэтому `innerGap` (как и `big`, `inlineUnits`, `hideEmpty`) указывается в `options` **хоста**, а не отдельного узла `RoundedBackground`.
@@ -1573,6 +1580,8 @@
 
 **Props:** `ContainerProps` + `containerId?`, `templateName?`, `layerNames?`, `fontColor?`, `expandable?`, `expanded?`, `isVisible?`
 
+**Слоты (`children`):** `titleIcon`, `title`. Без слота `title` текста заголовка нет. Фон — универсальный слот `bgImage`.
+
 **Опции:**
 
 | Опция | Тип | Описание |
@@ -1584,7 +1593,12 @@
 `fontColor` задаётся не опцией, а одноимённым prop контейнера (см. Props выше).
 
 ```tsx
-{ id: "section_title", templateName: "Title", options: { downloadById: "pdf_export" } }
+{
+  id: "section_title",
+  templateName: "Title",
+  options: { downloadById: "pdf_export" },
+  children: [{ id: "title", type: "text", value: "Сводка по округу" }]
+}
 ```
 
 ---
@@ -1608,6 +1622,7 @@
 | `attributes` | `string[]` | Список имён атрибутов для отображения. Пустой массив = все атрибуты слоя |
 | `useProjectHiddenAttributes` | `boolean` | Если `true` — список `attributes` фильтруется по `hiddenAttributes` слоя проекта (хук [[hooks\|`useLayerHiddenAttributes`]]). По умолчанию `false` — атрибуты, скрытые в проекте, всё равно отображаются |
 | `hideEmpty` | `boolean` | Скрыть строки с пустым значением |
+| `width`, `height`, `overflow` | `CssSize`, `CssSize`, `Overflow` | `ContainerBoxOptions` — размеры корня строки. В режиме `attributes` действуют на каждую строку (см. [[types#Общие миксины размеров\|Типы]]) |
 | `innerTemplateStyle` | `object` | Кастомные CSS-стили внутренних элементов |
 
 ```tsx

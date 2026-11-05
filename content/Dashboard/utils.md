@@ -286,7 +286,7 @@ getDataSourceAutoSyncLayers({
 
 `(filterType: FilterType) => FC`
 
-Возвращает React-компонент фильтра: `checkbox` → `CheckboxFilter`, `rangeNumber` → `RangeNumberFilter`, `barChart` → `BarChartFilter`, `rangeDate` → `RangeDateFilter`, `text` → `TextFilter`, `chips` → `ChipsFilter`, `tree` → `TreeFilter`, `dropdown` → `DropdownFilter` (default).
+Возвращает React-компонент фильтра: `checkbox` → `CheckboxFilter`, `rangeNumber` → `RangeNumberFilter`, `barChart` → `BarChartFilter`, `rangeDate` → `RangeDateFilter`, `text` → `TextFilter`, `chips` → `ChipsFilter`, `tree` → `TreeFilter`, `number` → `NumberFilter`, `boolean` → `BooleanFilter`, `dropdown` → `DropdownFilter` (default).
 
 ---
 
@@ -294,7 +294,7 @@ getDataSourceAutoSyncLayers({
 
 `(filterItems, filters, cardFilters) => ConfigContainerChild[]`
 
-Фильтрует items фильтра, оставляя только те, для которых выбрано значение (или есть `defaultValue` в конфиге).
+Фильтрует items фильтра, оставляя только те, для которых выбрано значение. Массив считается выбранным, если он не пуст; скаляр — если не пуст по **isEmptyValue**, поэтому `0` и `false` фильтров `number` / `boolean` — выбранные значения. `defaultValue` учитывается, только пока значения нет вовсе (`undefined`): очищенный фильтр (`""`) выбранным не считается.
 
 ---
 
@@ -571,7 +571,7 @@ const tabIds = getTabIds(config.children); // ["tab_info", "tab_docs"]
 
 `({ value, attributeType, defaultValue, checkQuotes?, isSetParams? }) => string`
 
-Форматирует значение фильтра для вставки в EQL-условие. Оборачивает строки в кавычки, форматирует массивы как `[v1,v2,v3]`, даты как `#'...'`.
+Форматирует значение фильтра для вставки в EQL-условие. Оборачивает строки в кавычки, форматирует массивы как `[v1,v2,v3]`, даты как `#'...'`. `boolean` уходит как `true` / `false` без кавычек, пустое значение (**isEmptyValue**) — пустой строкой.
 
 ---
 
@@ -600,7 +600,7 @@ const tabIds = getTabIds(config.children); // ["tab_info", "tab_docs"]
 |---|---|
 | `tokenizeConfigString(value)` | разбор строки на литералы и токены |
 | `resolveConfigToken(token, sources, mode)` | сырое значение токена; `mode`: `"value"` / `"condition"` |
-| `resolveQueryParameter(value, sources)` | значение параметра запроса |
+| `resolveQueryParameter(value, sources)` | значение параметра запроса. Строка из одного токена уходит сырым значением с типом; пустой или незнакомый фильтр не уходит (`undefined`), как и очищенный (`""` без `keepEmpty`, признак `omitFromQuery` у `ResolvedConfigToken`); незнакомое `{имя}` остаётся литералом (JSON, шаблон сервиса). Токены внутри строки интерполируются текстом |
 | `resolveConfigString(value, sources)` | строка UI: целиком — значение с типом, внутри текста — массив через `", "`, пустое — `""` |
 | `formatConditionString(condition, sources, eql?)` | условие слоя |
 | `resolveElementStrings(element, sources)` | `value`, `defaultValue`, `options.label/placeholder/title` узла; без подстановок — тот же объект |
@@ -639,6 +639,27 @@ Type-guards самого значения живут в соседнем мод�
 | `isTreeFilterValue` | `(value?, configFilter?) => value is TreeFilterValue` — объектное значение иерархического фильтра «уровень → массив id». Решают два значения `valueType`: `"tree"` → да, `"features"` → нет |
 
 Фолбэк `isTreeFilterValue` (когда `valueType` не задан) намеренно узкий — все ключи вида `l{N}`, все значения массивы. Он нужен существующим конфигам: у tree-фильтров там `valueType` либо отсутствует, либо объявлен как `"array"` (значение при этом всё равно объектное), и трактовать такой фильтр как не-tree значило бы сломать их. Пустой объект — это tree с пустым выбором, а не «неизвестное значение». `Date` отсекается явно.
+
+---
+
+### scalarFilterValue
+
+Преобразования значения одиночных фильтров `number` и `boolean` между стором фильтров и контролом. Используют `NumberFilter` и `BooleanFilter` ([[containers#FiltersContainer|FiltersContainer]]) и чипы [[components#HiddenTitleItems|HiddenTitleItems]].
+
+| Функция | Сигнатура и назначение |
+|---|---|
+| `toNumberFilterValue` | `(value: unknown) => number \| null` — значение фильтра `number` для контрола. Пустое и неразбираемое — `null`, а не `0` |
+| `toBooleanFilterValue` | `(value: unknown) => boolean` — значение фильтра `boolean` для контрола: истина только для `true` и строки `"true"` (дефолт из `$dashboard:` может прийти строкой) |
+| `clampNumberFilterValue` | `(value: number, min = -Infinity, max = Infinity) => number` — притягивает значение к границам |
+| `formatNumberFilterValue` | `(value: unknown, unitsLabel?: string) => string` — подпись значения: с `unitsLabel` через пробел, без него `String(value)` |
+
+```ts
+toNumberFilterValue("15");            // 15
+toNumberFilterValue("");              // null
+toBooleanFilterValue("true");         // true
+clampNumberFilterValue(120, 0, 100);  // 100
+formatNumberFilterValue(15, "%");     // "15 %"
+```
 
 ---
 
@@ -761,7 +782,7 @@ const content = formatElementValue({ t, value, elementConfig, attributes, wrap: 
 
 `(dataSources, config, filters) => boolean`
 
-Проверяет, загружаются ли источники данных для фильтров контейнера.
+Проверяет, загружаются ли источники данных для фильтров контейнера: `true`, если у ребёнка с `options.filterName` в конфиге фильтра задан `relatedDataSource`, а такого источника ещё нет в `dataSources`. Фильтры без `relatedDataSource` (в том числе `number` и `boolean`) загрузки не ждут.
 
 ---
 

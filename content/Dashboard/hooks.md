@@ -1010,9 +1010,15 @@ const { config, pages } = useWidgetConfig(type);
 
 **Параметры:** `type?: WidgetType` (default `Dashboard`)
 
-**Возвращает:** объединённый объект контекста — `dataSources`, `filters`, `attributes`, `layerInfo`, `selectedTabId`, `expandedContainers`, `changeFilters`, `setSelectedTabId` и т.д.
+**Возвращает:** объединённый объект контекста. Оба контекста читаются независимо от `type`: вне соответствующего провайдера его поля приходят `undefined`.
 
-В модальном окне своего `WidgetType` поля `dataSources`, `isLoading` и `selectedTabId`/`setSelectedTabId` берутся из `ModalDataContext` (у окна свой выбор вкладки; пустой выбор окна не подменяется вкладкой страницы); `filters`, навигация и остальные данные остаются от виджета. Выбор вкладки самого виджета без подмены окном — `widgetSelectedTabId` / `setWidgetSelectedTabId`. Также возвращает `actionContextKey`, `actionsActive`, `onModalToggle`, `onModalContextChange`, `isModalNotificationAllowed`. Контекст нажатой записи и ответа задачи собирает **useConfigStringSources**.
+| Откуда | Поля |
+|---|---|
+| Выбираются по `type` | `config`, `isEditing`, `isLoading`, `isDataLoading`, `pageIndex` (по умолчанию `1`), `filters`, `changeFilters`, `dataSources`, `expandContainer`, `expandedContainers`, `selectedTabId`, `setSelectedTabId`, `widgetSelectedTabId`, `setWidgetSelectedTabId`, `nextPage`, `prevPage`, `changePage`, `onContainerChange`, `onModalToggle`, `onModalContextChange`, `isModalNotificationAllowed`, `actionContextKey`, `actionsActive` |
+| `DashboardContext` | `toggleLayersVisibility`, `visibleLayers`, `projectInfo`, `layerInfos`, `updateProject`, `dashboardLayers`, `setDashboardLayer`, `geometryFilter`, `containerIds`, `components`, `selectAttachmentsFromCatalog`, `getLayerExtentQuery` |
+| `FeatureCardContext` | `layerInfo`, `attributes`, `feature`, `closeFeatureCard`, `controls`, `changeControls` |
+
+В модальном окне своего `WidgetType` поля `dataSources`, `isLoading` и `selectedTabId`/`setSelectedTabId` берутся из `ModalDataContext` (у окна свой выбор вкладки; пустой выбор окна не подменяется вкладкой страницы); `filters`, навигация и остальные данные остаются от виджета. `isDataLoading` учитывает и загрузку окна. Выбор вкладки самого виджета без подмены окном — `widgetSelectedTabId` / `setWidgetSelectedTabId`. Контекст нажатой записи и ответа задачи собирает **useConfigStringSources**.
 
 ```ts
 const { dataSources, filters, attributes } = useWidgetContext(type);

@@ -338,6 +338,9 @@ export type ElementComponentRegistry = {
 4. Добавить запись в `ContainerTemplateToProps` (`componentTypes.ts`).
 5. Зарегистрировать компонент в `containers/registry.ts` — TS-компилятор подскажет, если что-то пропущено.
 
+> [!note] Значения `ContainerTemplate` без компонента
+> `Pagination`, `Attribute` и `TwoColumnsInner` есть в enum, но не зарегистрированы в реестре и нигде не используются. `getContainerComponent` отдаст для них реестровый `default` (`ContainersGroupContainer`), поэтому в конфигах их не применяют.
+
 ### Особый случай: `Progress` и `RoundedBackground`
 
 Эти контейнеры исторически принимают `InnerContainerProps` (из `DataSourceInnerContainer/types.ts`), а не свои `<Name>Props`. Регистрация работает за счёт контравариантности `FC<P>`: `FC<InnerContainerProps>` совместим с `FC<<Name>Props>`, пока `<Name>Props` ⊆ `InnerContainerProps`. В `registry.ts` применяется явный каст:
@@ -579,8 +582,10 @@ interface ConfigChartAxisOptions {
 | `ConfigFilterValueType` | `"single" \| "range" \| "array" \| "tree" \| "features"` | Вид значения фильтра, объявленный в конфиге. Дискриминатор для type guard-ов |
 | `TreeFilterValue` | `Record<"l{N}", Array<string \| number>>` | Значение иерархического фильтра: «уровень → массив id». Плейсхолдеры `%name.lN` |
 | `FeaturesFilterValue` | `FeatureCollection<null, Record<string, FeatureAttributeValue>>` | Значение фильтра `"features"` — строки [[containers#StructuredDataContainer\|StructuredDataContainer]]. `geometry` всегда `null` |
-| `SelectedFilter` | `value: string \| number \| boolean \| string[] \| number[] \| Date \| Date[] \| TreeFilterValue \| FeaturesFilterValue`, `min?`, `max?` | Выбранное значение фильтра в состоянии виджета; `min` / `max` — `string \| number \| Date` |
+| `SelectedFilter` | `value: string \| number \| boolean \| string[] \| number[] \| Date \| Date[] \| TreeFilterValue \| FeaturesFilterValue`, `min?`, `max?`, `keepEmpty?` | Выбранное значение фильтра в состоянии виджета; `min` / `max` — `string \| number \| Date`. `keepEmpty: true` ставит текстовый фильтр: его пустая строка уходит в параметры запроса (см. [[concepts#Фильтры\|Фильтры]]) |
 | `ScalarFilterValue` | `SelectedFilter["value"]` без `TreeFilterValue` и `FeaturesFilterValue` | Значение скалярных/массивных фильтров |
+| `FilterType` | `"checkbox" \| "rangeNumber" \| "rangeDate" \| "text" \| "dropdown" \| "barChart" \| "chips" \| "tree" \| "number" \| "boolean"` | Каким контролом рисуется фильтр: поле `type` ребёнка [[containers#FiltersContainer\|FiltersContainer]] |
+| `NumberFilterView` | `"input" \| "slider" \| "stepper"` | Вид фильтра `number` (опция `view`): поле ввода, ползунок или поле с кнопками «плюс/минус» |
 
 **Куда подставляется значение.** `single`/`range`/`array` — и в `condition` источника, и в `parameters`. `tree` — в `condition` через `applyTreeFilterToCondition` (`%name.lN`) и в `parameters`. `features` — **только** в `parameters` (питон-таска, url-источник); в `condition` не попадает никогда: там значение прошло бы через `formatConditionValue` и выродилось в `[object Object]`.
 
@@ -598,6 +603,9 @@ interface ConfigChartAxisOptions {
 interface ConfigCapabilities {
   pagination?: boolean;                     // список страниц и стрелки в шапке
   pageEdit?: boolean;                       // добавление, удаление и свойства страниц
+  layersList?: boolean;                     // секция «Слои» в панели проекта
+  dataSourcesList?: boolean;                // секция «Источники данных» в панели проекта
+  toolsList?: boolean;                      // секция «Инструменты» в панели проекта
   layerMenu?: Record<string, boolean>;      // пункты меню слоя
   projectMenu?: Record<string, boolean>;    // пункты меню проекта
   selectionMenu?: Record<string, boolean>;  // способы геометрической выборки
@@ -693,6 +701,19 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 
 Применяются как opt-in для нового кода. Существующий `ConfigOptions.fontSize` пока остаётся `string` ради совместимости с legacy-конфигами.
 
+Рядом объявлены списки значений опций: `as const` делает список доступным в рантайме (например, для выпадающего списка редактора), а тип выводится из него.
+
+| Список | Тип | Значения | Что описывает |
+|---|---|---|---|
+| `CHART_TYPES` | `ChartType` | `bar`, `line`, `pie`, `stack` | Тип диаграммы |
+| `ALIGNMENTS` | `Alignment` | `left`, `center`, `right` | Выравнивание текста и блоков |
+| `TILE_ALIGNMENTS` | `TileAlignment` | `left`, `center`, `right`, `stretch` | Выравнивание плиток `DataSource` + `RoundedBackground`: `stretch` растягивает плитки строки на всю ширину |
+| `ALIGN_ITEMS` | `AlignItems` | `flex-start`, `center`, `flex-end`, `stretch`, `baseline` | CSS `align-items` детей контейнера |
+| `OBJECT_FITS` | `ObjectFit` | `cover`, `contain`, `fill`, `none`, `scale-down` | CSS `object-fit` изображения |
+| `OVERFLOWS` | `Overflow` | `visible`, `hidden`, `scroll`, `auto` | CSS `overflow` контейнера |
+| `VIEW_MODES` | `ViewMode` | `grid`, `list` | Режим отображения коллекций |
+| `MODAL_HEADER_BG_POSITIONS` | `ModalHeaderBgPosition` | `left`, `right`, `top`, `bottom` | Якорь картинки `bgImage` в шапке модалки |
+
 ---
 
 ## Связанные разделы
@@ -701,16 +722,18 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 
 ## Типы Actions
 
-Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по семи `type`; сценарии — [[actions|Actions]].
+Публичные типы из `actions/types.ts`, `actions/runtime/types.ts`, `actions/context/bindingTypes.ts` и `actions/modals/types.ts` отделяют реестры от вызовов. Параметры дискриминированы по восьми `type`; сценарии — [[actions|Actions]].
 
 ### Определения и вызовы
 
 | Тип | Контракт |
 |---|---|
 | `ActionEvent` | `"click" \| "save"`; `save` — галка «Сохранить» у StructuredData |
-| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab" \| "saveToLayer" \| "showNotification"` |
+| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab" \| "saveToLayer" \| "showNotification" \| "zoomTo"` |
 | `ActionParameters` | `Record<string, unknown>` |
-| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId`; `saveToLayer`: `Record<string, never>`; `showNotification`: `title?`, `description?`, `error?: boolean`, `duration?: number` |
+| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId`; `saveToLayer`: `Record<string, never>`; `showNotification`: `title?`, `description?`, `error?: boolean`, `duration?: number`; `zoomTo`: `layerName`, `featureId?: string \| number` |
+| `LayerExtentQuery` | `conditions?: string[]`, `parameters?: Record<string, unknown>` — условия и параметры слоя для `zoomTo` |
+| `GetLayerExtentQuery` | `(layerName: string) => LayerExtentQuery`; читается в момент шага |
 | `ActionErrorData` | `message: string`, `status?: string` — ошибка шага в его `onError` (`$event.error`) |
 | `TabTarget` | Владелец вкладки: `{ kind: "modal"; modalId }` \| `{ kind: "widget" }` |
 | `TabTargets` | `getSelectedTabId(tabId)` — выбор у владельца вкладки; `selectTab(tabId)` — выбрать, `false`, если вкладка нигде не объявлена |
@@ -778,7 +801,7 @@ Snapshot передаётся хосту через `onModalContextChange`; entr
 | `PythonExecutionSnapshot` | `taskId`, `status`, `log`, `lastMessage`, `error`, `loading`, `executionTime`, `result` |
 | `TaskExecutionContextValue` | `runTask`, `entries`, `openLog`, `closeLog`, `dismissTask`, `logRunId` |
 
-`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Семь действий|Actions]].
+`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Восемь действий|Actions]].
 
 У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
 

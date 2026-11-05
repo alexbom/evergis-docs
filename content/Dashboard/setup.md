@@ -89,6 +89,7 @@
 | `isModalNotificationAllowed` | `(senderName: string \| undefined, source: ConfigDataSource, layerName: string) => boolean` | Допуск WebSocket-обновления модального источника; без обработчика допускаются все события наблюдаемых слоёв |
 | `filters` | `SelectedFilters` | Активные фильтры |
 | `getActionFilters` | `() => SelectedFilters` | Синхронный getter текущих фильтров для последовательных [[actions\|Actions]] |
+| `getLayerExtentQuery` | `(layerName: string) => LayerExtentQuery` | Условия и параметры слоя для действия [[actions#Восемь действий\|`zoomTo`]]; вызывается в момент шага и читается исполнителями и дашборда, и карточки. Без него экстент считается по всему слою. В client-new отдаёт `useLayerExtentQuery` через компонент `LayerExtentQueryBridge`: расчёту нужен контекст дашборда, а проп передаётся выше него |
 | `actionContextKey` | `string` | При смене значения прекращаются цепочки и закрываются окна прежнего контекста |
 | `actionsActive` | `boolean` | Разрешает запуск Actions; по умолчанию `true`. Изменение прекращает текущие цепочки и закрывает окна |
 | `actionNavigation` | `ActionNavigationFactory` | Адаптер переходов; по умолчанию браузерная навигация. Контракт — [[types#Типы Actions\|Типы]] |
@@ -286,6 +287,23 @@ import { replaceObject } from "find-and";
 
 
 **useValidateDashboardConfig** вызывается клиентским DashboardProvider и в dev-сборке проверяет реальный `projectInfo.content.dashboardConfiguration` через `validateDashboardConfig`; подменный `config` превью не проверяет. В production хук ничего не делает. Проверка слотов использует `src/components/Dashboard/utils/constants.ts` (`CONTAINER_SLOT_MAP`), а не реестр компонентов библиотеки; проблемы выводятся в консоль, рендер не блокируется.
+
+Обход дерева сообщает `missing-id` (`severity: "error"`) о каждом узле и модалке без непустого `id`. Отдельные наборы правил лежат рядом с `validateDashboardConfig` в `src/components/Dashboard/utils/`:
+
+| Файл | Что проверяет | Коды |
+|---|---|---|
+| `validateControlsGroup` | Ряд `ControlsGroup` и вкладки `Tabs`: типы детей, `filterName`, старые опции, дубли id вкладок | `invalid-group-child`, `missing-filter-name`, `removed-option`, `duplicate-tab-id` |
+| `validateStructuredData` | Инварианты `StructuredData`: представление, схема, фильтр-приёмник, запись в слой, источники списков | `missing-view`, `missing-schema`, `duplicate-attribute`, `missing-filter-name`, `invalid-filter-value-type`, `save-to-layer-without-layer`, `unknown-list-source`, `orphan-option` |
+| `validateStructuredDataLists` | Колонки со списком значений и многострочным вводом | `invalid-control`, `orphan-option` |
+| `validateStructuredDataSaveChain` | Цепочка `event: "save"`: источник-слой у `saveToLayer`, запись в свой фильтр | `save-to-layer-without-layer`, `save-chain-skips-filter` |
+| `validateVote` | Свойство `attributeName` и четыре слоя `Vote` | `missing-vote-binding`, `missing-vote-source` |
+| `validateModalDataSources` | Источник модалки с именем, которое уже есть у страницы или корня: его перекрывает чужой, ленивой загрузки нет | `modal-datasource-shadowed` |
+| `validateModalHeader` | `options.header.bgPosition` без слота `bgImage` у модалки | `orphan-option` |
+| `validateCapabilities` | Секция `capabilities` корня: опечатка в имени или строка `"false"` ничего не отключают (см. [[concepts#Отключение функций проекта — `capabilities`\|capabilities]]) | `invalid-capabilities` |
+| `validateNotifications` | Значение `notifications` у корня, слоёв и источников: нераспознанное работает как `"all"` | `invalid-notifications` |
+| `validateActions` | Адаптер [[utils#validateDashboardActions\|validateDashboardActions]] | `invalid-action` |
+| `validateConditionalFormatting` | Адаптер `validateDashboardConditionalFormatting`, описан выше | `invalid-conditional-formatting` |
+| `collectActionScopes` | Собирает реестры определений actions корня, страниц и модалок для проверки цепочек | — |
 
 Для `ExportPdf` в карте записи нет: валидатор не проверяет фиксированный слот `button`. Библиотека ищет узел с `id: "button"` и `type: "button"`; без него кнопки экспорта нет. При авторинге сверяйте кнопку с [[authoring|Правилами генерации]] и [[containers|Контейнерами]].
 
