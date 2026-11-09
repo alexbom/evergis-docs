@@ -627,10 +627,18 @@ interface FeatureCreationOptions {
   defaultAttributes?: Record<string, unknown>;
 }
 
-type FeatureCreationHandler = (options: FeatureCreationOptions) => void | Promise<void>;
+type FeatureCreationOutcome = "saved" | "cancelled";
+
+interface FeatureCreationSession {
+  completion: Promise<FeatureCreationOutcome>;
+}
+
+type FeatureCreationHandler = (
+  options: FeatureCreationOptions
+) => void | FeatureCreationSession | Promise<void | FeatureCreationSession>;
 
 interface FeatureCreator {
-  startCreation: FeatureCreationHandler;
+  startCreation: (options: FeatureCreationOptions) => Promise<FeatureCreationSession | void>;
   isAvailable: boolean;
   isStarting: boolean;
 }
@@ -649,7 +657,11 @@ interface FeatureCreationApi {
 }
 ```
 
-`FeatureCreationOptions` описывает запуск редактора: геометрию можно определить по слою, пресеты остаются редактируемыми. `CreateLayerFeatureOptions` описывает запись готового объекта: тип геометрии уже известен, атрибуты содержат правки пользователя. Для непространственного слоя используется `geometryType: null` или `OgcGeometryType.Unknown`. Сервис возвращает `Promise<LayerUpdateInfoDc>`.
+`FeatureCreationOptions` описывает запуск редактора: геометрию можно определить по слою, пресеты остаются редактируемыми. Он же — `options` действия [[actions#addFeature|`addFeature`]].
+
+Обещание `FeatureCreationHandler` завершается, когда рисование включено, а не когда объект сохранён. Исход хост сообщает через `FeatureCreationSession.completion`, один раз: `saved` — объект записан в слой, `cancelled` — создание брошено или вытеснено новым запуском. Хост без сессии (`void`) допустим: исход неизвестен. Валидацию запуска до обращения к хосту (пустой `layerName`, нет `onCreateFeature`) выполняет `getFeatureCreationError(options, onCreateFeature, t)`, общая для `useFeatureCreator` и `addFeature`.
+
+`CreateLayerFeatureOptions` описывает запись готового объекта: тип геометрии уже известен, атрибуты содержат правки пользователя. Для непространственного слоя используется `geometryType: null` или `OgcGeometryType.Unknown`. Сервис возвращает `Promise<LayerUpdateInfoDc>`.
 
 ---
 
@@ -729,9 +741,9 @@ type FileExtensions = `.${string}` | `.${string},${string}`;
 | Тип | Контракт |
 |---|---|
 | `ActionEvent` | `"click" \| "save"`; `save` — галка «Сохранить» у StructuredData |
-| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab" \| "saveToLayer" \| "showNotification" \| "zoomTo"` |
+| `ActionType` | `"runTask" \| "setFilters" \| "openUrl" \| "openModal" \| "selectTab" \| "saveToLayer" \| "showNotification" \| "zoomTo" \| "addFeature"` |
 | `ActionParameters` | `Record<string, unknown>` |
-| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId`; `saveToLayer`: `Record<string, never>`; `showNotification`: `title?`, `description?`, `error?: boolean`, `duration?: number`; `zoomTo`: `layerName`, `featureId?: string \| number` |
+| `ActionOptionsMap` | `runTask`: `taskName`, `parameters?`, `fileName?: string`, `methodName?: string`; `setFilters`: `filters`, `toggle?: boolean`; `openUrl`: `url`, `target?`; `openModal`: `modalId`, `parameters?`; `selectTab`: `tabId`; `saveToLayer`: `Record<string, never>`; `showNotification`: `title?`, `description?`, `error?: boolean`, `duration?: number`; `zoomTo`: `layerName`, `featureId?: string \| number`; `addFeature`: [[#Типы создания объектов\|`FeatureCreationOptions`]] |
 | `LayerExtentQuery` | `conditions?: string[]`, `parameters?: Record<string, unknown>` — условия и параметры слоя для `zoomTo` |
 | `GetLayerExtentQuery` | `(layerName: string) => LayerExtentQuery`; читается в момент шага |
 | `ActionErrorData` | `message: string`, `status?: string` — ошибка шага в его `onError` (`$event.error`) |
@@ -801,7 +813,7 @@ Snapshot передаётся хосту через `onModalContextChange`; entr
 | `PythonExecutionSnapshot` | `taskId`, `status`, `log`, `lastMessage`, `error`, `loading`, `executionTime`, `result` |
 | `TaskExecutionContextValue` | `runTask`, `entries`, `openLog`, `closeLog`, `dismissTask`, `logRunId` |
 
-`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Восемь действий|Actions]].
+`fileName` и `methodName` выбираются независимо: поле запроса/`runTask.options` → поле `ConfigTask` → поле схемы ресурса. Они передаются отдельными полями параметров запуска, вне Python-аргументов. Условия запуска при недоступной схеме — [[actions#Девять действий|Actions]].
 
 У Python-handle `completion` отклоняется при ошибке/остановке; у Action-handle он разрешается объектом `failed`/`cancelled`. Сервис и фасад — [[hooks#useTaskExecution / useOptionalTaskExecution|useTaskExecution]] и [[hooks#usePythonTask|usePythonTask]]. `ConfigTask.params` и `ConfigLayer.parameters` имеют тип `Record<string, unknown>`, `ConfigLayer.geometries` — `unknown[]`.
 

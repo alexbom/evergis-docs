@@ -89,7 +89,7 @@
 | `isModalNotificationAllowed` | `(senderName: string \| undefined, source: ConfigDataSource, layerName: string) => boolean` | Допуск WebSocket-обновления модального источника; без обработчика допускаются все события наблюдаемых слоёв |
 | `filters` | `SelectedFilters` | Активные фильтры |
 | `getActionFilters` | `() => SelectedFilters` | Синхронный getter текущих фильтров для последовательных [[actions\|Actions]] |
-| `getLayerExtentQuery` | `(layerName: string) => LayerExtentQuery` | Условия и параметры слоя для действия [[actions#Восемь действий\|`zoomTo`]]; вызывается в момент шага и читается исполнителями и дашборда, и карточки. Без него экстент считается по всему слою. В client-new отдаёт `useLayerExtentQuery` через компонент `LayerExtentQueryBridge`: расчёту нужен контекст дашборда, а проп передаётся выше него |
+| `getLayerExtentQuery` | `(layerName: string) => LayerExtentQuery` | Условия и параметры слоя для действия [[actions#Девять действий\|`zoomTo`]]; вызывается в момент шага и читается исполнителями и дашборда, и карточки. Без него экстент считается по всему слою. В client-new отдаёт `useLayerExtentQuery` через компонент `LayerExtentQueryBridge`: расчёту нужен контекст дашборда, а проп передаётся выше него |
 | `actionContextKey` | `string` | При смене значения прекращаются цепочки и закрываются окна прежнего контекста |
 | `actionsActive` | `boolean` | Разрешает запуск Actions; по умолчанию `true`. Изменение прекращает текущие цепочки и закрывает окна |
 | `actionNavigation` | `ActionNavigationFactory` | Адаптер переходов; по умолчанию браузерная навигация. Контракт — [[types#Типы Actions\|Типы]] |
@@ -214,7 +214,7 @@ import { replaceObject } from "find-and";
 | `projectAlias` | `string` | Алиас открытого проекта — плейсхолдер `%project.alias`, при пустом значении используется `projectName` |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
-| `onCreateFeature` | `FeatureCreationHandler` | Необязательный обработчик запуска создания: `(options: FeatureCreationOptions) => void \| Promise<void>`. Подключает рисование и карточку приложения |
+| `onCreateFeature` | `FeatureCreationHandler` | Необязательный обработчик запуска создания: `(options: FeatureCreationOptions) => void \| FeatureCreationSession \| Promise<void \| FeatureCreationSession>`. Подключает рисование и карточку приложения; сессия сообщает исход создания (см. [[#Подключение создания объектов]]) |
 | `notification` | `{ add, update, close }` | API уведомлений (`INotificationItem`): прогресс и ошибки задач, остановка цепочек [[actions\|Actions]], заблокированные переходы, серверные [[hooks\|хуки]] `beforeSave`/`afterSave` |
 
 ```tsx
@@ -227,7 +227,7 @@ import { replaceObject } from "find-and";
 
 ### Подключение создания объектов
 
-[[containers#AddFeatureContainer|AddFeatureContainer]] и публичный [[hooks#useFeatureCreator|useFeatureCreator]] передают запрос в `onCreateFeature`. Его параметры — [[types#Типы создания объектов|FeatureCreationOptions]]: обязательное имя слоя, необязательные тип геометрии и `defaultAttributes`.
+[[containers#AddFeatureContainer|AddFeatureContainer]], публичный [[hooks#useFeatureCreator|useFeatureCreator]] и действие [[actions#addFeature|`addFeature`]] передают запрос в `onCreateFeature`. Его параметры — [[types#Типы создания объектов|FeatureCreationOptions]]: обязательное имя слоя, необязательные тип геометрии и `defaultAttributes`.
 
 ```tsx
 <GlobalProvider api={api} t={t} onCreateFeature={handleCreateFeature}>
@@ -241,6 +241,10 @@ import { replaceObject } from "find-and";
 
 Обработчик завершает запрос после запуска редактора. Запись в API происходит только по «Сохранить» через [[hooks#createLayerFeature|createLayerFeature]] с итоговыми атрибутами пользователя. Порядок `beforeSave`/`afterSave`, обновление карты и выделения остаются у хоста. Ошибка сохранения оставляет черновик для исправления или повторной попытки.
 
+Чтобы цепочка [[actions#addFeature|`addFeature`]] шла дальше только после записи, обработчик возвращает [[types#Типы создания объектов|`FeatureCreationSession`]] и завершает её `completion` один раз: `saved` — объект записан (до `afterSave`, не дожидаясь его), `cancelled` — пользователь отменил или закрыл карточку, сбросил редактор, начал другое создание, сменил проект, а также когда запуск вытеснен ещё до включения рисования. Ошибка записи сессию не завершает. Хост, который возвращает `void`, остаётся совместимым: шаг `addFeature` считает создание завершённым сразу после старта.
+
+В client-new сессией управляет `useFeatureCreationSession` (`src/hooks/map`): запуск ставит метку `creationId` в `geometryEditor`, уход редактора с этой метки без записи — отмена. Об успешной записи `useFeaturePersistence` карточки сообщает через `useFeatureCreationReport` — контекст `FeatureCreationReportContext` в `GlobalProvider`. Создание из списка слоёв тоже идёт через хост, поэтому вытесняет сессию действия.
+
 Без `onCreateFeature` хук возвращает `isAvailable: false`, а нативные кнопки AddFeature недоступны. Уже настроенные Actions дочерних кнопок сохраняют собственное поведение и приоритет.
 
 ### Кто заполняет свойства карты (client-new)
@@ -253,7 +257,7 @@ import { replaceObject } from "find-and";
 | `ewktExtent`, `zoomLevel` | `useMapView()` (`src/hooks/map`) | Снимок вида карты по событию `idle`; `getMapView` (`src/evergis/map`) клампит bounds по границам меркатора и конвертирует через `geometryToEwkt` |
 | `projectName`, `projectAlias` | селектор `getProjectInfo` (слайс `project`) | `name` и `alias` открытого проекта |
 | `notification` | слайс `notifications` | `add` / `update` / `close` диспатчат `addNotification` / `updateNotification` / `closeNotification` |
-| `onCreateFeature` | `useFeatureCreationHost()` (`src/hooks/map`) | Обработчик хоста создания объекта |
+| `onCreateFeature` | `useFeatureCreationHost()` (`src/hooks/map`) | Обработчик хоста создания объекта; вторым полем хук отдаёт `reportFeatureCreated` для `FeatureCreationReportContext` |
 
 Подписка идёт на `idle`, а не на `moveend`: последний ловит и синтетические события от `stop()` во время программного `flyTo` и отдавал бы промежуточные координаты интерполяции.
 

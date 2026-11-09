@@ -73,7 +73,7 @@
 
 **Назначение:** Отображает кнопки добавления объектов через [[elements#ElementButton|ElementButton]]. Каждая кнопка запускает рисование на своём слое и открывает карточку для редактирования атрибутов; создание завершается явным нажатием «Сохранить». Для слоя без геометрии открывается карточка. Собственных опций у контейнера нет; все поля принадлежат дочерним элементам `button`.
 
-Запрос передаётся через [[hooks#useFeatureCreator|useFeatureCreator]] в `GlobalProvider.onCreateFeature`. [[setup#Подключение создания объектов|Хост приложения]] отвечает за проверку слоя и прав, рисование и карточку. Без подключённого хоста или `layerName` нативная кнопка недоступна; при запуске защищена от повторного клика. Настроенный [[actions|Action]] дочерней кнопки сохраняет приоритет над нативным обработчиком. Новый Action создания объектов не добавлен.
+Запрос передаётся через [[hooks#useFeatureCreator|useFeatureCreator]] в `GlobalProvider.onCreateFeature`. [[setup#Подключение создания объектов|Хост приложения]] отвечает за проверку слоя и прав, рисование и карточку. Без подключённого хоста или `layerName` нативная кнопка недоступна; при запуске защищена от повторного клика. Настроенный [[actions|Action]] дочерней кнопки сохраняет приоритет над нативным обработчиком. Кнопку добавления в ряду [[containers#ControlsGroupContainer|ControlsGroup]] или с последующими шагами цепочки даёт действие [[actions#addFeature|`addFeature`]]: обычная `button`, без контейнера.
 
 **Типы:** `templateName = "AddFeature"` · `AddFeatureContainerOptions` (Record<string, never>) · `AddFeatureContainerProps`. Дети — `AddFeatureButtonChild` (`type: "button"`, `AddFeatureButtonOptions`).
 
