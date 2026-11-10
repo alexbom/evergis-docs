@@ -428,6 +428,7 @@ interface BgImageLayerProps {
 | `hooks/useChartAxisTitles.ts` | `ChartAxisTitle` (`title`, `color?`) — подпись оси одной стороны; `color` задан, только если на стороне одна серия |
 | `components/Chart/types.ts` | `ChartContainerProps` обёртки графика (`width`, `height`, `loading`) |
 | `components/ContainerBackground/types.ts` | `ContainerBackgroundProps` — `Pick<ContainerProps, "elementConfig" \| "renderElement">` |
+| `components/DataSourceError/types.ts` | `DataSourceErrorProps` — `name` плюс `Pick<WrapperRootProps, "id" \| "data-id" \| "data-templatename" \| "style">`: заглушка несёт идентификаторы корня контейнера |
 | `components/ContainerBackground/styled.ts` | `BgImageHostProps` (`$hasBgImage`, `$innerPadding`), слой `ContainerBackgroundLayer`, миксин `bgImageHostMixin` |
 | `grid/types.ts` | Типы сетки: `GridAxis` (`"row"` \| `"column"`), `GridEditAction` (union операций `delete`/`merge`/`split`/`swap`/`addRow`/`addCell`), `GridMenuState`, `GridMenuPosition`, `GridEditSessionValue` — значение контекста сессии редактирования |
 
@@ -613,6 +614,19 @@ interface ConfigCapabilities {
 ```
 
 Секции меню типизированы как `Record<string, boolean>`: имена пунктов — enum'ы хоста (client-new), пакет их не перечисляет. Допустимые имена проверяет валидатор конфига client-new.
+
+`ConfigFeatureCardCapabilities` — та же секция в корне `cardConfiguration` слоя (карточка объекта). Поле `ConfigContainer.capabilities` типизировано пересечением `ConfigCapabilities & ConfigFeatureCardCapabilities`: корень дашборда и корень карточки — оба `ConfigContainer`. Назначение ключей — в [[concepts#Карточка объекта|Основных понятиях]].
+
+```ts
+interface ConfigCapabilityVisibility {
+  show?: boolean;                               // скрывает только false
+}
+
+interface ConfigFeatureCardCapabilities {
+  toolbar?: ConfigCapabilityVisibility;         // тулбар при просмотре
+  editToolbar?: ConfigCapabilityVisibility;     // тулбар при редактировании («Сохранить», «Отмена»)
+}
+```
 
 ---
 

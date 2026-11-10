@@ -418,7 +418,7 @@ const proxy = getProxyService(layer);
 
 `({ prop?, projectName?, projectAlias? }) => string | undefined`
 
-Значение системной подстановки текущего проекта (см. [[concepts#Текущий проект|Основные понятия]]). Голый `%project` и `%project.name` дают системное имя, `%project.alias` — алиас с фолбэком на имя. Чужое свойство возвращает `undefined`, чтобы плейсхолдер остался нетронутым. Используется и в **applyQueryFilters**, и в **formatDataSourceCondition**, а в client-new — хуком `useTempLayerParams` для параметров слоя.
+Значение системной подстановки текущего проекта (см. [[concepts#Текущий проект|Основные понятия]]). Голый `%project` и `%project.name` дают системное имя, `%project.alias` — алиас с фолбэком на имя. Чужое свойство возвращает `undefined`, чтобы плейсхолдер остался нетронутым. Используется и в **applyQueryFilters**, и в **formatDataSourceCondition**, а в client-new — утилитой `resolveSystemParam` (`src/hooks/project/utils`) для параметров слоя.
 
 ---
 

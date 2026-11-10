@@ -123,6 +123,27 @@
 
 Реализация. В `@evergis/react` шапка читает `config.capabilities.pagination` (через `useWidgetConfig`) и отдаёт флаг `isPaginationVisible` из `useDashboardHeader`. Client-new читает секцию из проекта в redux хуком `useProjectCapabilities` (`hooks/project/`): меню выборки живёт вне контекста дашборда. Фильтр пунктов — `filterMenuOptions` / `isMenuItemEnabled` (`utils/capabilities.ts`). Валидатор `validateDashboardConfig` (проверка `checkCapabilities` в `validateCapabilities.ts`) ловит неизвестные ключи и имена пунктов, а также небулевы значения — ошибку `invalid-capabilities`: опечатка (`"Isochrone"` вместо `"Zones"`, строка `"false"`) рантайм не ломает, но ничего не отключает. Списки допустимых имён (`CAPABILITY_MENU_ITEMS` в `Dashboard/utils/constants.ts`) строятся из самих enum'ов.
 
+### Карточка объекта
+
+Своя секция `capabilities` есть в **корне** `cardConfiguration` слоя. Ключи у неё другие: каждый — объект `{ "show": boolean }`, блок скрывает только `show: false`. Обе опции читаются из `cardConfiguration`, в том числе для режима редактирования, хотя тело карточки в этом режиме рисуется по `editConfiguration`. Тип — `ConfigFeatureCardCapabilities` (см. [[types#Тип capabilities|Типы]]).
+
+```json
+{
+  "capabilities": {
+    "toolbar": { "show": true },
+    "editToolbar": { "show": true }
+  },
+  "children": [...]
+}
+```
+
+| Ключ | Что скрывает |
+|---|---|
+| `toolbar` | Тулбар карточки при просмотре: кнопки редактирования и удаления, листание выбранных объектов, меню карточки |
+| `editToolbar` | Тулбар карточки при редактировании и создании объекта: «Сохранить» и «Отмена». Без него сохранить объект можно только действиями конфига (например, кнопкой с `actions`) |
+
+Шапку карточки (`FeatureCardHeader`) секция не затрагивает. Реализация — хук `useFeatureCardToolbarVisible` (`FeatureCard/hooks/`) в client-new: берёт `layerInfo` из контекста карточки и выбирает ключ по режиму. Валидатор проверяет секцию карточки, если вызвать его с целью карточки — `validateDashboardConfig(config, "featureCard")`; по умолчанию цель — дашборд, и ключи карточки там считаются неизвестными.
+
 ---
 
 ## Источники данных

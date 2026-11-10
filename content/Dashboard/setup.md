@@ -263,7 +263,7 @@ import { replaceObject } from "find-and";
 
 Перезапрос источников при смене вида карты делает `useMapViewRefetch` (`components/Dashboard/hooks`), отбирая источники через [[utils|`getMapViewDataSources`]]; пер-источниковую задержку `debounce` применяет `useDataSourceDebounce` — общая обёртка над загрузчиком, через которую проходят все триггеры перезапроса.
 
-Слои карты берут `ewktExtent` и `zoomLevel` из этого же контекста — `useTempLayerConditions` и `useTempLayerParams` (`src/hooks/project`) вызывают `useGlobalContext()`, поэтому подписка на `idle` в приложении ровно одна.
+Слои карты берут `ewktExtent` и `zoomLevel` из этого же контекста — `useTempLayerConditions` и `useGetTempLayerParams` (`src/hooks/project`) вызывают `useGlobalContext()`, поэтому подписка на `idle` в приложении ровно одна. `useGetTempLayerParams` отдаёт функцию «фильтры → параметры слоёв страницы»: ей пользуются и `useTempLayerParams` (параметры при текущих фильтрах), и `useLayerExtentQuery` (шаг действия `zoomTo` видит фильтры раньше перерисовки). Подстановки из карточки объекта резолвит `createCardResolver` (`src/hooks/project/utils`).
 
 ---
 
@@ -303,7 +303,7 @@ import { replaceObject } from "find-and";
 | `validateVote` | Свойство `attributeName` и четыре слоя `Vote` | `missing-vote-binding`, `missing-vote-source` |
 | `validateModalDataSources` | Источник модалки с именем, которое уже есть у страницы или корня: его перекрывает чужой, ленивой загрузки нет | `modal-datasource-shadowed` |
 | `validateModalHeader` | `options.header.bgPosition` без слота `bgImage` у модалки | `orphan-option` |
-| `validateCapabilities` | Секция `capabilities` корня: опечатка в имени или строка `"false"` ничего не отключают (см. [[concepts#Отключение функций проекта — `capabilities`\|capabilities]]) | `invalid-capabilities` |
+| `validateCapabilities` | Секция `capabilities` корня: опечатка в имени или строка `"false"` ничего не отключают (см. [[concepts#Отключение функций проекта — `capabilities`\|capabilities]]). Набор ключей зависит от цели `validateDashboardConfig(config, target)`: `"dashboard"` (по умолчанию) или `"featureCard"` | `invalid-capabilities` |
 | `validateNotifications` | Значение `notifications` у корня, слоёв и источников: нераспознанное работает как `"all"` | `invalid-notifications` |
 | `validateActions` | Адаптер [[utils#validateDashboardActions\|validateDashboardActions]] | `invalid-action` |
 | `validateConditionalFormatting` | Адаптер `validateDashboardConditionalFormatting`, описан выше | `invalid-conditional-formatting` |

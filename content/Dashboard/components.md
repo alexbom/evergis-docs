@@ -262,7 +262,25 @@
 
 **Назначение:** Заглушка при ошибке загрузки датасорса (features === null).
 
-**Props:** `{ name: string, style?: CSSProperties }`. Стиль применяется к существующему `DataSourceErrorContainer`.
+**Props:** `DataSourceErrorProps` (`components/DataSourceError/types.ts`):
+
+| Prop | Тип | Описание |
+|---|---|---|
+| `name` | `string` | Имя шаблона в тексте заглушки («Блок "…" не загружен») |
+| `id` | `string?` | Идентификатор корня — тот же, что у рабочего контейнера |
+| `data-id` | `string?` | `id` узла конфига |
+| `data-templatename` | `string?` | `templateName` узла |
+| `style` | `CSSProperties?` | Авторский `style` узла |
+
+Тип — `Pick<WrapperRootProps, "id" | "data-id" | "data-templatename" | "style">` плюс `name`. Заглушка встаёт на место корня контейнера и несёт его идентификаторы, поэтому на месте вызова достаточно спреда `root` из [[hooks#useContainerRoot|useContainerRoot]]: из него берутся только идентификаторы и `style`, а размеры (`$sizeCss`) и фон корня не применяются. Так заглушку зовут `ChartContainer`, `DataSourceContainer`, `DataSourceProgressContainer`, `StructuredDataContainer` и `VoteContainer`.
+
+```tsx
+const { root } = useContainerRoot({ elementConfig });
+
+if (dataSource && !dataSource.features) {
+  return <DataSourceError name={elementConfig.templateName} {...root} />;
+}
+```
 
 ---
 
