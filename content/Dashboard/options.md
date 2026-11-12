@@ -20,10 +20,11 @@ interface ConfigOptions
     ConfigMapLayerOptions,
     ConfigEditOptions,
     ConfigVoteOptions,
+    ConfigTimerOptions,
     ConfigMiscOptions {}
 ```
 
-> `ConfigEntityRefOptions` — пятнадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
+> `ConfigEntityRefOptions` — шестнадцатый миксин — в `extends` **не входит**: это документирующий «highlight»-интерфейс, чьи поля (`chartId`, `modalId`, `tabId`, ...) уже продублированы в других миксинах (`ConfigChartOptions`, `ConfigEditOptions`, `ConfigMapLayerOptions`, `ConfigMiscOptions`, `ConfigDataSourceBindingOptions`). Он подсвечивает entity-ref природу этих полей — см. раздел ниже.
 
 Каждый компонент использует только часть полей. В `componentTypes.ts` для каждого компонента определён `<Name>Options = Pick<ConfigOptions, ...>` — список фактически читаемых полей. Это даёт:
 
@@ -50,7 +51,7 @@ interface ConfigOptions
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для кнопок — `border-radius`, px) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик). У `ElementLegend` — направление записей: `false` в ряд, `true` столбиком |
-| `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла |
+| `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла. У [[containers#TimerContainer\|`Timer`]] — строка «подпись слева, время в плашке справа» вместо крупного блока |
 | `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки (grid)\|Режим сетки]] |
 | `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
 | `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. Игнорируется, если сохранение задано actions с `event: "save"`: в слой тогда пишет шаг [[actions#Девять действий\|`saveToLayer`]]. См. [[containers#StructuredDataContainer\|StructuredData]] |
@@ -73,9 +74,9 @@ interface ConfigOptions
 | `noMargin` | `boolean` | Убрать внешний margin |
 | `maxTextWidth` | `number` | Максимальная ширина текста в px |
 | `barWidth` | `number` | Ширина столбца BarChart |
-| `barHeight` | `number` | Высота StackBar |
+| `barHeight` | `number` | Высота StackBar. У [[containers#VoteContainer\|Vote]] — высота полосок с количеством голосов в px (по умолчанию 8, скругление — половина высоты) |
 
-**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`, `saveToLayer`), `ControlsGroupContainer` и `TabsContainer` (`gap`, `width`, `height`, `overflow`; `width` — и у детей-полей), `TaskContainer`, `TwoColumnContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `TimerContainer` (`compact`), `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`, `saveToLayer`), `ControlsGroupContainer` и `TabsContainer` (`gap`, `width`, `height`, `overflow`; `width` — и у детей-полей), `TaskContainer`, `TwoColumnContainer`, `VoteContainer` (`barHeight`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
 
 `innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
@@ -239,8 +240,9 @@ interface ConfigOptions
 | `lineBreak` | `string` | Кастомный перевод строки |
 | `multilineTitle` | `boolean` | Шапка карточки объекта: заголовок до двух строк вместо одной, дальше многоточие |
 | `multilineDescription` | `boolean` | Шапка карточки объекта: подзаголовок до двух строк вместо одной, дальше многоточие |
+| `multiline` | `boolean` | Слот `variantText` контейнера [[containers#VoteContainer\|Vote]]: текст варианта переносится целиком вместо одной строки с многоточием |
 
-**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TaskContainer`, `TitleContainer`, `FeatureCardDefaultHeader`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader` (`multilineTitle`, `multilineDescription`). У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
+**Используется в:** `ElementButton`, `ElementChips`, `ElementControl`, `ElementLink`, `ElementUploader`, `FilterChild`, `ProgressContainer`, `RoundedBackgroundContainer`, `TaskContainer`, `TitleContainer`, `VoteContainer` (`multiline` слота `variantText`), `FeatureCardDefaultHeader`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader` (`multilineTitle`, `multilineDescription`). У дочерних кнопок AddFeature, ExportPdf, Vote и Task подпись задаётся в `value` или в `options.title`, если `value` отсутствует или равен `null`.
 
 ---
 
@@ -316,7 +318,7 @@ interface ConfigOptions
 
 ## ConfigVoteOptions
 
-Слои-таблицы контейнера [[containers#VoteContainer|Vote]]. Все четыре обязательны — без любой из них контейнер отдаёт ошибку блока.
+Слои-таблицы и цвет полосок контейнера [[containers#VoteContainer|Vote]]. Все четыре слоя обязательны — без любого из них контейнер отдаёт ошибку блока.
 
 | Поле | Тип | Описание |
 |---|---|---|
@@ -324,6 +326,7 @@ interface ConfigOptions
 | `questionDataSource` | `string` | Слой голосований: `id`, `text`, `category_id`, `user_name`, `multi_select`. На запись |
 | `variantDataSource` | `string` | Слой вариантов ответа: `id`, `question_id`, `text`. На запись |
 | `answerDataSource` | `string` | Слой ответов: `id`, `question_id`, `user_name`, `variant_id`. На запись |
+| `barColor` | `string` | Цвет заполнения полосок с количеством голосов. По умолчанию жёлтый `#f9c236`; подложка полоски — из темы (`palette.elementDark`) |
 
 > [!warning] Это имена СЛОЁВ, а не источников данных страницы
 > Несмотря на суффикс `DataSource`, контейнер обращается к ним через `api.layers.*` напрямую, мимо механики [[concepts#Источники данных|источников данных]]: имя из `dataSources` страницы он не найдёт. Схема полей захардкожена в контейнере (`VOTE_FIELDS`) и конфигом не переопределяется.
@@ -331,6 +334,22 @@ interface ConfigOptions
 Имя атрибута объекта с `question_id` в этот миксин **не входит**: оно живёт свойством `attributeName` самого узла конфига, а не в `options`.
 
 **Используется в:** `VoteContainer`.
+
+---
+
+## ConfigTimerOptions
+
+Дата окончания и пороги контейнера [[containers#TimerContainer|Timer]]. Все три поля — строки конфига с [[concepts#Подстановки в строках конфига|подстановками]], поэтому значения берутся и литералом, и из атрибутов, фильтров и источников.
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `targetDate` | `string` | Момент окончания: ISO-дата (`"2026-11-20T18:00"`) или подстановка (`"{vote_end}"`). Без часового пояса — местное время браузера |
+| `warningBefore` | `string \| number` | За сколько до окончания время становится оранжевым: `"ЧЧ:ММ:СС"` (часы могут быть больше 24) или число секунд |
+| `dangerBefore` | `string \| number` | За сколько до окончания время становится красным; формат тот же. Истёкший таймер красный и без этой опции |
+
+Вид (крупный блок или строка) переключает `compact` из [[#ConfigLayoutOptions]].
+
+**Используется в:** `TimerContainer`.
 
 ---
 

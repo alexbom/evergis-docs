@@ -38,7 +38,8 @@
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
 | `Task` | `button` — кнопка запуска `type: "button"` (вид — из слота, поведение и статусы — контейнер); без слота — встроенная кнопка |
 | `ExportPdf` | `button` — только `type: "button"`; без слота кнопки нет |
-| `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. На узле обязателен `attributeName` |
+| `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. `variantText`, `variantAmount` — без `type` и `value`, только `style` (у `variantText` ещё `options.multiline`): оформление текста варианта и числа голосов. На узле обязателен `attributeName` |
+| `Timer` | `alias` — подпись; время рисует контейнер. Обязательна опция `targetDate` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` |
@@ -271,6 +272,7 @@
 - [ ] Слот `bgImage` (если он есть) стоит у контейнера, а не у `Divider`, и не продублирован внутрь записей DataSource-хоста.
 - [ ] `options.outflow` задан только там, где у контейнера есть слот `bgImage` (иначе валидатор отдаёт `orphan-option` — вытекать нечему).
 - [ ] У `Vote` заданы свойство узла `attributeName` и все четыре слоя (`categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`) — это **имена слоёв**, а не источников данных страницы (иначе валидатор отдаёт `missing-vote-binding` / `missing-vote-source`).
+- [ ] У `Timer` задана `options.targetDate` (ISO-дата или подстановка), а пороги `warningBefore` / `dangerBefore` — в формате `"ЧЧ:ММ:СС"` или числом секунд (иначе `missing-timer-target` / `invalid-timer-value`).
 - [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` (и `tabId` действий `selectTab`) резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 - [ ] Реестры `actions` корня/страницы/модалки содержат определения с `id`, `type`, `options`; привязки визуальных узлов содержат ссылки или inline-вызовы. `actions` не помещены в `options`.

@@ -135,6 +135,7 @@ Slot-id обязателен у каждого элемента — без не�
 | `StructuredDataContainerConfig` | `ContainerTemplate.StructuredData` |
 | `TabsContainerConfig` | `ContainerTemplate.Tabs` |
 | `TaskContainerConfig` | `ContainerTemplate.Task` |
+| `TimerContainerConfig` | `ContainerTemplate.Timer` |
 | `TitleContainerConfig` | `ContainerTemplate.Title` |
 | `TwoColumnContainerConfig` | `ContainerTemplate.TwoColumn` |
 | `UploadContainerConfig` | `ContainerTemplate.Upload` |
@@ -186,7 +187,7 @@ const child: StrictConfigContainerChild = {
 
 | Миксин | Поля | Кто подмешивает | Зачем |
 |---|---|---|---|
-| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `ControlsGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `TwoColumn`, `Upload`, `Vote` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
+| `ContainerBoxOptions` | `width`, `height`, `overflow` (все — `Pick<ConfigOptions, ...>`) | контейнеры, проходящие через `getWrapperSizeStyle`: `Attachment`, `Camera`, `Chart`, `ContainersGroup`, `ControlsGroup`, `DataSource`, `DataSourceProgress`, `Filters`, `GridRow`, `Image`, `Layers`, `OneColumn`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `Timer`, `TwoColumn`, `Upload`, `Vote` | размерная модель корневой обёртки — единая для всех контейнеров; следующее размерное свойство добавляется в одном месте |
 | `NumericSizeOptions` | `width?: number`, `height?: number` | `ElementChart`, `ElementSvg`, `ElementControl` (только `width`) | размеры, которые обязаны остаться **числом в пикселях**: значение уходит в вычисления геометрии графика или в HTML-атрибут, где `"100%"` не работает |
 
 `ContainerBoxOptions` даёт `CssSize` (число = px, строка = любое CSS-значение); `"100%"` включает fill-режим обёртки (см. [[utils|`getWrapperSizeStyle`]]). `NumericSizeOptions`, наоборот, сужает те же имена до `number` — поэтому у `ElementChart` в таблице ниже `width`/`height` числовые, а у `ChartContainer` — `CssSize`.
@@ -254,10 +255,11 @@ const child: StrictConfigContainerChild = {
 | `ControlsGroupContainer` | `ControlsGroup` | `size`, `gap`, `joinRadius`, `background`, `underline`, `iconSize`, `stretch`, `button`, `activeButton` + `ContainerBoxOptions` (дети — `ControlsGroupContainerChild`: `ControlsGroupButtonChild` / `ControlsGroupFilterChild` (`type`: `ControlsGroupFilterType` = `dropdown`/`text`/`chips`/`checkbox`) / `ControlsGroupUploaderChild`; опции ребёнка — `ControlsGroupItemOptions`: `grow`, `withDivider`, `width`; у кнопки ещё `active`) |
 | `TabsContainer` | `Tabs` | `TabsContainerOptions` = `ControlsGroupContainerOptions` (+ `TabChild`: `type?: "button"`, `options` — `TabOptions` = `ControlsGroupButtonOptions`, `actions`) |
 | `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` (дети — `TaskContainerChild`: слот `button` + `title`/`titleIcon`) |
+| `TimerContainer` | `Timer` | `targetDate`, `warningBefore`, `dangerBefore`, `compact` + `ContainerBoxOptions` |
 | `TitleContainer` | `Title` | `simple`, `downloadById`, `align` |
 | `TwoColumnContainer` | `TwoColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
 | `UploadContainer` | `Upload` | `expandable`, `expanded` + `ContainerBoxOptions` |
-| `VoteContainer` | `Vote` | `categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`, `expandable`, `expanded` + `ContainerBoxOptions` (+ на узле: `attributeName` — атрибут объекта с `question_id`) |
+| `VoteContainer` | `Vote` | `categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`, `barHeight`, `barColor`, `expandable`, `expanded` + `ContainerBoxOptions` (+ на узле: `attributeName` — атрибут объекта с `question_id`) |
 
 ### Шапки
 
@@ -357,7 +359,7 @@ const RoundedBackgroundContainerTyped =
 
 Читает набор [[utils#isRootOwningContainer|`isRootOwningContainer`]], а результат уходит флагом `hasOwnRoot` в [[utils#formatElementValue|`formatElementValue`]]. Неизвестный шаблон считается владельцем корня: он резолвится в реестровый `default` (= `ContainersGroupContainer`), а тот корнем владеет.
 
-Сейчас в наборе: `ContainersGroup`, `ControlsGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `Upload`, `Vote`.
+Сейчас в наборе: `ContainersGroup`, `ControlsGroup`, `GridRow`, `Attachment`, `Camera`, `Chart`, `DataSource`, `DataSourceProgress`, `Edit`, `Filters`, `Image`, `Layers`, `Slideshow`, `StructuredData`, `Tabs`, `Task`, `Timer`, `Upload`, `Vote`.
 
 Остальных там нет намеренно: `DefaultAttributes`, `EditGroup` и `OneColumn`/`TwoColumn` в режиме `attributesToRender` возвращают **несколько** корней, а `Title`, `Icon`, `Divider`, `AddFeature`, `ExportPdf`, `Progress`, `RoundedBackground` ставят `id`/`style` руками — для них обёртка остаётся единственным одиночным узлом. Переводишь очередной контейнер на `useContainerRoot` — добавь его в набор.
 
@@ -416,8 +418,10 @@ interface BgImageLayerProps {
 | `containers/DataSourceContainer/constants.ts` | константы раскладки плиток источника |
 | `containers/TaskContainer/types.ts` | `TaskButtonProps` (`title`, `icon?`, `status`, `statusColors?`, `isWaiting`, `isDisabled`, `onClick`) — пропсы кнопки запуска; `TaskSlotButtonProps` — то же + `type?`, `buttonConfig: TaskButtonChild` для кнопки из слота `button` |
 | `elements/ElementButton/constants.ts` | `ELEMENT_BUTTON_APPEARANCE_KEYS` — опции внешнего вида, переводящие кнопку-ссылку на `IconButton`; `ELEMENT_BUTTON_COLOR_FLAGS`; `DEFAULT_ELEMENT_BUTTON_VARIANT` (`"solid"`) |
-| `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps`; `VoteButtonSlotId` — `submitButton` / `createButton` / `saveButton` / `deleteButton`, `VoteButtonConfigs` — опциональные конфиги этих кнопок, `VoteButtonProps` — тип виджета и конфиги кнопок |
-| `containers/VoteContainer/constants.ts` | имена атрибутов таблиц голосования и лимиты формы |
+| `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps`; `VoteButtonSlotId` — `submitButton` / `createButton` / `saveButton` / `deleteButton`, `VoteButtonConfigs` — опциональные конфиги этих кнопок, `VoteButtonProps` — тип виджета и конфиги кнопок; `VoteVariantView` (`barHeight`, `barColor`, `multiline`, `textStyle`, `amountStyle`) — вид строк вариантов из опций и слотов `variantText` / `variantAmount`, `VoteVariantViewProps`, `VoteVariantItemProps` — пропсы строки варианта |
+| `containers/VoteContainer/constants.ts` | имена атрибутов таблиц голосования и лимиты формы; slot-id `VOTE_VARIANT_TEXT_SLOT_ID` / `VOTE_VARIANT_AMOUNT_SLOT_ID`; умолчания по макету `VOTE_BAR_HEIGHT` (8), `VOTE_BAR_COLOR` (`#f9c236`), `VOTE_ACCEPTED_COLOR` (`#93c93b`), `VOTE_QUESTION_MIN_HEIGHT` (64) |
+| `containers/TimerContainer/types.ts` | `TimerStatus` (`"normal" \| "warning" \| "danger"`), `TimerStatusColors` (`color`, `background`), `TimerTimes` — дата окончания и пороги в мс после подстановок (`targetTime`, `warningMs`, `dangerMs`; `null` — не задано или не читается) |
+| `containers/TimerContainer/constants.ts` | `TIMER_PLACEHOLDER` (`"--:--:--"`), `TIMER_ALIAS_SLOT_ID`, `TIMER_TICK_OFFSET_MS` — запас после границы секунды, регулярки порога (`ЧЧ:ММ:СС` и число секунд), `TIMER_STATUS_COLORS` — цвета оранжевого и красного состояний по макету |
 | `elements/ElementTable/types.ts` | `SortDirection`, `TableSort` (одна колонка за раз, `null` — исходный порядок), `CellMode` (`"idle" \| "focused" \| "editing"`), `TableCellProps`, `TableHeadRowProps`, `TableColumnResizerProps`, `AttachmentsCellState` — состояние колонки вложений целиком (список, вид поп-апа, галерея, загрузка, удаление) и `AttachmentsCellPopupProps` |
 | `elements/ElementTable/constants.ts` | геометрия ячейки и шапки, `ATTACHMENTS_INLINE_LIMIT` / `ATTACHMENTS_SHOWN_ITEMS` / `ATTACHMENTS_VIEW_MODE`, `EMPTY_LIST_OPTION` (`{ text: "—", value: "" }` — пустой пункт списка, снимающий значение) |
 | `headers/constants.ts` | `FEATURE_ICON_SLOT_ID` (`"featureIcon"`), `FEATURE_ICON_SIZE` (42) / `FEATURE_ICON_BIG_SIZE` (72, при `bigFeatureIcon`) — размер иконки объекта в px, `HEADER_TEXT_LINES` (1) / `HEADER_MULTILINE_TEXT_LINES` (2, при `multilineTitle` / `multilineDescription`) — см. [[headers#Иконка объекта, раскладка и строки текста\|Шапки]] |

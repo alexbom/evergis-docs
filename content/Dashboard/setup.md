@@ -301,6 +301,7 @@ import { replaceObject } from "find-and";
 | `validateStructuredDataLists` | Колонки со списком значений и многострочным вводом | `invalid-control`, `orphan-option` |
 | `validateStructuredDataSaveChain` | Цепочка `event: "save"`: источник-слой у `saveToLayer`, запись в свой фильтр | `save-to-layer-without-layer`, `save-chain-skips-filter` |
 | `validateVote` | Свойство `attributeName` и четыре слоя `Vote` | `missing-vote-binding`, `missing-vote-source` |
+| `validateTimer` | `Timer`: задана `targetDate`; литеральная дата читается, пороги `warningBefore`/`dangerBefore` — `"ЧЧ:ММ:СС"` или число секунд. Значения с подстановкой (`%`, `{`, `$`, `#`) не проверяются — они известны только в рантайме | `missing-timer-target`, `invalid-timer-value` |
 | `validateModalDataSources` | Источник модалки с именем, которое уже есть у страницы или корня: его перекрывает чужой, ленивой загрузки нет | `modal-datasource-shadowed` |
 | `validateModalHeader` | `options.header.bgPosition` без слота `bgImage` у модалки | `orphan-option` |
 | `validateCapabilities` | Секция `capabilities` корня: опечатка в имени или строка `"false"` ничего не отключают (см. [[concepts#Отключение функций проекта — `capabilities`\|capabilities]]). Набор ключей зависит от цели `validateDashboardConfig(config, target)`: `"dashboard"` (по умолчанию) или `"featureCard"` | `invalid-capabilities` |

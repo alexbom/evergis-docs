@@ -547,6 +547,7 @@ interface ConfigLayer {
 | `ChartContainer` | `alias`, `chart`, `legend`, `title`, `titleIcon` |
 | `TwoColumnContainer` | `alias`, `value`, `units`, `icon`, `tooltip`, `modal` |
 | `OneColumnContainer` | `alias`, `value`, `units`, `tooltip`, `modal` |
+| `RoundedBackgroundContainer`, `ProgressContainer` | `icon`, `alias`, `value`, `units` (обычно как внутренний шаблон `DataSource`/`DataSourceProgress`) |
 | `CameraContainer` | `alias`, `value` |
 | `IconContainer` | `icon`, `alias`, `link`, `text` |
 | `ImageContainer` | `alias`, `text`, `button`, `image` |
@@ -565,7 +566,8 @@ interface ConfigLayer {
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
 | `TaskContainer` | `button` — кнопка запуска `type: "button"` (`TaskButtonChild`): вид — из слота, поведение и статусы — от контейнера; без слота — встроенная кнопка |
 | `ExportPdfContainer` | `button` — `type: "button"`; без слота кнопка экспорта не рисуется |
-| `VoteContainer` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — `type: "button"`; без соответствующего слота кнопка не рисуется. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
+| `VoteContainer` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — `type: "button"`; без соответствующего слота кнопка не рисуется. `variantText`, `variantAmount` — без `type` и `value`, только оформление (`style`) текста варианта и числа голосов, у `variantText` ещё `options.multiline`. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
+| `TimerContainer` | `alias` — подпись; время рисует сам контейнер. Обязательна опция `targetDate` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |
 | `DashboardDefaultHeader` | `title`, `icon`, `image` (логотип; при отсутствии — иконка `logo` и `options.title` страницы) |
