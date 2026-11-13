@@ -617,6 +617,8 @@ const tabIds = getTabIds(config.children); // ["tab_info", "tab_docs"]
 
 `ConfigStringSources`: `widget` (`%`), `dashboard` (`$dashboard:` — фильтры и датасорсы дашборда), `attributes`, `layerInfo`, `geometry`, `extent`, `zoomLevel`, `projectName`, `projectAlias`, `taskResponse`, `event`, `parameters`. Для виджета их собирает [[hooks#useConfigStringSources|хук useConfigStringSources]]. Новые префиксы экранируются обратной косой чертой; фрагмент URL `/report#section` остаётся литералом. Одиночный токен сохраняет тип, интерполяция зависит от режима резолвера.
 
+**Типы** (`utils/configString/types.ts`, экспортируются из `utils`): `ConfigToken` — union `ConfigFilterToken` (`kind: "filter"`, `scope: ConfigFilterScope` = `"widget"` | `"dashboard"`, `name`, `prop?`, `raw`) | `ConfigDataSourceToken` | `ConfigCardToken` | `ConfigAttributeToken` | `ConfigActionToken`; `ConfigStringSegment` — литерал или токен (результат `tokenizeConfigString`); `ConfigTokenMode` — `"value"` | `"condition"`; `ConfigSystemFormat` — `"quoted"` | `"number"`, как системное значение вставляется в условие; `ResolvedConfigToken` — результат `resolveConfigToken`. `ConditionEqlParams` (`eqlParameters?`, `layerParams?`) — EQL-параметры слоя для `formatConditionString` и `formatConditionSection`. Префиксы — константы `FILTER_PREFIX` (`%`), `PROVIDER_PREFIX` (`$`) и enum `ProviderPrefix` (`card`, `dashboard`).
+
 ---
 
 ### applyTreeFilterToCondition

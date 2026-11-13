@@ -81,7 +81,7 @@ const downloadByIndex = useAttachmentDownload(items);
 | `elementConfig` | `ConfigContainerChild?` |
 | `valueOverride` | `unknown?` |
 
-**Возвращает:** `{ items: Attachment[], attributeName?: string, rawValue: unknown }`
+**Возвращает:** `UseAttachmentItemsResult` — `{ items: Attachment[], attributeName?: string, rawValue: unknown }`
 
 Если `options.relatedDataSource` задан — берёт features из источника через `attachmentsFromFeatures(features, mapping)` (mapping в `controls[0]`). Иначе парсит сырое значение через `parseAttachments(rawValue)`.
 
@@ -112,14 +112,14 @@ const { items } = useAttachmentItems({ type, elementConfig });
 
 **Назначение:** Вид списка вложений — плитка или строки, и сколько файлов из списка показано. Общий для [[containers#AttachmentContainer|контейнера вложений]] и колонки вложений таблицы: список у них один и тот же компонент, и считать видимое дважды незачем.
 
-**Параметры:** объект
+**Параметры:** объект `UseAttachmentsViewParams`
 | Параметр | Тип | Описание |
 |---|---|---|
 | `items` | `Attachment[]` | Полный список файлов |
 | `limit` | `number?` | Сколько показывать сразу. Не задан — показываются все |
 | `initialViewMode` | `AttachmentViewMode?` | Вид при открытии, по умолчанию `"grid"` |
 
-**Возвращает:** `{ visibleItems, hiddenCount, hasMore, showMore, setShowMore, viewMode, setViewMode }`
+**Возвращает:** `AttachmentsView` — `{ visibleItems, hiddenCount, hasMore, showMore, setShowMore, viewMode, setViewMode }`
 
 Предел приходит числом, а не опциями конфига: у контейнера он считается из `shownItems`/`otherItems` через [[utils|`getShownItemsLimit`]], а у колонки таблицы опций вида нет вовсе — там он зашит константой.
 
@@ -239,7 +239,7 @@ return (
 | `dataSources` | `ConfigDataSource[]` | Источники данных страницы |
 | `relatedAttributes` | `ConfigRelatedDataSource[]` | Связанные источники элемента `chart` |
 
-**Возвращает:** `{ axes, strokeColors, leftAxisAttribute, rightAxisAttribute }`
+**Возвращает:** `{ axes, strokeColors, leftAxisAttribute, rightAxisAttribute }`. Тип атрибута оси экспортируется как `ChartAxisAttribute` (тип `leftAxisAttribute`).
 
 ---
 
@@ -1160,7 +1160,9 @@ return <div role={binding.role} tabIndex={binding.tabIndex}
 
 **Параметры:** `type: WidgetType`.
 
-**Возвращает:** `useWidgetActions` — `{ start(actions, scopes, context, sourceKey, scopeSignal?, handlers?) }`, `start` возвращает `Promise<ActionRunResult> | undefined` (`undefined` — виджет неактивен или область закрыта), `handlers` — шаги, которые исполняет запустивший цепочку узел; `useActionContext` — `ActionExecutionContext | undefined`; `useActionScope` — `{ scopes, key, signal? } | undefined`. `scopes` располагаются от внешнего реестра к внутреннему.
+**Возвращает:** `useWidgetActions` — `{ start(actions, scopes, context, sourceKey, scopeSignal?, handlers?) }`, `start` возвращает `Promise<ActionRunResult> | undefined` (`undefined` — виджет неактивен или область закрыта), `handlers` — шаги, которые исполняет запустивший цепочку узел; `useActionContext` — `ActionExecutionContext | undefined`; `useActionScope` — `ActionScopeValue` (`{ scopes, key, signal? }`) или `undefined`. `scopes` располагаются от внешнего реестра к внутреннему. Исполнитель хук берёт из `WidgetActionsContext` (`Partial<Record<WidgetType, WidgetActionsValue>>`), область — из `ActionScopeContext`.
+
+Узел, на котором стоят actions, описывает `ActionNodeValue` (`path`, `recordId?`, `event?`, `attributes?`, `disabled?`). Его задаёт `ActionNodeProvider` — [[utils#getRenderElement|getRenderElement]] оборачивает им контейнеры, вложенный провайдер дописывает свой `path` к родительскому и наследует остальные поля, — а читает `useActionNode()`.
 
 ```ts
 const context = useActionContext(type);

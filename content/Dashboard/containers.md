@@ -79,7 +79,7 @@
 
 **Дети:** кнопки с уникальными `id` и явным `type: "button"`. Без таких детей кнопки не рисуются. Подпись берётся из `value`, а при `null` или отсутствии значения — из `options.title`. Поддерживаются подстановки в обеих подписях, корневой `style` кнопки и общие опции `noMargin` / `withDivider`.
 
-**Опции дочерних элементов (`AddFeatureButtonOptions`):** все [[elements#ElementButton|опции button]] (`variant`, `color`, цветовые флаги, `size`, `shape`, `radius`, `icon`, `iconRight`, `iconTop`) плюс:
+**Опции дочерних элементов (`AddFeatureButtonOptions`):** все [[elements#ElementButton|опции button]] (`variant`, `bgColor`, `fontColor`, цветовые флаги, `size`, `shape`, `radius`, `icon`, `iconRight`, `iconTop`, `width`) плюс:
 
 | Опция | Тип | Описание |
 |---|---|---|
@@ -526,7 +526,7 @@
 |---|---|---|
 | `active` | кнопка | Переопределение набора «нажатая» для этой кнопки |
 | `grow` | любой | Забрать всё свободное место строки (поиск в тулбаре) |
-| `width` | поле | Ширина фильтра или загрузки. Без `width` и `grow` — 12.5rem |
+| `width` | любой | Ширина элемента ряда: у фильтра и загрузки без `width` и `grow` — 12.5rem, у кнопки без `width` — по содержимому. Число — пиксели, строка — CSS. Ширину держит ячейка ряда; в меню свёрнутых кнопок не действует |
 | `withDivider` | любой | Вертикальная черта после элемента |
 | `disabled` | кнопка | Кнопка недоступна: клик и actions не срабатывают |
 
@@ -1607,7 +1607,9 @@
 - цвета: обычное состояние — `palette.textPrimary` на `palette.element` (работает и в тёмной теме), оранжевый `#ff9d00`, красный `#ff6933`; подложка акцентных состояний — тот же цвет с прозрачностью 6%. Цифры моноширинные (`tabular-nums`), чтобы время не дёргалось по ширине;
 - подстановка `{атрибут}` внутри строки `DataSource` берёт атрибут этой строки, вне строки — атрибут объекта виджета.
 
-Корнем владеет сам (`useContainerRoot`), поэтому входит в `ROOT_OWNING_TEMPLATES`. Логика — хуки `useTimerTimes` (подстановки и разбор опций), `useCountdown` (тик) и `useTimerContainer` (`TimerContainer/hooks/`); разбор и формат — `parseTimerDate`, `parseTimerDuration`, `formatTimerDuration`, `getTimerStatus` (`TimerContainer/utils/`).
+Корнем владеет сам (`useContainerRoot`), поэтому входит в `ROOT_OWNING_TEMPLATES`. Логика — хуки `useTimerSources` (источники подстановок: атрибуты строки `DataSource` или объекта виджета), `useTimerTimes` (подстановки и разбор опций), `useCountdown` (тик) и `useTimerContainer` (`TimerContainer/hooks/`); разбор и формат — `parseTimerDate`, `parseTimerDuration`, `formatTimerDuration`, `getTimerStatus` (`TimerContainer/utils/`).
+
+Таймер можно поставить и внутрь [[#VoteContainer|голосования]] — слотом `timer`: там он стоит под вариантами ответа и при пустой дате не рисуется вовсе.
 
 ```tsx
 // крупный блок, дата литералом
@@ -1759,6 +1761,21 @@
 
 Нет слота — строка выглядит по макету. `conditions` слота работают как у остальных скалярных слотов: условная видимость скрывает текст или число.
 
+**Таймер — слот `timer`.** Это вложенный контейнер [[#TimerContainer|Timer]] (`templateName: "Timer"`) со всеми его опциями и слотом `alias`. Голосование рисует его под вариантами ответа на всех экранах с результатами: на экране голосования — над кнопкой «Отправить ответ», после голосования — над плашкой «Ваш ответ принят», у неавторизованного — над подписью про авторизацию. В форме создания и правки таймера нет. Узел с `id: "timer"` другого шаблона не рисуется.
+
+| Дата окончания после подстановок | Что видно |
+|---|---|
+| ISO-дата | отсчёт, как у отдельного таймера |
+| пусто (атрибут объекта не заполнен, `targetDate` не задан) | таймера нет совсем, без пустого места |
+| не читается или подстановка не разрешилась (опечатка в имени атрибута) | `--:--:--` — ошибка конфига остаётся видна |
+
+Скрытие при пустой дате — правило только этого слота: отдельный таймер при пустой дате показывает `--:--:--`. Таймер только показывает время: после `00:00:00` голосование продолжает принимать ответы.
+
+```tsx
+{ id: "timer", templateName: "Timer", options: { targetDate: "{ends_at}", warningBefore: "24:00:00" },
+  children: [{ id: "alias", type: "text", value: "До завершения голосования" }] }
+```
+
 **Свойство узла:** `attributeName` — имя атрибута объекта, в котором лежит `question_id` голосования. Живёт **на самом узле**, а не в `options`, как у элементов, привязанных к атрибуту. Обязательно: без него контейнеру не за что зацепиться. Без `attributeName` или без любого из четырёх слоёв ниже контейнер вместо экрана показывает ошибку блока (`DataSourceError`).
 
 **Опции:**
@@ -1835,7 +1852,13 @@ children: [
     { id: "submitButton", type: "button", value: "Отправить ответ", options: { variant: "outline", size: "large" } },
     { id: "createButton", type: "button", value: "Создать голосование", options: { icon: "plus" } },
     { id: "saveButton", type: "button", value: "Сохранить", options: { shape: "round" } },
-    { id: "deleteButton", type: "button", value: "Удалить голосование", options: { error: true, variant: "ghost" } }
+    { id: "deleteButton", type: "button", value: "Удалить голосование", options: { error: true, variant: "ghost" } },
+    {
+      id: "timer",
+      templateName: "Timer",
+      options: { targetDate: "{ends_at}" },
+      children: [{ id: "alias", type: "text", value: "До завершения голосования" }]
+    }
   ]
 }
 ```

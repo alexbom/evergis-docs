@@ -44,7 +44,7 @@
 
 Подписи кнопок AddFeature, ExportPdf, Vote и Task поддерживают стандартные [[concepts#Подстановки в строках конфига|подстановки]] (`%project`, `$dashboard:`, `{attr}`, …); внутри строки DataSource атрибуты берутся из текущей записи.
 
-**Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
+**Типы:** `type = "button"` · `ElementButtonOptions` (`ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider" | "width">`) · `ElementButtonProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Props:** `ContainerProps` (без `elementConfig`/`onClick`) + `elementConfig?: ElementButtonConfig` + **`ElementButtonOverrides`** — поведение, которое передаёт контейнер-хозяин:
 
@@ -52,7 +52,7 @@
 |---|---|---|
 | `title` | `string` | Текст кнопки; перекрывает `value` и `options.title` |
 | `icon` | `ReactNode` | Готовая иконка (например, спиннер ожидания) |
-| `color` | `string` | Цвет; перекрывает `options.color` |
+| `bgColor` | `string` | Цвет кнопки (например, цвет статуса у Task); перекрывает `options.bgColor` |
 | `disabled` | `boolean` | Кнопка недоступна; перекрывает `options.disabled` |
 | `active` | `boolean` | Нажатый вид `IconButton` — его передаёт группа, когда действия кнопки действуют, а набора «нажатая» нет |
 | `onClick` | `VoidFunction` | Обработчик; с ним кнопка рисуется и без ссылки в атрибуте |
@@ -66,13 +66,15 @@
 | `attributeName` | `string` | Имя атрибута, содержащего URL для открытия |
 | `actions` | `ConfigActionInvocation[]` | Click-вызовы на узле, вне `options`; кнопка с Actions видна и без URL |
 
-**Опции (`options`):** поля [[options#ConfigButtonOptions|ConfigButtonOptions]] + `icon`, `radius`, `title`, `noMargin`, `withDivider`.
+**Опции (`options`):** поля [[options#ConfigButtonOptions|ConfigButtonOptions]] + `icon`, `radius`, `title`, `noMargin`, `withDivider`, `width`.
 
 | Опция | Тип | Описание |
 |---|---|---|
 | `variant` | `"solid" \| "soft" \| "outline" \| "ghost"` | Заливка и обводка. По умолчанию `"solid"` |
-| `color` | `string` | Произвольный CSS-цвет; перекрывает флаги цвета |
-| `primary`, `secondary`, `error`, `violet` | `boolean` | Флаги цвета (приоритет в этом порядке). Без `color` и флагов — `primary`; нейтральная — `primary: false` |
+| `bgColor` | `string` | Цвет кнопки — произвольный CSS-цвет; перекрывает флаги цвета. У `solid` — заливка, у `soft` — подложка, у `outline` — рамка (при наведении кнопка заливается этим цветом), у `ghost` — текст и подложка наведения. Оттенки наведения и нажатия вычисляются |
+| `fontColor` | `string` | Цвет текста и иконки (шрифтовой и SVG по адресу) — во всех состояниях, кроме недоступного: недоступная кнопка серая. Держится и при наведении, поэтому у `outline` должен читаться и на заливке `bgColor` |
+| `width` | `CssSize` | Ширина кнопки: число — пиксели, строка — CSS-значение (`"100%"`, `"8rem"`). Высота — из `size`. Перекрывает `width` из `style`, переданного контейнером. С `iconTop` подпись переносится по словам внутри ширины. В ряду [[containers#ControlsGroupContainer\|ControlsGroup]] ширину держит ячейка ряда, в меню свёрнутых кнопок опция не действует |
+| `primary`, `secondary`, `error`, `violet` | `boolean` | Флаги цвета (приоритет в этом порядке). Без `bgColor` и флагов — `primary`; нейтральная — `primary: false` |
 | `size` | `"small" \| "medium" \| "large" \| "xlarge"` | Высота 24 / 32 / 40 / 48; по умолчанию `"medium"` |
 | `shape` | `"square" \| "round"` | Скругление по размеру / пилюля-круг |
 | `radius` | `number` | Скругление вручную, px |
@@ -88,7 +90,9 @@
 - Приоритет подписи: внешний prop `title` → `value` → `options.title`. Явное `value: ""` сохраняет кнопку без подписи, `value: 0` выводится как «0».
 - Общий рендерер применяет корневой `style`, `noMargin` и `withDivider`. Для нативных слотов AddFeature, ExportPdf, Vote и Task это делает [[components#ContainerButton (internal)|ContainerButtonView]]; без явных настроек обёртка не добавляется, раскладка сохраняется.
 - Приоритет клика: обработчик Actions → внешний `onClick` → `window.open(url)` из `attributeName`. Без обработчика и строковой ссылки кнопка **не рендерится**.
-- Без обработчика и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `color`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`, `iconTop`) — прежняя кнопка-ссылка `ImageContainerButton`.
+- Без обработчика и без опций внешнего вида (`ELEMENT_BUTTON_APPEARANCE_KEYS`: `variant`, `bgColor`, `fontColor`, флаги цвета, `size`, `shape`, `radius`, `icon`, `iconRight`, `iconTop`) — прежняя кнопка-ссылка `ImageContainerButton`. `width` к опциям вида не относится и действует на обе кнопки.
+- Ширина и `fontColor` ставятся inline-стилем кнопки (`getElementButtonStyle`) поверх `style` контейнера; иконка наследует цвет текста.
+- Прежнее имя цвета `color` не поддерживается: кнопка с ним рисуется цветом по умолчанию, валидатор client-new отдаёт ошибку `removed-option`.
 - Если задана хоть одна опция внешнего вида или есть обработчик Actions/`onClick` — `IconButton` из `@evergis/uilib-gl` (пропсы собирает `getElementButtonProps` из `elements/ElementButton/utils/`).
 
 ```tsx
@@ -116,6 +120,8 @@
 ## ElementCamera
 
 **Назначение:** Галерея снимков с камеры видеонаблюдения. Асинхронно подгружает снимки и таймлайн.
+
+**Типы:** `type = "camera"` · `ElementCameraOptions` · `ElementCameraProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Props (`CameraAttributeProps`):**
 
@@ -271,6 +277,8 @@
 
 **Назначение:** Теги-чипы, разобранные из строки атрибута по разделителю. Используется для отображения категорий, тегов, статусов.
 
+**Типы:** `type = "tags"` (не `"chips"`) · `ElementChipsOptions` · `ElementChipsProps`. См. [[types#Элементы|сводную таблицу]].
+
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
 | Поле | Тип | Описание |
@@ -299,6 +307,8 @@
 ## ElementControl
 
 **Назначение:** Управляющий элемент для редактирования атрибута объекта (только в FeatureCard). Загружает варианты из источника данных.
+
+**Типы:** `type = "control"` · `ElementControlOptions` · `ElementControlProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Props:** `ContainerProps` (всегда использует `WidgetType.FeatureCard`)
 
@@ -339,6 +349,8 @@
 
 **Назначение:** Иконка из библиотеки `@evergis/uilib-gl`, из значения атрибута или первое изображение из атрибута-вложения.
 
+**Типы:** `type = "icon"` · `ElementIconOptions` · `ElementIconProps`. См. [[types#Элементы|сводную таблицу]].
+
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
 | Поле | Тип | Описание |
@@ -377,6 +389,8 @@
 ## ElementImage
 
 **Назначение:** Изображение из атрибута объекта, файлового ресурса, произвольного URL или вложения. Загружает с авторизацией через [[hooks|хук]] `useFetchImageWithAuth`.
+
+**Типы:** `type = "image"` · `ElementImageOptions` · `ElementImageProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
@@ -428,6 +442,8 @@ SVG-ресурс отображается как обычная картинка
 
 **Назначение:** Легенда чарта. Отображает список элементов с цветовой меткой и подписью. Берёт данные из `useChartData` по `chartId`.
 
+**Типы:** `type = "legend"` · `ElementLegendOptions` · `ElementLegendProps`. См. [[types#Элементы|сводную таблицу]].
+
 **Props:** `ContainerProps` + `element: ConfigContainerChild`
 
 **Опции:**
@@ -460,6 +476,8 @@ SVG-ресурс отображается как обычная картинка
 
 **Назначение:** Ссылка из значения атрибута. Внешние ссылки (`http...`) открываются в новой вкладке, внутренние — через `LocalLink` (popover со ссылкой и копированием).
 
+**Типы:** `type = "link"` · `ElementLinkOptions` · `ElementLinkProps`. См. [[types#Элементы|сводную таблицу]].
+
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
 | Поле | Тип | Описание |
@@ -484,6 +502,8 @@ SVG-ресурс отображается как обычная картинка
 ## ElementMarkdown
 
 **Назначение:** Рендеринг Markdown-контента с поддержкой раскрытия по длине. Полезен для описаний объектов, инструкций.
+
+**Типы:** `type = "markdown"` · `ElementMarkdownOptions` · `ElementMarkdownProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
@@ -568,7 +588,7 @@ SVG-ресурс отображается как обычная картинка
 | `bgPosition` | `"left" \| "right" \| "top" \| "bottom"` | Якорь картинки `bgImage` (`object-position`), по умолчанию центр. При `cover` в низкой шапке заметны в основном `top`/`bottom`; «картинка прижата к краю» — `fit: "contain"` у слота + `bgPosition: "right"`. Без слота `bgImage` — предупреждение валидатора `orphan-option` |
 | `overlay` | `string` | CSS `background` поверх картинки: цвет или градиент. Работает и без картинки (заливка шапки) |
 
-**Конфигурация модалки (`config.modals[]`, `ConfigModal`):**
+**Конфигурация модалки (`config.modals[]`, `ConfigModal`; поля `options.*` — `ConfigModalOptions`):**
 
 | Поле | Тип | Описание |
 |---|---|---|
@@ -580,7 +600,7 @@ SVG-ресурс отображается как обычная картинка
 | `options.header` | `ConfigModalHeaderOptions` | Фон шапки — см. выше |
 | `dataSources` | `ConfigDataSource[]` | Источники только этой модалки — грузятся при открытии, а не со страницей |
 | `actions` | `ConfigActionDefinition[]` | Локальный реестр определений, перекрывающий одноимённые Actions страницы/корня |
-| `children` | `ConfigContainerChild[]` | Содержимое модалки (рендерится через `ContainerChildren`) и слоты `titleIcon` / `bgImage` |
+| `children` | `ConfigModalContentItem[]` | Содержимое модалки (рендерится через `ContainerChildren`) и слоты `titleIcon` / `bgImage`. Элемент — узел конфига (`ConfigContainerChild`) или ссылка `ConfigModalContentRef` (`{ containerId }`) на существующий узел: [[utils#getRenderElement\|getRenderElement]] рисует найденный по `id` узел. Ссылкой считается объект без `templateName`, `type` и `children` |
 
 ```tsx
 // Кнопка-открытие в children контейнера
@@ -675,6 +695,8 @@ modals: [
 
 **Назначение:** SVG-изображение, загружаемое по URL. Поддерживает три источника URL: атрибут объекта, иконка слоя, статическое значение.
 
+**Типы:** `type = "svg"` · `ElementSvgOptions` (`fontColor` + `NumericSizeOptions`) · `ElementSvgProps`. См. [[types#Элементы|сводную таблицу]].
+
 **Props:** `ContainerProps` + опционально `layerInfo`, `attributes`
 
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
@@ -704,6 +726,8 @@ modals: [
 ## ElementTable
 
 **Назначение:** Представление структурированных данных таблицей — единственный поддерживаемый вид для [[containers#StructuredDataContainer|StructuredDataContainer]]. Данные, схему и колбэки правки берёт из контекста родительского контейнера, поэтому вне него не рендерится.
+
+**Типы:** `type = "table"` · `ElementTableOptions` · `ElementTableProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Props:** `ElementTableProps` (`ContainerProps` с `elementConfig: ElementTableConfig`)
 
@@ -789,6 +813,8 @@ modals: [
 
 **Назначение:** Иконка с всплывающей подсказкой при наведении. Текст берётся из атрибута или статического значения.
 
+**Типы:** `type = "tooltip"` · `ElementTooltipOptions` · `ElementTooltipProps`. См. [[types#Элементы|сводную таблицу]].
+
 **Поля конфига (корневой уровень `ConfigContainerChild`):**
 
 | Поле | Тип | Описание |
@@ -811,6 +837,8 @@ modals: [
 ## ElementUploader
 
 **Назначение:** Компонент загрузки файлов на сервер. После загрузки может обновить значение фильтра для перезапроса данных.
+
+**Типы:** `type = "uploader"` · `ElementUploaderOptions` · `ElementUploaderProps`. См. [[types#Элементы|сводную таблицу]].
 
 **Опции:**
 

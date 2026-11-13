@@ -108,7 +108,8 @@ Action-подстановки `#result`, `$event` и `$params` запрещен�
 | `resolveConditionalFormatting(node, sources, isReady = true)` | Возвращает дерево для рендера, сохраняя исходный authoring-конфиг. При `isReady = false` вычисляет только правила, чьи данные уже получены |
 | `isConditionallyVisible(node?)` | По умолчанию true; false только при `visibility === false` |
 | `getConditionalVisibilityStyle(node?)` | `{ display: "none" }` для скрытого узла, иначе undefined |
-| `validateDashboardConditionalFormatting(config)` | Общая проверка выражений и допустимого payload без React-рендера |
+| `validateDashboardConditionalFormatting(config)` | Общая проверка выражений и допустимого payload без React-рендера. Обходит узлы кадрами `ConditionalValidationFrame` (`node`, `path`, `ownerId?`) |
+| `isConditionalOptionLiteral(node, key)` | `true`, если опция `key` пришла из `options` сработавшей ветки `conditions`. `resolveConditionalFormatting` помечает такие ключи символом (в JSON он не попадает), а `resolveElementStrings` их не подставляет — отсюда правило «override — статический payload» |
 
 `ConfigContainer`, `ConfigContainerChild`, `ConfigContainerHeader`, `ConfigModal` поддерживают правила. Per-component типы и [[types#Дискриминированный union `DashboardChild`|DashboardChild]] проверяют override по конкретному набору опций компонента.
 

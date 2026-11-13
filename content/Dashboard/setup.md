@@ -292,15 +292,25 @@ import { replaceObject } from "find-and";
 
 **useValidateDashboardConfig** вызывается клиентским DashboardProvider и в dev-сборке проверяет реальный `projectInfo.content.dashboardConfiguration` через `validateDashboardConfig`; подменный `config` превью не проверяет. В production хук ничего не делает. Проверка слотов использует `src/components/Dashboard/utils/constants.ts` (`CONTAINER_SLOT_MAP`), а не реестр компонентов библиотеки; проблемы выводятся в консоль, рендер не блокируется.
 
-Обход дерева сообщает `missing-id` (`severity: "error"`) о каждом узле и модалке без непустого `id`. Отдельные наборы правил лежат рядом с `validateDashboardConfig` в `src/components/Dashboard/utils/`:
+Сам обход дерева в `validateDashboardConfig` сообщает:
+
+- `missing-id` (`error`) — узел или модалка без непустого `id`;
+- `unexpected-slot` (`error`) — `id` ребёнка не входит в slot-id родителя по `CONTAINER_SLOT_MAP` (у `DataSource`/`DataSourceProgress` — в slot-id внутреннего шаблона), а также слот `bgImage` у `Divider`. Универсальные слоты заголовка и `bgImage` (`UNIVERSAL_SLOT_IDS`) в эту проверку не попадают;
+- `missing-inner-template` (`error`) — `DataSource`/`DataSourceProgress` без `options.innerTemplateName`; дети такого хоста на слоты не проверяются;
+- `missing-filter-name` (`error`) — фильтр в `Filters` без `options.filterName`;
+- `orphan-option` (`warning`) — `options.outflow` без слота `bgImage`;
+- `dangling-ref` (`warning`) — `chartId`/`modalId`/`tabId`/`downloadById` (`NODE_REF_FIELDS`) не находят узел с таким `id`, а `filterName` фильтра — объявленный фильтр.
+
+Отдельные наборы правил лежат рядом с `validateDashboardConfig` в `src/components/Dashboard/utils/`:
 
 | Файл | Что проверяет | Коды |
 |---|---|---|
 | `validateControlsGroup` | Ряд `ControlsGroup` и вкладки `Tabs`: типы детей, `filterName`, старые опции, дубли id вкладок | `invalid-group-child`, `missing-filter-name`, `removed-option`, `duplicate-tab-id` |
+| `validateButtonColor` | Снятая опция кнопки `color` (теперь `bgColor`) — у `type: "button"`, в её `active` и ветках `conditions`, в наборах `button`/`activeButton` у `ControlsGroup`/`Tabs`, у вкладок без `type` и слота `button` у `Task`. Ошибка: кнопка с `color` молча рисуется цветом по умолчанию | `removed-option` |
 | `validateStructuredData` | Инварианты `StructuredData`: представление, схема, фильтр-приёмник, запись в слой, источники списков | `missing-view`, `missing-schema`, `duplicate-attribute`, `missing-filter-name`, `invalid-filter-value-type`, `save-to-layer-without-layer`, `unknown-list-source`, `orphan-option` |
 | `validateStructuredDataLists` | Колонки со списком значений и многострочным вводом | `invalid-control`, `orphan-option` |
 | `validateStructuredDataSaveChain` | Цепочка `event: "save"`: источник-слой у `saveToLayer`, запись в свой фильтр | `save-to-layer-without-layer`, `save-chain-skips-filter` |
-| `validateVote` | Свойство `attributeName` и четыре слоя `Vote` | `missing-vote-binding`, `missing-vote-source` |
+| `validateVote` | Свойство `attributeName` и четыре слоя `Vote`; слот `timer` — контейнер `Timer` | `missing-vote-binding`, `missing-vote-source`, `invalid-vote-timer` |
 | `validateTimer` | `Timer`: задана `targetDate`; литеральная дата читается, пороги `warningBefore`/`dangerBefore` — `"ЧЧ:ММ:СС"` или число секунд. Значения с подстановкой (`%`, `{`, `$`, `#`) не проверяются — они известны только в рантайме | `missing-timer-target`, `invalid-timer-value` |
 | `validateModalDataSources` | Источник модалки с именем, которое уже есть у страницы или корня: его перекрывает чужой, ленивой загрузки нет | `modal-datasource-shadowed` |
 | `validateModalHeader` | `options.header.bgPosition` без слота `bgImage` у модалки | `orphan-option` |

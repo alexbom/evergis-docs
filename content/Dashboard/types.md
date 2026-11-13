@@ -70,7 +70,7 @@ Slot-id обязателен у каждого элемента — без не�
 
 ## Дискриминированный union `DashboardChild`
 
-`DashboardChild` — union из 53 ветвей: 16 `<Name>ElementConfig` и 37 `<Name>ContainerConfig`. Каждая ветвь сужена литералом:
+`DashboardChild` — union из 53 ветвей: 16 `Element<Name>Config` и 37 `<Name>ContainerConfig` (у `Divider` ветвь — `DividerContainerElementConfig`: имя `DividerContainerConfig` занято типом корневого `config`, из которого `Divider` читает цвет). Каждая ветвь сужена литералом:
 
 - **элементы** — поле `type` (`"button"`, `"camera"`, `"chart"`, ...);
 - **контейнеры** — поле `templateName` (`"AddFeature"`, `"Attachment"`, `"Chart"`, ...).
@@ -198,7 +198,7 @@ const child: StrictConfigContainerChild = {
 
 | Component | `type` | `<Name>Options` (Pick полей) |
 |---|---|---|
-| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `color`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`, `iconTop`, `disabled`) + `icon`, `radius`, `title`, `noMargin`, `withDivider` |
+| `ElementButton` | `"button"` | [[options#ConfigButtonOptions\|ConfigButtonOptions]] (`variant`, `bgColor`, `fontColor`, `primary`, `secondary`, `error`, `violet`, `size`, `shape`, `iconRight`, `iconTop`, `disabled`) + `icon`, `radius`, `title`, `noMargin`, `withDivider`, `width` |
 | `ElementCamera` | `"camera"` | `expandable`, `expanded` |
 | `ElementChart` | `"chart"` | `markers`, `showLabels`, `showMarkers`, `showTotal`, `totalWord`, `totalAttribute`, `expandable`, `expanded`, `chartType`, `relatedDataSources`, `defaultColor`, `dotSnapping`, `height`, `radius`, `padding`, `fontColor`, `angle`, `barWidth`, `cornerRadius`, `shownItems`, `otherItems`, `axis`, `width` |
 | `ElementChips` | `"tags"` | `separator`, `bgColor`, `fontColor`, `fontSize`, `colorAttribute`, `variants` |
@@ -229,7 +229,7 @@ const child: StrictConfigContainerChild = {
 | `DataSourceInnerContainer` | — | `relatedDataSource`, `filterName`, `column` |
 | `DataSourceProgressContainer` | `DataSourceProgress` | `maxValue`, `showTotal`, `relatedDataSource`, `innerTemplateName`, `expandable`, `expanded`, `shownItems`, `otherItems` + `ContainerBoxOptions` |
 | `DefaultAttributesContainer` | `DefaultAttributes` | — |
-| `DividerContainer` | `Divider` | `bgColor` (из глобального `config.options`) |
+| `DividerContainer` | `Divider` | `bgColor` (из глобального `config.options`; проп `config` — `DividerContainerConfig`, узел — `DividerContainerElementConfig` без своих опций) |
 | `EditContainer` | `Edit` | — |
 | `EditGroupContainer` | `EditGroup` | `controls`, `useProjectHiddenAttributes`, `expandable`, `expanded` |
 | `EditBooleanContainer` | `EditBoolean` | `controls` |
@@ -247,12 +247,12 @@ const child: StrictConfigContainerChild = {
 | `ImageContainer` | `Image` | `ContainerBoxOptions` (собственных полей нет) |
 | `LayersContainer` | `Layers` | `layerNames`, `expandable`, `expanded` + `ContainerBoxOptions` |
 | `OneColumnContainer` | `OneColumn` | `attributes`, `useProjectHiddenAttributes`, `hideEmpty`, `innerTemplateStyle` + `ContainerBoxOptions` |
-| `PagesContainer` | `Pages` | `column`, `width` (+ `PageChild.options.tabId` связывает страницу с табом) |
+| `PagesContainer` | `Pages` | `column`, `width` (+ `PageChild.options.tabId` связывает страницу с табом). Проп `config` — `PagesContainerConfig`; ветви в union `DashboardChild` нет |
 | `ProgressContainer` | `Progress` | `bgColor`, `innerTemplateStyle`, `maxValue`, `hideTitle`, `innerValue`, `colors`, `colorAttribute` |
 | `RoundedBackgroundContainer` | `RoundedBackground` | `maxLength`, `maxLines`, `wordBreak`, `center`, `fontColor`, `bgColor`, `innerTemplateStyle`, `inlineUnits`, `big`, `bigIcon`, `hideEmpty`, `colorAttribute`, `align`, `columns`, `gap`, `innerGap` |
 | `SlideshowContainer` | `Slideshow` | `expandable`, `expanded` + `ContainerBoxOptions` |
 | `StructuredDataContainer` | `StructuredData` | `attributesDescription`, `relatedDataSource`, `filterName`, `editMode`, `saveToLayer`, `expandable`, `expanded` + `ContainerBoxOptions` (+ дети: `StructuredDataTableChild` (`id: "data"`, `type: "table"`, опции — `ElementTableOptions`), `StructuredDataAliasChild`, `StructuredDataTitleChild`, `StructuredDataTitleIconChild`) |
-| `ControlsGroupContainer` | `ControlsGroup` | `size`, `gap`, `joinRadius`, `background`, `underline`, `iconSize`, `stretch`, `button`, `activeButton` + `ContainerBoxOptions` (дети — `ControlsGroupContainerChild`: `ControlsGroupButtonChild` / `ControlsGroupFilterChild` (`type`: `ControlsGroupFilterType` = `dropdown`/`text`/`chips`/`checkbox`) / `ControlsGroupUploaderChild`; опции ребёнка — `ControlsGroupItemOptions`: `grow`, `withDivider`, `width`; у кнопки ещё `active`) |
+| `ControlsGroupContainer` | `ControlsGroup` | `size`, `gap`, `joinRadius`, `background`, `underline`, `iconSize`, `stretch`, `button`, `activeButton` + `ContainerBoxOptions` (дети — `ControlsGroupContainerChild`: `ControlsGroupButtonChild` / `ControlsGroupFilterChild` (`type`: `ControlsGroupFilterType` = `dropdown`/`text`/`chips`/`checkbox`) / `ControlsGroupUploaderChild`; опции ребёнка — свои плюс `ControlsGroupItemOptions` (`grow`, `withDivider`, `width`): `ControlsGroupButtonOptions` = `ElementButtonOptions` + `active`, `ControlsGroupFilterOptions` = `FilterChildOptions`, `ControlsGroupUploaderOptions` = `ElementUploaderOptions`) |
 | `TabsContainer` | `Tabs` | `TabsContainerOptions` = `ControlsGroupContainerOptions` (+ `TabChild`: `type?: "button"`, `options` — `TabOptions` = `ControlsGroupButtonOptions`, `actions`) |
 | `TaskContainer` | `Task` | `title`, `relatedResources`, `center`, `icon`, `statusColors`, `responseFilters`, `useNotifications` + `ContainerBoxOptions` (дети — `TaskContainerChild`: слот `button` + `title`/`titleIcon`) |
 | `TimerContainer` | `Timer` | `targetDate`, `warningBefore`, `dangerBefore`, `compact` + `ContainerBoxOptions` |
@@ -418,7 +418,7 @@ interface BgImageLayerProps {
 | `containers/DataSourceContainer/constants.ts` | константы раскладки плиток источника |
 | `containers/TaskContainer/types.ts` | `TaskButtonProps` (`title`, `icon?`, `status`, `statusColors?`, `isWaiting`, `isDisabled`, `onClick`) — пропсы кнопки запуска; `TaskSlotButtonProps` — то же + `type?`, `buttonConfig: TaskButtonChild` для кнопки из слота `button` |
 | `elements/ElementButton/constants.ts` | `ELEMENT_BUTTON_APPEARANCE_KEYS` — опции внешнего вида, переводящие кнопку-ссылку на `IconButton`; `ELEMENT_BUTTON_COLOR_FLAGS`; `DEFAULT_ELEMENT_BUTTON_VARIANT` (`"solid"`) |
-| `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps`; `VoteButtonSlotId` — `submitButton` / `createButton` / `saveButton` / `deleteButton`, `VoteButtonConfigs` — опциональные конфиги этих кнопок, `VoteButtonProps` — тип виджета и конфиги кнопок; `VoteVariantView` (`barHeight`, `barColor`, `multiline`, `textStyle`, `amountStyle`) — вид строк вариантов из опций и слотов `variantText` / `variantAmount`, `VoteVariantViewProps`, `VoteVariantItemProps` — пропсы строки варианта |
+| `containers/VoteContainer/types.ts` | `VoteScreen` (`"loading" \| "create" \| "voting" \| "voted" \| "unauthenticated"`), сущности БД `VoteCategory` / `VoteQuestion` / `VoteVariant` / `VoteVariantResult`, форма `VoteFormValues` + `VoteFormVariant`, `VoteDataSources` — `Required<Pick<VoteContainerOptions, ...четыре слоя>>` (только имена таблиц, без размеров и заголовка), пропсы экранов `VoteCreateFormProps` / `VoteResultsProps` / `VoteScreenProps`; `VoteButtonSlotId` — `submitButton` / `createButton` / `saveButton` / `deleteButton`, `VoteButtonConfigs` — опциональные конфиги этих кнопок, `VoteButtonProps` — тип виджета и конфиги кнопок; `VoteVariantView` (`barHeight`, `barColor`, `multiline`, `textStyle`, `amountStyle`) — вид строк вариантов из опций и слотов `variantText` / `variantAmount`, `VoteVariantViewProps`, `VoteVariantItemProps` — пропсы строки варианта; `VoteTimerProps` (`timer`) — отрисованный слот `timer` или `null`, если слота нет или дата окончания пуста |
 | `containers/VoteContainer/constants.ts` | имена атрибутов таблиц голосования и лимиты формы; slot-id `VOTE_VARIANT_TEXT_SLOT_ID` / `VOTE_VARIANT_AMOUNT_SLOT_ID`; умолчания по макету `VOTE_BAR_HEIGHT` (8), `VOTE_BAR_COLOR` (`#f9c236`), `VOTE_ACCEPTED_COLOR` (`#93c93b`), `VOTE_QUESTION_MIN_HEIGHT` (64) |
 | `containers/TimerContainer/types.ts` | `TimerStatus` (`"normal" \| "warning" \| "danger"`), `TimerStatusColors` (`color`, `background`), `TimerTimes` — дата окончания и пороги в мс после подстановок (`targetTime`, `warningMs`, `dangerMs`; `null` — не задано или не читается) |
 | `containers/TimerContainer/constants.ts` | `TIMER_PLACEHOLDER` (`"--:--:--"`), `TIMER_ALIAS_SLOT_ID`, `TIMER_TICK_OFFSET_MS` — запас после границы секунды, регулярки порога (`ЧЧ:ММ:СС` и число секунд), `TIMER_STATUS_COLORS` — цвета оранжевого и красного состояний по макету |

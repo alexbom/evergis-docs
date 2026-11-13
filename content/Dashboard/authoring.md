@@ -38,7 +38,7 @@
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
 | `Task` | `button` — кнопка запуска `type: "button"` (вид — из слота, поведение и статусы — контейнер); без слота — встроенная кнопка |
 | `ExportPdf` | `button` — только `type: "button"`; без слота кнопки нет |
-| `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. `variantText`, `variantAmount` — без `type` и `value`, только `style` (у `variantText` ещё `options.multiline`): оформление текста варианта и числа голосов. На узле обязателен `attributeName` |
+| `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. `variantText`, `variantAmount` — без `type` и `value`, только `style` (у `variantText` ещё `options.multiline`): оформление текста варианта и числа голосов. `timer` — только контейнер с `templateName: "Timer"` (под вариантами ответа; пустая дата окончания — таймера нет). На узле обязателен `attributeName` |
 | `Timer` | `alias` — подпись; время рисует контейнер. Обязательна опция `targetDate` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |
@@ -267,11 +267,12 @@
 - [ ] У **каждой** перечисляемой сущности (таб / кнопка / фильтр) есть уникальный `id`.
 - [ ] У кнопок AddFeature, ExportPdf и Vote явно задан `type: "button"`, подпись находится в `value` или в `options.title` при отсутствии / `null` в `value`, оформление — в `options` дочерней кнопки. Корневой `style`, `noMargin` и `withDivider` применяются к узлу кнопки. У ExportPdf есть слот `button`, у Vote — слоты всех нужных операций: без соответствующего слота кнопки нет.
 - [ ] У **каждого** фильтра дополнительно есть `options.filterName`.
-- [ ] Дети `ControlsGroup` — только `button`, `uploader` и фильтры `dropdown`/`text`/`chips`/`checkbox` (с `options.filterName`); дети `Tabs` — только кнопки (`type: "button"` или без `type`), без старых опций вида `radius`/`column`/`bgColor`/`noBg`/`onlyIcon`/`shownItems`/`maxLength`/`wordBreak`, а id вкладок не повторяются во всём виджете (иначе `invalid-group-child` / `removed-option` / `duplicate-tab-id`).
+- [ ] Дети `ControlsGroup` — только `button`, `uploader` и фильтры `dropdown`/`text`/`chips`/`checkbox` (с `options.filterName`); дети `Tabs` — только кнопки (`type: "button"` или без `type`), без старых опций вида `radius`/`column`/`bgColor`/`noBg`/`onlyIcon`/`shownItems`/`maxLength`/`wordBreak`, а id вкладок не повторяются во всём виджете (иначе `invalid-group-child` / `removed-option` / `duplicate-tab-id`). Старый `bgColor` — это опция самого узла `Tabs`; у кнопок (и в наборах `button`/`activeButton`) `bgColor` — цвет кнопки.
+- [ ] Цвет кнопки — `options.bgColor`, цвет текста и иконки — `options.fontColor`. Прежнее `options.color` у кнопок не поддерживается (иначе `removed-option`, severity `error`).
 - [ ] У **каждого** `DataSource` / `DataSourceProgress` задан `options.innerTemplateName`, а slot-id детей соответствуют этому внутреннему шаблону.
 - [ ] Слот `bgImage` (если он есть) стоит у контейнера, а не у `Divider`, и не продублирован внутрь записей DataSource-хоста.
 - [ ] `options.outflow` задан только там, где у контейнера есть слот `bgImage` (иначе валидатор отдаёт `orphan-option` — вытекать нечему).
-- [ ] У `Vote` заданы свойство узла `attributeName` и все четыре слоя (`categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`) — это **имена слоёв**, а не источников данных страницы (иначе валидатор отдаёт `missing-vote-binding` / `missing-vote-source`).
+- [ ] У `Vote` заданы свойство узла `attributeName` и все четыре слоя (`categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`) — это **имена слоёв**, а не источников данных страницы (иначе валидатор отдаёт `missing-vote-binding` / `missing-vote-source`). Слот `timer` у `Vote` — только контейнер `templateName: "Timer"` (иначе `invalid-vote-timer`).
 - [ ] У `Timer` задана `options.targetDate` (ISO-дата или подстановка), а пороги `warningBefore` / `dangerBefore` — в формате `"ЧЧ:ММ:СС"` или числом секунд (иначе `missing-timer-target` / `invalid-timer-value`).
 - [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` (и `tabId` действий `selectTab`) резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.

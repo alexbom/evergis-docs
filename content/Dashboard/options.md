@@ -166,8 +166,9 @@ interface ConfigOptions
 | Поле | Тип | Описание |
 |---|---|---|
 | `variant` | `IconButtonVariant` | Заливка и обводка: `"solid"` \| `"soft"` \| `"outline"` \| `"ghost"`. По умолчанию `"solid"` |
-| `color` | `string` | Произвольный CSS-цвет; перекрывает флаги цвета. Оттенки наведения и нажатия вычисляются |
-| `primary` | `boolean` | Флаг цвета. Приоритет флагов: `primary` → `secondary` → `error` → `violet`. Если не задан ни `color`, ни один флаг — кнопка `primary`; нейтральная — явным `primary: false` |
+| `bgColor` | `string` | Цвет кнопки — произвольный CSS-цвет; перекрывает флаги цвета. У `solid` — заливка, у `soft` — подложка, у `outline` — рамка и заливка при наведении, у `ghost` — текст и подложка наведения. Оттенки наведения и нажатия вычисляются. Прежнее имя `color` не поддерживается |
+| `fontColor` | `string` | Цвет текста и иконки во всех состояниях, кроме недоступного |
+| `primary` | `boolean` | Флаг цвета. Приоритет флагов: `primary` → `secondary` → `error` → `violet`. Если не задан ни `bgColor`, ни один флаг — кнопка `primary`; нейтральная — явным `primary: false` |
 | `secondary` | `boolean` | Флаг цвета |
 | `error` | `boolean` | Флаг цвета |
 | `violet` | `boolean` | Флаг цвета |
@@ -177,7 +178,7 @@ interface ConfigOptions
 | `iconTop` | `boolean` | Иконка над текстом, текст по центру с переносом по словам, шеврон — под текстом; перекрывает `iconRight` |
 | `disabled` | `boolean` | Кнопка недоступна: клик и actions не срабатывают |
 
-**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider">`), кнопки [[containers#ControlsGroupContainer|ControlsGroupContainer]] и вкладки [[containers#TabsContainer|TabsContainer]] (`size` — ещё и как размер группы), а через `ElementButton` — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. Текст задаётся в `value` дочернего элемента или в `options.title`, если `value` отсутствует или равен `null`; опции оформления принадлежат кнопке, а не контейнеру.
+**Используется в:** `ElementButton` (`ElementButtonOptions = ConfigButtonOptions & Pick<ConfigOptions, "icon" | "radius" | "title" | "noMargin" | "withDivider" | "width">`; `width` — ширина кнопки, `CssSize`), кнопки [[containers#ControlsGroupContainer|ControlsGroupContainer]] и вкладки [[containers#TabsContainer|TabsContainer]] (`size` — ещё и как размер группы), а через `ElementButton` — дочерние кнопки [[containers#AddFeatureContainer|AddFeatureContainer]], слот `button` у [[containers#ExportPdfContainer|ExportPdfContainer]] / [[containers#TaskContainer|TaskContainer]] и слоты `submitButton` / `createButton` / `saveButton` / `deleteButton` у [[containers#VoteContainer|VoteContainer]]. Текст задаётся в `value` дочернего элемента или в `options.title`, если `value` отсутствует или равен `null`; опции оформления принадлежат кнопке, а не контейнеру.
 
 ---
 
