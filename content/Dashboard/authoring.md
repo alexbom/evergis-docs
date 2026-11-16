@@ -38,7 +38,7 @@
 | `DataSource`, `DataSourceProgress` | slot-id **внутреннего шаблона** `options.innerTemplateName` (не собственные слоты хоста) — см. раздел ниже |
 | `Task` | `button` — кнопка запуска `type: "button"` (вид — из слота, поведение и статусы — контейнер); без слота — встроенная кнопка |
 | `ExportPdf` | `button` — только `type: "button"`; без слота кнопки нет |
-| `Vote` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. `variantText`, `variantAmount` — без `type` и `value`, только `style` (у `variantText` ещё `options.multiline`): оформление текста варианта и числа голосов. `timer` — только контейнер с `templateName: "Timer"` (под вариантами ответа; пустая дата окончания — таймера нет). На узле обязателен `attributeName` |
+| `Vote` | `submitButton`, `createButton`, `saveButton`, `editButton`, `deleteButton` — только `type: "button"`; без соответствующего слота кнопки нет. Вложенные поля правки объекта — контейнеры с `templateName` на `Edit` (`EditDate`, `EditAttachment`, …) с любым `id`: форма голосования ставит их перед своей кнопкой. `variantText`, `variantAmount` — без `type` и `value`, только `style` (у `variantText` ещё `options.multiline`): оформление текста варианта и числа голосов. `timer` — только контейнер с `templateName: "Timer"` (под вариантами ответа; пустая дата окончания — таймера нет). На узле обязателен `attributeName` |
 | `Timer` | `alias` — подпись; время рисует контейнер. Обязательна опция `targetDate` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |

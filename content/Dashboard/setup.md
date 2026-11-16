@@ -212,6 +212,7 @@ import { replaceObject } from "find-and";
 | `zoomLevel` | `number` | Целый уровень зума карты — плейсхолдер `%zoom` |
 | `projectName` | `string` | Системное имя открытого проекта — плейсхолдеры `%project` и `%project.name` |
 | `projectAlias` | `string` | Алиас открытого проекта — плейсхолдер `%project.alias`, при пустом значении используется `projectName` |
+| `userName` | `string` | Логин вошедшего пользователя — плейсхолдер `%user`. Анонимному посетителю (публичный аккаунт) не передаётся |
 | `themeName` | `ThemeName` | Тема (`Dark` / `Light`) |
 | `api` | `Api` | Экземпляр API-клиента (`@evergis/api`) |
 | `onCreateFeature` | `FeatureCreationHandler` | Необязательный обработчик запуска создания: `(options: FeatureCreationOptions) => void \| FeatureCreationSession \| Promise<void \| FeatureCreationSession>`. Подключает рисование и карточку приложения; сессия сообщает исход создания (см. [[#Подключение создания объектов]]) |
@@ -247,6 +248,21 @@ import { replaceObject } from "find-and";
 
 Без `onCreateFeature` хук возвращает `isAvailable: false`, а нативные кнопки AddFeature недоступны. Уже настроенные Actions дочерних кнопок сохраняют собственное поведение и приоритет.
 
+### Операции с объектом карточки
+
+`FeatureCardEditProvider` (контекст `FeatureCardEditContext`, хук `useFeatureCardEdit`, пропсы — `FeatureCardEditActions` + `children`) отдаёт контейнерам карточки операции хоста с текущим объектом. Через них контейнер заменяет стандартный тулбар карточки — например, [[containers#VoteContainer|голосование]] со скрытыми `toolbar`/`editToolbar` в [[concepts#Карточка объекта|capabilities]].
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `editFeature` | `VoidFunction` | Перевести карточку в правку объекта |
+| `saveFeature` | `(attributes?) => Promise<boolean>` | Сохранить объект, как «Сохранить» тулбара; `attributes` пишутся поверх полей правки. `true` — объект записан, `false` — нет (отказ `beforeSave`, ошибка; о ней хост сообщил сам) |
+| `deleteFeature` | `() => Promise<boolean>` | Удалить объект из слоя и закрыть карточку |
+| `saveDisabled` | `boolean` | Сохранить пока нельзя — например, геометрия ещё не нарисована |
+
+Провайдер отдельный от `FeatureCardProvider`: операции живут в компоненте карточки, ниже него, — им самим нужен контекст карточки. Без провайдера все операции не заданы, и контейнеры работают без хоста.
+
+В client-new провайдер оборачивает тело карточки (`components/FeatureCard/index.tsx`); операции собирает `useFeatureCardEditActions` из `useEditFeature` (`onEdit`, `onSave`) и `useDeleteFeature`. Тот же хук отдаёт тулбару `saveDisabled` и обработчик «Сохранить». `onSave` из `useFeaturePersistence` принимает дополнительные атрибуты и возвращает признак записи.
+
 ### Кто заполняет свойства карты (client-new)
 
 Файл: `src/providers/GlobalProvider/index.tsx` — обёртка отрендерена внутри `MapProvider`, поэтому обоим хукам доступен `useMapContext()`.
@@ -256,6 +272,7 @@ import { replaceObject } from "find-and";
 | `ewktGeometry` | `useEwktGeometry()` (`src/hooks/map`) | EWKT нарисованного выделения с буфером |
 | `ewktExtent`, `zoomLevel` | `useMapView()` (`src/hooks/map`) | Снимок вида карты по событию `idle`; `getMapView` (`src/evergis/map`) клампит bounds по границам меркатора и конвертирует через `geometryToEwkt` |
 | `projectName`, `projectAlias` | селектор `getProjectInfo` (слайс `project`) | `name` и `alias` открытого проекта |
+| `userName` | `useSignedInUserName()` (`src/hooks/user`) | Логин из слайса `user`; для `public_user` (в `username` или в ролях) — `undefined` |
 | `notification` | слайс `notifications` | `add` / `update` / `close` диспатчат `addNotification` / `updateNotification` / `closeNotification` |
 | `onCreateFeature` | `useFeatureCreationHost()` (`src/hooks/map`) | Обработчик хоста создания объекта; вторым полем хук отдаёт `reportFeatureCreated` для `FeatureCreationReportContext` |
 
@@ -295,7 +312,7 @@ import { replaceObject } from "find-and";
 Сам обход дерева в `validateDashboardConfig` сообщает:
 
 - `missing-id` (`error`) — узел или модалка без непустого `id`;
-- `unexpected-slot` (`error`) — `id` ребёнка не входит в slot-id родителя по `CONTAINER_SLOT_MAP` (у `DataSource`/`DataSourceProgress` — в slot-id внутреннего шаблона), а также слот `bgImage` у `Divider`. Универсальные слоты заголовка и `bgImage` (`UNIVERSAL_SLOT_IDS`) в эту проверку не попадают;
+- `unexpected-slot` (`error`) — `id` ребёнка не входит в slot-id родителя по `CONTAINER_SLOT_MAP` (у `DataSource`/`DataSourceProgress` — в slot-id внутреннего шаблона), а также слот `bgImage` у `Divider`. Универсальные слоты заголовка и `bgImage` (`UNIVERSAL_SLOT_IDS`) в эту проверку не попадают, как и вложенные контейнеры с `templateName` на префикс правила `nestedTemplatePrefix` (у `Vote` — `Edit*`-поля формы с любым `id`);
 - `missing-inner-template` (`error`) — `DataSource`/`DataSourceProgress` без `options.innerTemplateName`; дети такого хоста на слоты не проверяются;
 - `missing-filter-name` (`error`) — фильтр в `Filters` без `options.filterName`;
 - `orphan-option` (`warning`) — `options.outflow` без слота `bgImage`;

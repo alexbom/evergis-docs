@@ -53,7 +53,7 @@
 | `$dashboard:source-name:field` | Поле первой строки источника Dashboard; имя источника может содержать точки и дефисы |
 | `$card:layer.name:field` | Атрибут выбранного объекта карточки указанного слоя |
 | `{attribute}` | Атрибут текущего объекта |
-| `%geometry`, `%extent`, `%zoom`, `%project.name`, `%project.alias` | Системные значения из GlobalContext |
+| `%geometry`, `%extent`, `%zoom`, `%project.name`, `%project.alias`, `%user` | Системные значения из GlobalContext; `%user` — логин вошедшего, у анонима пуст (см. [[concepts#Вошедший пользователь]]) |
 
 Примеры: `%count % 5 === 2`, `[1, 2].includes(%district)`, `$dashboard:sales:total > 100`, `Date.parse({date}) >= Date.parse('2026-01-01')`.
 

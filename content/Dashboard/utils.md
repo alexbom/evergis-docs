@@ -72,7 +72,7 @@ const attr = getAttributeByName("name", attributes);
 
 ### getButtonSlot (internal)
 
-**Назначение:** Поиск дочерней кнопки по фиксированному slot-id. Используется в [[containers#ExportPdfContainer|ExportPdfContainer]] (`button`) и [[containers#VoteContainer|VoteContainer]] (`submitButton`, `createButton`, `saveButton`, `deleteButton`). Файл `utils/getButtonSlot.ts` не реэкспортируется через `utils/index.ts`.
+**Назначение:** Поиск дочерней кнопки по фиксированному slot-id. Используется в [[containers#ExportPdfContainer|ExportPdfContainer]] (`button`) и [[containers#VoteContainer|VoteContainer]] (`submitButton`, `createButton`, `saveButton`, `editButton`, `deleteButton`; слот, скрытый условием, Vote отбрасывает). Файл `utils/getButtonSlot.ts` не реэкспортируется через `utils/index.ts`.
 
 `(children: ConfigContainerChild[] | undefined, id: string) => ElementButtonConfig | undefined`
 

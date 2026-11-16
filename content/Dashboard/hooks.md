@@ -756,11 +756,11 @@ const layer = getConfigLayer("myLayer");
 
 ## useGlobalContext
 
-**Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, ewktExtent, zoomLevel, themeName, language, projectName, projectAlias, notification).
+**Назначение:** Доступ к `GlobalContext` (api, t, ewktGeometry, ewktExtent, zoomLevel, themeName, language, projectName, projectAlias, userName, notification).
 
 **Параметры:** нет
 
-**Возвращает:** `{ t, language, themeName, api, ewktGeometry, ewktExtent, zoomLevel, projectName, projectAlias, notification }` — поля `GlobalContext`, `t` всегда определён
+**Возвращает:** `{ t, language, themeName, api, ewktGeometry, ewktExtent, zoomLevel, projectName, projectAlias, userName, notification }` — поля `GlobalContext`, `t` всегда определён. `userName` — логин для подстановки `%user` (у анонима `undefined`)
 
 Если хост не передал свой `t` (так в Storybook), хук отдаёт запасной переводчик: он возвращает `defaultValue` (или ключ) и сам подставляет переменные `{{name}}` из опций вызова (`interpolateTranslation`), как это сделал бы i18next.
 

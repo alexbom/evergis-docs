@@ -10,7 +10,7 @@
 Internal-хуки `useEditControl`, `useRenderContainer`, `useRenderContainerItem`, `useDataSourceRequests`, `useChartActions`, `useModalSources`, `useModalAutoSync` используются внутри библиотеки и не реэкспортируются публичными баррелями. Контракты — [[hooks|Хуки]].
 
 Компоненты и провайдеры:
-`Dashboard`, `DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `GlobalProvider`, `ContainerBackground`, `ContainerWrapper`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
+`Dashboard`, `DashboardProvider` (BaseDashboardProvider), `FeatureCardProvider`, `FeatureCardEditProvider` (+ `FeatureCardEditContext`, `useFeatureCardEdit`, тип `FeatureCardEditActions`), `GlobalProvider`, `ContainerBackground`, `ContainerWrapper`, `ConfigContainer`, `ContainerTemplate`, `HeaderTemplate`, `WidgetType`
 
 Константы и дефолты:
 `DEFAULT_DASHBOARD_CONFIG`, `DEFAULT_PAGES_CONFIG`, `CONFIG_PAGES_ID`, `CONFIG_PAGE_ID`, `TITLE_SLOT_IDS`, `BG_IMAGE_SLOT_ID`, `NON_TRACK_SLOT_IDS`, `ROOT_OWNING_TEMPLATES`, `BASE_CONTAINER_STYLE`, `CONTAINER_BODY_ATTRIBUTE`, `CONTAINERS_GROUP_DEFAULTS`

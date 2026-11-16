@@ -402,6 +402,22 @@ interface SelectedFilter {
 }
 ```
 
+### Вошедший пользователь
+
+`%user` — логин вошедшего пользователя. Значение приходит из [[setup|GlobalContext]] (`userName`); имя `user` зарезервировано целиком, одноимённый фильтр конфига перехватывается.
+
+Анонимному посетителю значение не известно: хост не передаёт `userName` для публичного аккаунта портала (`public_user` — он общий на всех анонимов). Тогда `%user` — пустое значение (`null`), и сравнение с ним ложно: `{user_name} == %user` у анонима не выполнится, даже если автор не заполнен.
+
+Работает в строках конфига — [[conditional-formatting|условиях]], тексте элементов, Actions. В запросы источников данных (`condition`, `parameters`) и слоёв карты не подставляется.
+
+```json
+{ "id": "editButton", "type": "button", "options": { "icon": "edit" },
+  "conditions": {
+    "%user && {user_name} == %user && !{votes}": { "visibility": true },
+    "else": { "visibility": false }
+  } }
+```
+
 ### Подстановки в строках конфига
 
 Все подстановки разбирает один резолвер (`utils/configString`, одна грамматика токенов). Он работает в трёх режимах: параметры запроса, условие слоя, текст интерфейса.
@@ -413,7 +429,7 @@ interface SelectedFilter {
 | `$dashboard:<датасорс>:<поле>` | поле **первой строки датасорса дашборда**: ищется по имени, затем по `layerName`. Пока датасорс не загружен, значение пустое. Заменяет снятый `$left:<слой>:<поле>` |
 | `{attributeName}` | атрибут текущего объекта (у строк `DataSource` — атрибут строки) |
 | `$card:<слой>:<поле>` | атрибут объекта карточки, если карточка открыта на этом слое |
-| `%geometry`, `%extent`, `%zoom`, `%project[.name\|.alias]` | системные значения, см. выше |
+| `%geometry`, `%extent`, `%zoom`, `%project[.name\|.alias]`, `%user` | системные значения, см. выше |
 | `#field`, `#field.path` | поле `response.result.features[0].properties` последней успешной Python-задачи текущей цепочки [[actions\|Actions]] |
 | `$event`, `$event.path` | полный снимок исходного события / его свойство. В цепочке `event: "save"` `$event.value` — черновик таблицы, в `onError` `$event.error` — ошибка шага |
 | `$params`, `$params.path` | параметры открытой модалки / их свойство |
@@ -566,7 +582,7 @@ interface ConfigLayer {
 | `FiltersContainer` | **дети — фильтры `FilterChild` с уникальным `id`** + обязательный `options.filterName` (перечисляемые сущности) |
 | `TaskContainer` | `button` — кнопка запуска `type: "button"` (`TaskButtonChild`): вид — из слота, поведение и статусы — от контейнера; без слота — встроенная кнопка |
 | `ExportPdfContainer` | `button` — `type: "button"`; без слота кнопка экспорта не рисуется |
-| `VoteContainer` | `submitButton`, `createButton`, `saveButton`, `deleteButton` — `type: "button"`; без соответствующего слота кнопка не рисуется. `variantText`, `variantAmount` — без `type` и `value`, только оформление (`style`) текста варианта и числа голосов, у `variantText` ещё `options.multiline`. `timer` — вложенный контейнер `Timer` (`templateName: "Timer"`) под вариантами ответа; при пустой дате окончания не рисуется. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
+| `VoteContainer` | `submitButton`, `createButton`, `saveButton`, `editButton`, `deleteButton` — `type: "button"`; без соответствующего слота кнопка не рисуется, слот, скрытый условием, — тоже. Вложенные поля правки объекта — контейнеры `Edit*` (`EditDate`, `EditAttachment`, …) с **любым** `id` — форма ставит перед своей кнопкой. `variantText`, `variantAmount` — без `type` и `value`, только оформление (`style`) текста варианта и числа голосов, у `variantText` ещё `options.multiline`. `timer` — вложенный контейнер `Timer` (`templateName: "Timer"`) под вариантами ответа; при пустой дате окончания не рисуется. Обязательно свойство узла `attributeName` — атрибут объекта с `question_id` |
 | `TimerContainer` | `alias` — подпись; время рисует сам контейнер. Обязательна опция `targetDate` |
 | `FeatureCardBackgroundHeader` | `title`, `description`, `featureIcon`, `bgImage`, `icon` |
 | `FeatureCardSlideshowHeader` | `title`, `description`, `featureIcon`, `bgImage`, `slideshow` |
@@ -716,6 +732,8 @@ interface ConfigLayer {
 
 Нужен, когда компонент находится внутри карточки объекта (FeatureCard) и отображает или редактирует атрибуты.
 
+Операции с самим объектом (перевести в правку, сохранить, удалить) идут не через этот контекст, а через отдельный мост хоста `FeatureCardEditContext` (`useFeatureCardEdit`) — см. [[setup#Операции с объектом карточки|Подключение]]. Так [[containers#VoteContainer|голосование]] заменяет тулбар карточки своими кнопками.
+
 ### GlobalContext
 
 Создаётся `GlobalProvider`. Содержит глобальные зависимости приложения:
@@ -726,6 +744,7 @@ interface ConfigLayer {
 - **Тема** (`themeName`) — `"light"` | `"dark"`
 - **Язык** (`language`) — текущий язык интерфейса
 - **Проект** (`projectName`, `projectAlias`) — значения плейсхолдеров `%project`, `%project.name`, `%project.alias`
+- **Пользователь** (`userName`) — логин вошедшего для плейсхолдера `%user`; анониму не передаётся (см. **Вошедший пользователь**)
 - **Уведомления** (`notification`) — показ и обновление уведомлений (`add`, `update`, `close`)
 - **Создание объектов** (`onCreateFeature`) — обработчик запуска редактора нового объекта
 

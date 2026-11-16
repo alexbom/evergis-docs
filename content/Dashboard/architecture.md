@@ -92,8 +92,11 @@ ContainersGroupContainer
 ### FeatureCardContext
 Хранит атрибуты и конфиг карточки объекта, layerInfo, controls, edit-состояние. Читается через `useWidgetContext(WidgetType.FeatureCard)`.
 
+### FeatureCardEditContext
+Мост операций хоста с объектом карточки (`editFeature`, `saveFeature`, `deleteFeature`, `saveDisabled`) — через него контейнеры карточки заменяют стандартный тулбар. Ставится `FeatureCardEditProvider` ниже `FeatureCardProvider`, читается через `useFeatureCardEdit()`; без провайдера операции не заданы. Подробнее — в [[setup#Операции с объектом карточки|Подключении]].
+
 ### GlobalContext
-Глобальные настройки: `api`, `t`, `language`, `themeName`, состояние карты для системных плейсхолдеров (`ewktGeometry`, `ewktExtent` → `%extent`, `zoomLevel` → `%zoom`), проект (`projectName` → `%project` / `%project.name`, `projectAlias` → `%project.alias`) и API уведомлений `notification` (`add` / `update` / `close`). Читается через `useGlobalContext()`, полная таблица — в [[setup#GlobalProvider (@evergis/react)|Подключении]].
+Глобальные настройки: `api`, `t`, `language`, `themeName`, состояние карты для системных плейсхолдеров (`ewktGeometry`, `ewktExtent` → `%extent`, `zoomLevel` → `%zoom`), проект (`projectName` → `%project` / `%project.name`, `projectAlias` → `%project.alias`), логин вошедшего (`userName` → `%user`) и API уведомлений `notification` (`add` / `update` / `close`). Читается через `useGlobalContext()`, полная таблица — в [[setup#GlobalProvider (@evergis/react)|Подключении]].
 
 Подробнее о контекстах — в [[concepts|Основных понятиях]].
 
