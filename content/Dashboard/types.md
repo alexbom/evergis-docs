@@ -498,7 +498,7 @@ interface BgImageLayerProps {
 
 ## Типографика markdown
 
-Опция `typography` (`ConfigTypographyOptions`, читает только `ElementMarkdown`) переопределяет размер/интервал/начертание отдельных markdown-тегов:
+Опция `typography` (`ConfigTypographyOptions`, читает только `ElementMarkdown`) переопределяет размер/интервал/начертание/разрядку/регистр отдельных markdown-тегов:
 
 ```ts
 type MarkdownTypographyTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "li" | "code";
@@ -507,6 +507,10 @@ interface MarkdownTagTypography {
   fontSize?: FontSizeToken | string;
   lineHeight?: string;
   fontWeight?: number | string;
+  /** Межбуквенный интервал (letter-spacing), например "-0.02em". */
+  letterSpacing?: string;
+  /** Регистр букв (text-transform). */
+  textTransform?: "none" | "uppercase" | "lowercase" | "capitalize";
   /** Отступ снизу — расстояние до следующего блока. */
   marginBottom?: string;
   /** Отступ сверху — расстояние до предыдущего блока. */
@@ -590,7 +594,7 @@ interface ConfigChartAxisOptions {
 | `SelectedFilter` | `value: string \| number \| boolean \| string[] \| number[] \| Date \| Date[] \| TreeFilterValue \| FeaturesFilterValue`, `min?`, `max?`, `keepEmpty?` | Выбранное значение фильтра в состоянии виджета; `min` / `max` — `string \| number \| Date`. `keepEmpty: true` ставит текстовый фильтр: его пустая строка уходит в параметры запроса (см. [[concepts#Фильтры\|Фильтры]]) |
 | `ScalarFilterValue` | `SelectedFilter["value"]` без `TreeFilterValue` и `FeaturesFilterValue` | Значение скалярных/массивных фильтров |
 | `FilterType` | `"checkbox" \| "rangeNumber" \| "rangeDate" \| "text" \| "dropdown" \| "barChart" \| "chips" \| "tree" \| "number" \| "boolean"` | Каким контролом рисуется фильтр: поле `type` ребёнка [[containers#FiltersContainer\|FiltersContainer]] |
-| `NumberFilterView` | `"input" \| "slider" \| "stepper"` | Вид фильтра `number` (опция `view`): поле ввода, ползунок или поле с кнопками «плюс/минус» |
+| `NumberFilterView` | `"input" \| "slider" \| "stepper" \| "inputSlider"` | Вид фильтра `number` (опция `view`): поле ввода, ползунок, поле с кнопками «плюс/минус» или поле с тонкой шкалой на нижней границе и быстрой подстановкой `presets` |
 
 **Куда подставляется значение.** `single`/`range`/`array` — и в `condition` источника, и в `parameters`. `tree` — в `condition` через `applyTreeFilterToCondition` (`%name.lN`) и в `parameters`. `features` — **только** в `parameters` (питон-таска, url-источник); в `condition` не попадает никогда: там значение прошло бы через `formatConditionValue` и выродилось в `[object Object]`.
 

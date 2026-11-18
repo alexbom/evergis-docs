@@ -518,7 +518,7 @@ SVG-ресурс отображается как обычная картинка
 |---|---|---|
 | `expandLength` | `number` | Число символов до скрытия текста. `0` = не скрывать |
 | `noMargin` | `boolean` | Убрать внешний margin обёртки |
-| `typography` | `MarkdownTypography` | Пер-тег типографика: `{ h1..h6, p, li, code }` → `{ fontSize, lineHeight, fontWeight, marginTop, marginBottom }`. Незаданные теги/свойства берут дефолт `MarkdownWrapper` (см. [[types#Типографика markdown\|Типы]]) |
+| `typography` | `MarkdownTypography` | Пер-тег типографика: `{ h1..h6, p, li, code }` → `{ fontSize, lineHeight, fontWeight, letterSpacing, textTransform, marginTop, marginBottom }`. Незаданные теги/свойства берут дефолт `MarkdownWrapper` (см. [[types#Типографика markdown\|Типы]]) |
 
 **Поведение:** контент из `elementConfig.value` или `attributes[attributeName].value`. Рендерит через `react-markdown` с `rehype-raw`, `rehype-sanitize` (схема расширена — разрешён атрибут `style`), `remark-gfm`. При `expandLength > 0` и превышении длины показывает `LegendToggler` «Подробнее» / «Свернуть».
 
@@ -530,7 +530,8 @@ SVG-ресурс отображается как обычная картинка
   options: {
     expandLength: 300,
     typography: {
-      h2: { fontSize: "1.25rem", marginBottom: "0.5rem" },
+      h1: { letterSpacing: "-0.02em" },
+      h2: { fontSize: "1.25rem", marginBottom: "0.5rem", letterSpacing: "0.2em", textTransform: "uppercase" },
       p: { fontSize: "0.875rem", lineHeight: "1.4" }
     }
   }

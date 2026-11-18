@@ -51,7 +51,7 @@ interface ConfigOptions
 | `radius` | `number` | Радиус (для PieChart — относительно контейнера; для кнопок — `border-radius`, px) |
 | `cornerRadius` | `number` | Закругление углов столбцов BarChart |
 | `column` | `boolean` | Вертикальная раскладка детей (один в столбик). У `ElementLegend` — направление записей: `false` в ряд, `true` столбиком |
-| `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла. У [[containers#TimerContainer\|`Timer`]] — строка «подпись слева, время в плашке справа» вместо крупного блока |
+| `compact` | `boolean` | Компактный вид элемента. У [[elements#ElementUploader\|`ElementUploader`]] — зона загрузки в одну строку высотой `2rem` и строки файлов вместо карточки одиночного файла. У [[containers#TimerContainer\|`Timer`]] — строка «подпись слева, время в плашке справа» вместо крупного блока. У фильтра `rangeNumber` — оба значения в одном поле «от - до» без шкалы (шкалу по наведению возвращает `sliderOnHover`) |
 | `grid` | `boolean` | Переключает `ContainersGroup` в режим CSS-сетки: дети — строки (`GridRow`), дети строк — ячейки, вложенность не ограничена. См. [[containers#Режим сетки (grid)\|Режим сетки]] |
 | `editMode` | `boolean` | Разрешение править содержимое контейнера. У `ContainersGroup` с `grid` — раскладку мышью (ресайз границ, выделение, контекстное меню; читается только у внешнего узла). У `StructuredData` — таблицу (ячейки, добавление и удаление строк, «Отменить»/«Сохранить»); не задан — только чтение. **Не путать** с пропом `editMode` провайдеров — тот про редактирование атрибутов объекта (в контейнерах `isEditing`) |
 | `saveToLayer` | `boolean` | Только `StructuredData`: писать правку в слой источника через features-API. По умолчанию `false` — «Сохранить» пишет только в фильтр; в фильтр результат уходит всегда. Работает лишь с `editMode` и источником со слоем (`layerName`); от неё же зависят ограничения схемы слоя. Игнорируется, если сохранение задано actions с `event: "save"`: в слой тогда пишет шаг [[actions#Девять действий\|`saveToLayer`]]. См. [[containers#StructuredDataContainer\|StructuredData]] |
@@ -76,7 +76,7 @@ interface ConfigOptions
 | `barWidth` | `number` | Ширина столбца BarChart |
 | `barHeight` | `number` | Высота StackBar. У [[containers#VoteContainer\|Vote]] — высота полосок с количеством голосов в px (по умолчанию 8, скругление — половина высоты) |
 
-**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `TimerContainer` (`compact`), `ChartContainer`, `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`, `saveToLayer`), `ControlsGroupContainer` и `TabsContainer` (`gap`, `width`, `height`, `overflow`; `width` — и у детей-полей), `TaskContainer`, `TwoColumnContainer`, `VoteContainer` (`barHeight`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementButton` (`radius`), `ElementChart`, `ElementLegend` (`column`), `ElementMarkdown` (`noMargin`), `ElementImage`, `ElementSvg`, `ElementControl`, `ElementTable`, `ElementUploader` (`compact`), `TimerContainer` (`compact`), `ChartContainer`, `ChartLegendChild` (`center`), `ContainersGroupContainer` (`grid`, `editMode`, `autoHeight`, `fixedHeight`, `gap`), `DataSourceContainer`, `DataSourceInnerContainer`, `FiltersContainer` (`padding`), `FilterChild` (`compact` — у `rangeNumber`; `width`, `height`, `align`, `padding`, `radius`; `maxTextWidth` — у `chips`; `barWidth`, `barHeight` — у `barChart`), `GridRowContainer` (`gap`, `alignItems`, `autoHeight`), `OneColumnContainer`, `PagesContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `StructuredDataContainer` (`editMode`, `saveToLayer`), `ControlsGroupContainer` и `TabsContainer` (`gap`, `width`, `height`, `overflow`; у детей — `width` и `withDivider`, `ControlsGroupItemOptions`), `TaskContainer`, `TitleContainer` (`align`), `TwoColumnContainer`, `VoteContainer` (`barHeight`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`. Остальные контейнеры берут `width`, `height`, `overflow` через `ContainerBoxOptions` — см. [[containers#Размерная модель обёртки (ContainerBoxOptions)|размерную модель]].
 
 `innerPadding` и `outflow` — **любой** контейнер: ни один `<Name>Options` их не Pick'ает, значения читают хук хоста и слой фона (см. врезку про пайплайн в [[options#ConfigMiscOptions|ConfigMiscOptions]]).
 
@@ -100,7 +100,7 @@ interface ConfigOptions
 | `statusColors` | `Record<RemoteTaskStatus, string>` | Цвета по статусам задачи |
 | `typography` | `MarkdownTypography` | Пер-тег типографика markdown-виджета: `{ h1..h6, p, li, code }` → `{ fontSize, lineHeight, fontWeight, marginTop, marginBottom }`. Отсутствующий тег или свойство — дефолт `MarkdownWrapper`. См. [[types#Типографика markdown\|Типографика markdown]] |
 
-**Используется в:** `ElementChart`, `ElementChips`, `ElementIcon`, `ElementLegend`, `ElementMarkdown` (`typography`), `ElementSvg`, `DividerContainer`, `FiltersContainer`, `ProgressContainer`, `RoundedBackgroundContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader`.
+**Используется в:** `ElementChart`, `ElementChips`, `ElementIcon`, `ElementLegend`, `ElementMarkdown` (`typography`), `ElementSvg`, `DividerContainer`, `FiltersContainer`, `FilterChild` (`fontColor`, `backgroundColor`, `colors`, `colorAttribute` — у `chips`; `colors`, `colorAttribute`, `primaryColor`, `defaultColor` — у `barChart`), `ProgressContainer`, `RoundedBackgroundContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardSlideshowHeader`.
 
 ---
 
@@ -132,7 +132,7 @@ interface ConfigOptions
 | `responseFilters` | `Record<string, string>` | Маппинг `имя фильтра → имя свойства` первой записи ответа задачи; значение допускает `%field`. Контракт — [[containers#TaskContainer\|TaskContainer]] |
 | `hideIfEmptyDataSource` | `string` | Скрыть контейнер, если указанный источник пуст |
 
-**Используется в:** `ElementChart`, `ElementControl`, `ElementLegend`, `ElementSlideshow`, `AttachmentContainer`, `DataSourceContainer`, `DataSourceInnerContainer`, `DataSourceProgressContainer`, `EditAttachmentContainer`, `StructuredDataContainer` (`attributesDescription`, `relatedDataSource`), `TaskContainer`.
+**Используется в:** `ElementChart`, `ElementControl`, `ElementLegend`, `ElementSlideshow`, `AttachmentContainer`, `DataSourceContainer`, `DataSourceInnerContainer`, `DataSourceProgressContainer`, `EditAttachmentContainer`, `FilterChild` (`relatedDataSource` — справочник значений фильтра), `StructuredDataContainer` (`attributesDescription`, `relatedDataSource`), `TaskContainer`.
 
 ---
 
@@ -155,7 +155,7 @@ interface ConfigOptions
 | `angle` | `number` | Угол поворота подписей оси (BarChart) |
 | `axis` | `ConfigChartAxisOptions` | Оси линейного графика: `titlePosition` (`"side"` \| `"top"` — общий режим подписей осей Y) и `x` (`title`, `align` — подпись оси X). Настройки конкретной оси — в `relatedDataSources[].axis`. Работает только у `line`: подписи осей Y рисует элемент `chart`, строку подписи оси X — `ChartContainer`; у других типов `axis` игнорируется |
 
-**Используется в:** `ElementChart`, `ElementLegend`, `DataSourceProgressContainer`.
+**Используется в:** `ElementChart`, `ElementLegend`, `DataSourceProgressContainer`, `FilterChild` (`markers`, `drawMinMax` — у `barChart`).
 
 ---
 
@@ -219,7 +219,7 @@ interface ConfigOptions
 | `big` | `boolean` | Большой размер компонента |
 | `tagView` | `boolean` | Отображать в виде «тэга» |
 
-**Используется в:** `ElementButton` (`icon`, в том числе дочерние кнопки AddFeature, ExportPdf и Vote), `ElementImage` (`resourceId`), `ElementModal`, `ElementUploader`, `RoundedBackgroundContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`. У ExportPdf нет собственной опции `icon`: задавайте её в `options` элемента слота `button`.
+**Используется в:** `ElementButton` (`icon`, в том числе дочерние кнопки AddFeature, ExportPdf и Vote), `ElementImage` (`resourceId`), `ElementModal`, `ElementTooltip` (`icon`, по умолчанию `question`), `ElementUploader`, `FilterChild` (`icon`, `iconAttribute` — у `dropdown` и `chips`), `RoundedBackgroundContainer`, `TaskContainer`, `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader`. У ExportPdf нет собственной опции `icon`: задавайте её в `options` элемента слота `button`.
 
 ---
 
@@ -262,7 +262,7 @@ interface ConfigOptions
 | `hideEmpty` | `boolean` | Скрывать пустые элементы |
 | `limit` | `number` | Лимит на количество элементов |
 
-**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TwoColumnContainer` (`hideEmpty`), `ElementTable` (`sort`).
+**Используется в:** `ElementChart` (`shownItems`, `otherItems` — сколько категорий показать на графике и сколько свернуть в «Другое»), `AttachmentContainer`, `ChartContainer` (`hideEmpty`), `DataSourceContainer` (`shownItems`, `otherItems`), `DataSourceProgressContainer` (`shownItems`, `otherItems`), `EditAttachmentContainer`, `FilterChild` (`shownItems` — у `checkbox`), `OneColumnContainer` (`hideEmpty`), `RoundedBackgroundContainer` (`hideEmpty`), `TwoColumnContainer` (`hideEmpty`), `ElementTable` (`sort`).
 
 ---
 
@@ -307,13 +307,18 @@ interface ConfigOptions
 | `step` | `number` | Шаг ползунка и кнопок (фильтры `rangeNumber` и `number`, контрол `EditNumber`) |
 | `minValue` | `number \| Date` | Минимум диапазона (`rangeNumber`, `rangeDate`) или значения (`number`) |
 | `maxValue` | `number \| Date` | Максимум диапазона (`rangeNumber`, `rangeDate`) или значения (`number`) |
-| `view` | `NumberFilterView` | Вид фильтра `number`: `"input"` (по умолчанию), `"slider"`, `"stepper"` — см. [[containers#FiltersContainer\|FiltersContainer]] |
+| `view` | `NumberFilterView` | Вид фильтра `number`: `"input"` (по умолчанию), `"slider"`, `"stepper"`, `"inputSlider"` (поле с тонкой шкалой на границе) — см. [[containers#FiltersContainer\|FiltersContainer]] |
 | `unitsLabel` | `string` | Подпись единиц фильтра `number`: `%`, `тенге` |
+| `handleShape` | `"circle" \| "rect"` | Форма ползунков шкалы фильтров `rangeNumber` и `number` (`slider`, `inputSlider`); по умолчанию круг, у тонкой шкалы — прямоугольник |
+| `trackView` | `"solid" \| "segments"` | Вид шкалы тех же фильтров: сплошная линия или отрезки по `segmentStep` |
+| `segmentStep` | `number` | Размер отрезка шкалы в единицах значения при `trackView: "segments"`, по умолчанию `step`; кратен `step`, слишком мелкие отрезки укрупняются |
+| `sliderOnHover` | `boolean` | Тонкая шкала на нижней границе поля только при наведении и фокусе: `rangeNumber` с `compact`, `number` с `inputSlider` |
+| `presets` | `number[]` | Быстрая подстановка фильтра `number` с `inputSlider`: кнопки с готовыми значениями под полем |
 | `noEmptyOption` | `boolean` | Запретить пустой выбор |
 | `fileExtensions` | `string` | Допустимые расширения файлов (например, `".pdf,.png"`) |
 | `editOnly` | `boolean` | Оставить таблице ([[elements#ElementTable\|`table`]]) только правку существующих строк: кнопки «Добавить» и колонки удаления не будет. Поверх `editMode` контейнера. Опция объявлена у представления, а читает её [[containers#StructuredDataContainer\|контейнер]] — кнопка добавления его |
 
-**Используется в:** `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditTextContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild` (`view` и `unitsLabel` — только фильтр `number`), `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`), `StructuredDataContainer` (`filterName`).
+**Используется в:** `ElementChips` (`variants`), `ElementControl` (`control`), `ElementUploader` (`fileExtensions`, `multiSelect`), `ElementSlideshow` (`controls`), `AttachmentContainer` (`controls`), `EditGroupContainer`, `EditBooleanContainer`, `EditStringContainer`, `EditTextContainer`, `EditNumberContainer`, `EditDropdownContainer`, `EditChipsContainer`, `EditCheckboxContainer`, `EditDateContainer` (`withTime`, `controls`), `EditAttachmentContainer` (`controls`, `fileExtensions`), `FilterChild` (`view`, `unitsLabel` и `presets` — только фильтр `number`; `handleShape`, `trackView`, `segmentStep`, `sliderOnHover` — `rangeNumber` и `number`), `DataSourceInnerContainer` (`filterName` — фильтр, который пишет клик по записи), `DataSourceProgressContainer` (`maxValue`), `ProgressContainer` (`maxValue`), `ElementTable` (`editOnly`), `StructuredDataContainer` (`filterName`).
 
 ---
 
@@ -324,8 +329,8 @@ interface ConfigOptions
 | Поле | Тип | Описание |
 |---|---|---|
 | `categoryDataSource` | `string` | Слой-справочник категорий: `id`, `name` |
-| `questionDataSource` | `string` | Слой голосований: `id`, `text`, `category_id`, `user_name`, `multi_select`. На запись |
-| `variantDataSource` | `string` | Слой вариантов ответа: `id`, `question_id`, `text`. На запись |
+| `questionDataSource` | `string` | Слой голосований: `text`, `category_id`, `user_name`, `multi_select`, `allow_custom`; голосование опознаётся по ключу записи слоя (например, `gid`), колонка `id` не нужна. На запись |
+| `variantDataSource` | `string` | Слой вариантов ответа: `question_id`, `text`; вариант опознаётся по ключу записи слоя, колонка `id` не нужна. На запись |
 | `answerDataSource` | `string` | Слой ответов: `id`, `question_id`, `user_name`, `variant_id`. На запись |
 | `barColor` | `string` | Цвет заполнения полосок с количеством голосов. По умолчанию жёлтый `#f9c236`; подложка полоски — из темы (`palette.elementDark`) |
 
@@ -395,7 +400,7 @@ interface ConfigOptions
 | `useNotifications` | `boolean` | Показывать прогресс-уведомления о выполнении задачи (`TaskContainer`) |
 | `notifications` | [[types#Типы источника данных\|`ConfigNotifications`]] (`"all" \| "my" \| string[]`) | Задаётся **только в `options` корня** конфигурации дашборда. Чьи изменения применяются по серверным уведомлениям (фильтр по `senderName`): изменения проекта + значение по умолчанию для `ConfigLayer.notifications` и `ConfigDataSource.notifications`. Не задано — `"all"`. См. [[concepts#Фильтр уведомлений по автору — notifications\|Основные понятия]] |
 
-**Используется в:** `DataSourceContainer`, `DataSourceProgressContainer` (`innerTemplateName` — значение потребляет пайплайн рендера, а не пропсы контейнера), `DashboardDefaultHeader` (`url`), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`). `notifications` не Pick'ается ни одним компонентом: его читает клиентская обвязка подписок (client-new: `useNotificationsFilter` → `resolveNotifications`) из `options` корня.
+**Используется в:** `DataSourceContainer`, `DataSourceProgressContainer` (`innerTemplateName` — значение потребляет пайплайн рендера, а не пропсы контейнера), `DashboardDefaultHeader` (`url`), `ElementImage` (`url`), `PageChild` (`tabId` — связь страницы с вкладкой), `EditGroupContainer`, `OneColumnContainer`, `TwoColumnContainer` (`attributes`, `useProjectHiddenAttributes`), `ProgressContainer` (`innerValue`), `RoundedBackgroundContainer` (`inlineUnits`), `TitleContainer` (`downloadById`), `ElementModal` (`modalId`), `ElementUploader` (`parentResourceId`), `EditAttachmentContainer` (`parentResourceId`), `TaskContainer` (`useNotifications`), `FeatureCardBackgroundHeader`, `FeatureCardDefaultHeader`, `FeatureCardSlideshowHeader` (`themeName`). `notifications` не Pick'ается ни одним компонентом: его читает клиентская обвязка подписок (client-new: `useNotificationsFilter` → `resolveNotifications`) из `options` корня.
 
 > [!note] Опции, потребляемые пайплайном рендера
 > Часть полей читается **пайплайном рендера** напрямую из `options`, а не пропсами компонента — их «Используется в» определяется по фактическому чтению в коде, а не по тому, чей `<Name>Options` их Pick'ает. Ключевой пример — **`innerTemplateName`**: его читает [[containers|`getRenderElement`]] и конвертирует в `innerComponent` (`getContainerComponent`) для `DataSourceContainer`/`DataSourceProgressContainer`; сам контейнер этой опции в пропсах не видит, хотя она и перечислена в его `<Name>Options`. Не считай такие поля неиспользуемыми только потому, что компонент к ним не обращается.

@@ -152,7 +152,7 @@
 
 ### Одиночные фильтры `number` и `boolean`
 
-Справочник (`relatedDataSource`) им не нужен, но `ConfigFilter` с этим `name` в `filters` страницы обязателен: без него контрол не рисуется. Вид `number` задаёт `options.view` (`input` / `slider` / `stepper`), подпись `boolean` — `options.label`. В ряд `ControlsGroup` они не встают: там допустимы только `dropdown` / `text` / `chips` / `checkbox`.
+Справочник (`relatedDataSource`) им не нужен, но `ConfigFilter` с этим `name` в `filters` страницы обязателен: без него контрол не рисуется. Вид `number` задаёт `options.view` (`input` / `slider` / `stepper` / `inputSlider` — поле с тонкой шкалой и быстрой подстановкой `presets`), подпись `boolean` — `options.label`. В ряд `ControlsGroup` они не встают: там допустимы только `dropdown` / `text` / `chips` / `checkbox`.
 
 ```tsx
 // filters страницы: [{ name: "discount" }, { name: "onlyActive", defaultValue: true }]
@@ -274,6 +274,7 @@
 - [ ] `options.outflow` задан только там, где у контейнера есть слот `bgImage` (иначе валидатор отдаёт `orphan-option` — вытекать нечему).
 - [ ] У `Vote` заданы свойство узла `attributeName` и все четыре слоя (`categoryDataSource`, `questionDataSource`, `variantDataSource`, `answerDataSource`) — это **имена слоёв**, а не источников данных страницы (иначе валидатор отдаёт `missing-vote-binding` / `missing-vote-source`). Слот `timer` у `Vote` — только контейнер `templateName: "Timer"` (иначе `invalid-vote-timer`).
 - [ ] У `Timer` задана `options.targetDate` (ISO-дата или подстановка), а пороги `warningBefore` / `dangerBefore` — в формате `"ЧЧ:ММ:СС"` или числом секунд (иначе `missing-timer-target` / `invalid-timer-value`).
+- [ ] Опции шкалы фильтров `rangeNumber` / `number` стоят там, где их читают: `segmentStep` — только с `trackView: "segments"`; `sliderOnHover` — у `rangeNumber` с `compact` или у `number` с `view: "inputSlider"`; `presets` — только у `number` с `view: "inputSlider"` и массивом чисел (иначе `orphan-option` / `invalid-filter-option`).
 - [ ] Все ссылки `chartId` / `tabId` / `modalId` / `downloadById` (и `tabId` действий `selectTab`) резолвятся в существующий `id`.
 - [ ] Новые `id` не конфликтуют с `id` из уже существующего конфига.
 - [ ] Реестры `actions` корня/страницы/модалки содержат определения с `id`, `type`, `options`; привязки визуальных узлов содержат ссылки или inline-вызовы. `actions` не помещены в `options`.
